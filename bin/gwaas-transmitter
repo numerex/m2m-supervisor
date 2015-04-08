@@ -1,0 +1,13 @@
+#!/usr/bin/env node
+
+var ConfigCheckpoint = require('../lib/config-checkpoint');
+var GwaasTransmitter = require('../lib/gwaas-transmitter');
+
+var defaults = require('../config/gwaas-defaults');
+var schema = require('../lib/redis-schema');
+
+var checkpoint = new ConfigCheckpoint(schema.config.gateway.key,defaults,['imei']).start(function(event,gateway) {
+    if (event !== 'ready') return;
+
+    var transmitter = new GwaasTransmitter(gateway).start();
+});

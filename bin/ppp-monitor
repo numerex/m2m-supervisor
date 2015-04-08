@@ -1,0 +1,26 @@
+#!/usr/bin/env node
+
+var config = {}; // TODO - pull config from redis
+var ModemWatcher = require('../lib/modem-watcher');
+var RouteWatcher = require('../lib/route-watcher');
+var HeartbeatGenerator = require('../lib/heartbeat-generator');
+
+var heartbeat = null;
+var modem = null;
+var route = new RouteWatcher(config).start(function(event){
+    // TODO detect failure and stop the dependent objects... then restart on ready
+    if (event == 'ready' && !modem) {
+        config.imeiFound = function(imei){
+            var redis = require('redis').createClient();
+            redis.hsetnx(require('../lib/redis-schema').config.gateway.key,'imei',imei);
+            redis.quit();
+        };
+        modem = new ModemWatcher(config).start(function(event){
+            if (event == 'ready' && !heartbeat) {
+                heartbeat = new HeartbeatGenerator().start(function(event){
+                    console.log('heartbeat: ' + event);
+                });
+            }
+        });
+    }
+});
