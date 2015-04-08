@@ -5,7 +5,7 @@
     "start": "node ./bin/www",
     "test": "mocha test-server  --recursive",
     "test-cov": "istanbul cover --hook-run-in-context -x **test.js _mocha -- test-server --recursive",
-    "coveralls": "istanbul cover --hook-run-in-context -x **test.js _mocha --report lcovonly -- test-server --recursive && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
+    "coveralls": "istanbul cover ./node_modules/mocha/bin/_mocha -x **test.js --report lcovonly -- -R spec test-server --recursive && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
   },
   "repository": {
     "type": "git",
@@ -44,7 +44,9 @@
   },
   "devDependencies": {
     "chai": "^2.2.0",
+    "coveralls": "^2.11.2",
     "mocha": "^2.2.1",
+    "mocha-lcov-reporter": "0.0.2",
     "mockery": "^1.4.0"
   }
 }
