@@ -4,7 +4,8 @@
   "scripts": {
     "start": "node ./bin/www",
     "test": "mocha test-server  --recursive",
-    "test-cov": "istanbul cover --hook-run-in-context -x **test.js _mocha -- test-server --recursive"
+    "test-cov": "istanbul cover --hook-run-in-context -x **test.js _mocha -- test-server --recursive",
+    "coveralls": "istanbul cover --hook-run-in-context -x **test.js _mocha --report lcovonly -- test-server --recursive && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
   },
   "repository": {
     "type": "git",

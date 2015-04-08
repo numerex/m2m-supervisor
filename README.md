@@ -2,6 +2,7 @@ M2M-SUPERVISOR
 ====
 
 [![Build Status](https://travis-ci.org/numerex/m2m-supervisor.svg)](https://travis-ci.org/numerex/m2m-supervisor)
+[![Coverage Status](https://coveralls.io/repos/numerex/m2m-supervisor/badge.svg)](https://coveralls.io/r/numerex/m2m-supervisor)
 
 The M2M-SUPERVISOR contains a set of processes that can run on an embedded processing platform (such as the Beaglebone)
 that can perform the following tasks:
