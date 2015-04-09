@@ -1,13 +1,12 @@
 var test = require('../test');
-var UdpListener = require(process.cwd() + '/lib/udp-listener')
+var UdpListener = require(process.cwd() + '/lib/udp-listener');
 
 describe('UdpListener',function() {
     var mockdgram = null;
 
     beforeEach(function () {
         test.mockery.enable();
-        mockdgram = new test.mockdgram();
-        test.mockery.registerMock('dgram',mockdgram);
+        test.mockery.registerMock('dgram',mockdgram = new test.mockdgram());
         test.mockery.warnOnUnregistered(false);
         //test.mockery.registerAllowables(['./logger', './statsd-client']);
         //test.pp.snapshot();
@@ -20,11 +19,12 @@ describe('UdpListener',function() {
 
     it('minimal setup is performed without port or onmessage function that logs an error when receiving data',function(){
         var listener = new UdpListener('test');
-        [mockdgram.socketType,mockdgram.port].should.eql(['udp4',undefined]);
-        mockdgram.events.message('test',{address: 'host',port: 1234});
+        [listener.client.socketType,listener.client.port].should.eql(['udp4',undefined]);
+        listener.client.events.message('test',{address: 'host',port: 1234});
+        mockdgram.deliveries.should.eql([]);
         test.pp.snapshot().should.eql([
-            '[test     ] incoming - size: 4 from: host:1234',
-            '[test     ] message error: TypeError: undefined is not a function'
+            '[test      ] incoming - size: 4 from: host:1234',
+            '[test      ] message error: TypeError: undefined is not a function'
         ]);
     });
 
@@ -33,41 +33,47 @@ describe('UdpListener',function() {
         var listener = new UdpListener('test',5678,function(buffer){
             called = true;
         });
-        [mockdgram.socketType,mockdgram.port].should.eql(['udp4',5678]);
-        mockdgram.events.message('test',{address: 'host',port: 1234});
-        test.pp.snapshot().should.eql(['[test     ] incoming - size: 4 from: host:1234']);
+        [listener.client.socketType,listener.client.port].should.eql(['udp4',5678]);
+        listener.client.events.message('test',{address: 'host',port: 1234});
+        mockdgram.deliveries.should.eql([]);
+        test.pp.snapshot().should.eql(['[test      ] incoming - size: 4 from: host:1234']);
         called.should.be.ok;
     });
 
     it('should log listening',function(){
         var listener = new UdpListener('test');
-        mockdgram.events.listening();
-        test.pp.snapshot().should.eql(['[test     ] listening on localhost:1000']);
+        listener.client.events.listening();
+        mockdgram.deliveries.should.eql([]);
+        test.pp.snapshot().should.eql(['[test      ] listening on localhost:1000']);
     });
 
     it('should log connection closed',function(){
         var listener = new UdpListener('test');
-        mockdgram.events.close();
-        test.pp.snapshot().should.eql(['[test     ] connection closed']);
+        listener.client.events.close();
+        mockdgram.deliveries.should.eql([]);
+        test.pp.snapshot().should.eql(['[test      ] connection closed']);
     });
 
     it('should log an error',function(){
         var listener = new UdpListener('test');
-        mockdgram.events.error('test error');
-        test.pp.snapshot().should.eql(['[test     ] error event: test error']);
+        listener.client.events.error('test error');
+        mockdgram.deliveries.should.eql([]);
+        test.pp.snapshot().should.eql(['[test      ] error event: test error']);
     });
 
     it('should successfully send a message',function(){
         var listener = new UdpListener('test');
         listener.send('message','remote',2000);
-        test.pp.snapshot().should.eql(['[test     ] outgoing - size: 7 from: remote:2000']);
+        mockdgram.deliveries.should.eql([[ 'message',0,7,2000,'remote' ]]);
+        test.pp.snapshot().should.eql(['[test      ] outgoing - size: 7 from: remote:2000']);
     });
 
 
     it('should log an error when sending a message',function(){
         var listener = new UdpListener('test');
         listener.send(null,'remote',2000);
-        test.pp.snapshot().should.eql(["[test     ] send error: TypeError: Cannot read property 'length' of null"]);
+        mockdgram.deliveries.should.eql([]);
+        test.pp.snapshot().should.eql(["[test      ] send error: TypeError: Cannot read property 'length' of null"]);
     });
 
 });

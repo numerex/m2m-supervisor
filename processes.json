@@ -2,7 +2,7 @@
   "apps":[
     {
       "name":           "redis-server",
-      "script":         "redis-server",
+      "script":         "/usr/local/bin/redis-server",
       "log_date_format":"YYYY-MM-DD HH:mm:ss.SSS"
     },
     {
@@ -11,29 +11,16 @@
       "log_date_format":"YYYY-MM-DD HH:mm:ss.SSS"
     },
     {
-      "name":           "ppp-monitor",
-      "script":         "bin/ppp-monitor",
-      "log_date_format":"YYYY-MM-DD HH:mm:ss.SSS"
+      "name":           "m2m-bridge",
+      "script":         "bin/m2m-bridge"
     },
     {
-      "name":           "gwaas-proxy",
-      "script":         "bin/gwaas-proxy",
-      "log_date_format":"YYYY-MM-DD HH:mm:ss.SSS"
-    },
-    {
-      "name":           "gwaas-transmitter",
-      "script":         "bin/gwaas-transmitter",
-      "log_date_format":"YYYY-MM-DD HH:mm:ss.SSS"
-    },
-    {
-      "name":           "heartbeat-generator",
-      "script":         "bin/heartbeat-generator",
-      "log_date_format":"YYYY-MM-DD HH:mm:ss.SSS"
+      "name":           "m2m-transmitter",
+      "script":         "bin/m2m-transmitter"
     },
     {
       "name":           "web-server",
-      "script":         "bin/web-server",
-      "log_date_format":"YYYY-MM-DD HH:mm:ss.SSS"
+      "script":         "bin/web-server"
     }
   ]
 }

@@ -1,0 +1,41 @@
+#!/usr/bin/env node
+
+var RedisCheckpoint = require('../lib/redis-checkpoint');
+var ConfigCheckpoint = require('../lib/config-checkpoint');
+var M2mProxy = require('../lib/m2m-proxy');
+var RouteWatcher = require('../lib/route-watcher');
+var ModemWatcher = require('../lib/modem-watcher');
+var HeartbeatGenerator = require('../lib/heartbeat-generator');
+
+var defaults = require('../config/m2m-defaults');
+var schema = require('../lib/redis-schema');
+
+var redisChk = new RedisCheckpoint().start(function(event,redis) {
+    if (event !== 'ready') return;
+
+    var configChk = new ConfigCheckpoint(redis,schema.config.gateway.key,defaults).start(function(event,gateway) {
+        if (event !== 'ready') return;
+
+        gateway.imeiFound = function(imei){
+            if (!gateway.imei) {
+                proxy.gateway.imei = imei;
+                gateway.imei = imei;
+            }
+            redis.hsetnx(require('../lib/redis-schema').config.gateway.key,'imei',imei);
+        };
+        
+        var heartbeat = null;
+        var modem = null;
+        var proxy = new M2mProxy(redis,gateway);
+        var route = new RouteWatcher(gateway).start(function(event){
+            // TODO detect failure and stop the dependent objects... then restart on ready
+            if (event == 'ready' && !modem) {
+                modem = new ModemWatcher(gateway).start(function(event){
+                    if (event == 'ready' && !heartbeat)
+                        heartbeat = new HeartbeatGenerator().start();
+                });
+            }
+        });
+    });
+    
+});

@@ -1,4 +1,0 @@
-#!/usr/bin/env node
-
-var GwaasProxy = require('../lib/gwaas-proxy');
-var proxy = new GwaasProxy();
