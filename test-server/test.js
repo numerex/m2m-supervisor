@@ -94,7 +94,7 @@ module.exports.mockshelljs.exec = function() {
 module.exports.mockredis = {calls: []};
 
 module.exports.mockredis.reset = function(){
-    module.exports.clientException = null;
+    module.exports.mockredis.clientException = null;
     module.exports.mockredis.lookup = {
         get: {},
         hgetall: {},
@@ -111,7 +111,7 @@ module.exports.mockredis.snapshot = function(){
 };
 
 module.exports.mockredis.createClient = function () {
-    if (module.exports.clientException) throw(new Error(module.exports.clientException));
+    if (module.exports.mockredis.clientException) throw(new Error(module.exports.mockredis.clientException));
     return {
         get: function(key,callback) {
             module.exports.mockredis.calls.push({get: key});

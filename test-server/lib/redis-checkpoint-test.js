@@ -47,7 +47,7 @@ describe('RedisCheckpoint',function() {
                     '[redis-chk ] not ready',
                     '[redis-chk ] stop checkpoint'
                 ]);
-                test.mockredis.snapshot().should.eql([{quit: null}]);
+                test.mockredis.snapshot().should.eql([]);
                 done();
             }
         });
