@@ -20,9 +20,9 @@ describe('HeartbeatGenerator',function() {
     });
 
     it('should send a startup but then skip regular heartbeats if recent messages have been sent',function(done){
-        test.mockredis.lookup.get['transmit:last-private-timestamp'] = new Date().valueOf() + 20;
-        test.mockredis.lookup.lpush['transmit:queue'] = [];
-        test.mockredis.lookup.llen['transmit:queue'] = 0;
+        test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = new Date().valueOf() + 20;
+        test.mockredis.lookup.lpush['m2m-transmit:queue'] = [];
+        test.mockredis.lookup.llen['m2m-transmit:queue'] = 0;
 
         var events = [];
         var heartbeat = new HeartbeatGenerator({heartbeatInterval: 10});
@@ -42,17 +42,17 @@ describe('HeartbeatGenerator',function() {
                     {increment: 'stopped'}
                 ]);
                 test.mockredis.snapshot().should.eql([
-                    {lpush: ['transmit:queue','{"eventCode":1}']},
-                    {get: 'transmit:last-private-timestamp'}]);
+                    {lpush: ['m2m-transmit:queue','{"eventCode":1}']},
+                    {get: 'm2m-transmit:last-private-timestamp'}]);
                 done();
             }
         });
     });
 
     it('should send a startup but then skip regular heartbeats if messages are in the queue',function(done){
-        test.mockredis.lookup.get['transmit:last-private-timestamp'] = new Date().valueOf();
-        test.mockredis.lookup.lpush['transmit:queue'] = [];
-        test.mockredis.lookup.llen['transmit:queue'] = 1;
+        test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = new Date().valueOf();
+        test.mockredis.lookup.lpush['m2m-transmit:queue'] = [];
+        test.mockredis.lookup.llen['m2m-transmit:queue'] = 1;
 
         var events = [];
         var heartbeat = new HeartbeatGenerator({heartbeatInterval: 10});
@@ -72,9 +72,9 @@ describe('HeartbeatGenerator',function() {
                     {increment: 'stopped'}
                 ]);
                 test.mockredis.snapshot().should.eql([
-                    {lpush: ['transmit:queue','{"eventCode":1}']},
-                    {get: 'transmit:last-private-timestamp'},
-                    {llen: 'transmit:queue'}
+                    {lpush: ['m2m-transmit:queue','{"eventCode":1}']},
+                    {get: 'm2m-transmit:last-private-timestamp'},
+                    {llen: 'm2m-transmit:queue'}
                 ]);
                 done();
             }
@@ -82,9 +82,9 @@ describe('HeartbeatGenerator',function() {
     });
 
     it('should send a startup and then regular heartbeats if no other messages have been sent and the queue is empty',function(done){
-        test.mockredis.lookup.get['transmit:last-private-timestamp'] = new Date().valueOf();
-        test.mockredis.lookup.lpush['transmit:queue'] = [];
-        test.mockredis.lookup.llen['transmit:queue'] = 0;
+        test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = new Date().valueOf();
+        test.mockredis.lookup.lpush['m2m-transmit:queue'] = [];
+        test.mockredis.lookup.llen['m2m-transmit:queue'] = 0;
 
         var events = [];
         var heartbeat = new HeartbeatGenerator({heartbeatInterval: 10});
@@ -105,10 +105,10 @@ describe('HeartbeatGenerator',function() {
                     {increment: 'stopped'}
                 ]);
                 test.mockredis.snapshot().should.eql([
-                    {lpush: ['transmit:queue','{"eventCode":1}']},
-                    {get: 'transmit:last-private-timestamp'},
-                    {llen: 'transmit:queue'},
-                    {lpush: ['transmit:queue','{"eventCode":0}']}
+                    {lpush: ['m2m-transmit:queue','{"eventCode":1}']},
+                    {get: 'm2m-transmit:last-private-timestamp'},
+                    {llen: 'm2m-transmit:queue'},
+                    {lpush: ['m2m-transmit:queue','{"eventCode":0}']}
                 ]);
                 done();
             }
@@ -116,9 +116,9 @@ describe('HeartbeatGenerator',function() {
     });
 
     it('should throw an error if redis fails on lpush',function(done){
-        test.mockredis.errors['transmit:queue'] = 'test error';
-        test.mockredis.lookup.get['transmit:last-private-timestamp'] = 0;
-        test.mockredis.lookup.lpush['transmit:queue'] = [];
+        test.mockredis.errors['m2m-transmit:queue'] = 'test error';
+        test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = 0;
+        test.mockredis.lookup.lpush['m2m-transmit:queue'] = [];
 
         var events = [];
         var heartbeat = new HeartbeatGenerator();
@@ -133,15 +133,15 @@ describe('HeartbeatGenerator',function() {
                 {increment: 'error'}
             ]);
             test.mockredis.snapshot().should.eql([
-                {lpush: ['transmit:queue','{"eventCode":1}']}]);
+                {lpush: ['m2m-transmit:queue','{"eventCode":1}']}]);
             done();
         });
     });
 
     it('should throw an error if redis fails on get',function(done){
-        test.mockredis.errors['transmit:last-private-timestamp'] = 'test error';
-        test.mockredis.lookup.get['transmit:last-private-timestamp'] = 0;
-        test.mockredis.lookup.lpush['transmit:queue'] = [];
+        test.mockredis.errors['m2m-transmit:last-private-timestamp'] = 'test error';
+        test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = 0;
+        test.mockredis.lookup.lpush['m2m-transmit:queue'] = [];
 
         var events = [];
         var heartbeat = new HeartbeatGenerator({heartbeatInterval: 10});
@@ -162,15 +162,15 @@ describe('HeartbeatGenerator',function() {
                     {increment: 'stopped'}
                 ]);
                 test.mockredis.snapshot().should.eql([
-                    {lpush: ['transmit:queue','{"eventCode":1}']},
-                    {get: 'transmit:last-private-timestamp'}]);
+                    {lpush: ['m2m-transmit:queue','{"eventCode":1}']},
+                    {get: 'm2m-transmit:last-private-timestamp'}]);
                 done();
             }
         });
     });
 
     it('should throw an error if start called twice',function(done){
-        test.mockredis.lookup.lpush['transmit:queue'] = [];
+        test.mockredis.lookup.lpush['m2m-transmit:queue'] = [];
 
         var watcher = new HeartbeatGenerator().start();
         test.expect(function(){ watcher.start(); }).to.throw('already started');
@@ -184,7 +184,7 @@ describe('HeartbeatGenerator',function() {
             {increment: 'sent'},
             {increment: 'stopped'}]);
         test.mockredis.snapshot().should.eql([
-            {lpush: ['transmit:queue','{"eventCode":1}']}]);
+            {lpush: ['m2m-transmit:queue','{"eventCode":1}']}]);
         done();
     });
 

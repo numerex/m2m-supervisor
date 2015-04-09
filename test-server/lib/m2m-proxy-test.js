@@ -4,7 +4,15 @@ var m2m = require('m2m-ota-javascript');
 var test = require('../test');
 var M2mProxy = require(process.cwd() + '/lib/m2m-proxy');
 
-var defaults = Object.freeze(require(process.cwd() + '/config/m2m-defaults'));
+var defaults = {
+    primary: 'public',
+    privateHost: 'private-host',
+    privatePort: 3011,
+    privateRelay: 4000,
+    publicHost: 'public-host',
+    publicPort: 3011,
+    publicRelay: 4001
+};
 
 describe('M2mProxy',function() {
 
@@ -70,7 +78,7 @@ describe('M2mProxy',function() {
             '[proxy     ] enqueue command'
         ]);
         test.mockredis.snapshot().should.eql([
-            {lpush: ["command:queue",'{"majorVersion":1,"minorVersion":0,"messageType":204,"eventCode":0,"sequenceNumber":0,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}']}
+            {lpush: ['m2m-command:queue','{"majorVersion":1,"minorVersion":0,"messageType":204,"eventCode":0,"sequenceNumber":0,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}']}
         ]);
     });
 
@@ -84,7 +92,7 @@ describe('M2mProxy',function() {
             '[proxy     ] receive ack'
         ]);
         test.mockredis.snapshot().should.eql([
-            {lpush: ["ack:queue",10]}
+            {lpush: ['m2m-ack:queue',10]}
         ]);
     });
 
@@ -97,13 +105,13 @@ describe('M2mProxy',function() {
         test.timekeeper.freeze(1428594562570);
         proxy.private.client.events.message('test',{address: 'localhost',port: 1234});
         events.should.eql(['ready','private']);
-        mockdgram.deliveries.should.eql([['test',0,4,3011,'172.29.12.253']]);
+        mockdgram.deliveries.should.eql([['test',0,4,3011,'private-host']]);
         test.pp.snapshot().should.eql([
             '[private   ] incoming - size: 4 from: localhost:1234',
-            '[outside   ] outgoing - size: 4 from: 172.29.12.253:3011'
+            '[outside   ] outgoing - size: 4 from: private-host:3011'
         ]);
         test.mockredis.snapshot().should.eql([
-            {mset: ["transmit:last-timestamp",1428594562570,"transmit:last-private-timestamp",1428594562570]}
+            {mset: ['m2m-transmit:last-timestamp',1428594562570,'m2m-transmit:last-private-timestamp',1428594562570]}
         ]);
         test.timekeeper.reset();
     });
@@ -117,13 +125,13 @@ describe('M2mProxy',function() {
         test.timekeeper.freeze(1428594562570);
         proxy.public.client.events.message('test',{address: 'localhost',port: 1234});
         events.should.eql(['ready','public']);
-        mockdgram.deliveries.should.eql([['test',0,4,3011,'192.119.183.253']]);
+        mockdgram.deliveries.should.eql([['test',0,4,3011,'public-host']]);
         test.pp.snapshot().should.eql([
             '[public    ] incoming - size: 4 from: localhost:1234',
-            '[outside   ] outgoing - size: 4 from: 192.119.183.253:3011'
+            '[outside   ] outgoing - size: 4 from: public-host:3011'
         ]);
         test.mockredis.snapshot().should.eql([
-            {set: ["transmit:last-timestamp",1428594562570]}
+            {set: ['m2m-transmit:last-timestamp',1428594562570]}
         ]);
         test.timekeeper.reset();
     });
