@@ -2,7 +2,7 @@
   "apps":[
     {
       "name":           "redis-server",
-      "script":         "redis-server",
+      "script":         "/usr/local/bin/redis-server",
       "log_date_format":"YYYY-MM-DD HH:mm:ss.SSS"
     },
     {
@@ -13,22 +13,14 @@
     {
       "name":           "ppp-monitor",
       "script":         "bin/ppp-monitor",
-      "log_date_format":"YYYY-MM-DD HH:mm:ss.SSS"
     },
     {
       "name":           "gwaas-proxy",
       "script":         "bin/gwaas-proxy",
-      "log_date_format":"YYYY-MM-DD HH:mm:ss.SSS"
     },
     {
       "name":           "gwaas-transmitter",
       "script":         "bin/gwaas-transmitter",
-      "log_date_format":"YYYY-MM-DD HH:mm:ss.SSS"
-    },
-    {
-      "name":           "heartbeat-generator",
-      "script":         "bin/heartbeat-generator",
-      "log_date_format":"YYYY-MM-DD HH:mm:ss.SSS"
     },
     {
       "name":           "web-server",
