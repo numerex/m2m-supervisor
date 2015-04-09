@@ -1,0 +1,9 @@
+#!/usr/bin/env node
+
+var M2mProxy = require('../lib/m2m-proxy');
+
+var redisChk = new RedisCheckpoint().start(function(event,redis) {
+    if (event !== 'ready') return;
+
+    var proxy = new M2mProxy(redis);
+});

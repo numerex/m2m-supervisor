@@ -2,7 +2,7 @@
 
 var RedisCheckpoint = require('../lib/redis-checkpoint');
 var ConfigCheckpoint = require('../lib/config-checkpoint');
-var GwaasTransmitter = require('../lib/gwaas-transmitter');
+var M2mTransmitter = require('../lib/m2m-transmitter');
 
 var defaults = require('../config/gwaas-defaults');
 var schema = require('../lib/redis-schema');
@@ -13,7 +13,7 @@ var redisChk = new RedisCheckpoint().start(function(event,redis) {
     var configChk = new ConfigCheckpoint(redis,schema.config.gateway.key,defaults,['imei']).start(function(event,gateway) {
         if (event !== 'ready') return;
 
-        var transmitter = new GwaasTransmitter(gateway).start();
+        var transmitter = new M2mTransmitter(gateway).start();
     });
 });
 

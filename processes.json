@@ -15,12 +15,12 @@
       "script":         "bin/ppp-monitor"
     },
     {
-      "name":           "gwaas-proxy",
-      "script":         "bin/gwaas-proxy"
+      "name":           "m2m-proxy",
+      "script":         "bin/m2m-proxy"
     },
     {
-      "name":           "gwaas-transmitter",
-      "script":         "bin/gwaas-transmitter"
+      "name":           "m2m-transmitter",
+      "script":         "bin/m2m-transmitter"
     },
     {
       "name":           "web-server",
