@@ -1,0 +1,20 @@
+#!/usr/bin/env node
+
+var RedisCheckpoint = require('../lib/redis-checkpoint');
+var ConfigCheckpoint = require('../lib/config-checkpoint');
+var M2mTransmitter = require('../lib/m2m-transmitter');
+
+var defaults = require('../config/m2m-defaults');
+var schema = require('../lib/redis-schema');
+
+var redisChk = new RedisCheckpoint().start(function(event,redis) {
+    if (event !== 'ready') return;
+
+    var configChk = new ConfigCheckpoint(redis,schema.config.gateway.key,defaults,['imei']).start(function(event,gateway) {
+        if (event !== 'ready') return;
+
+        var transmitter = new M2mTransmitter(gateway).start();
+    });
+});
+
+

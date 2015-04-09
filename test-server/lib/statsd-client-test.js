@@ -22,7 +22,7 @@ describe('StatsdClient',function() {
 
         test.expect(test.mocklynx.options).to.exist;
         test.expect(test.mocklynx.options.on_error).to.exist;
-        test.pp.snapshot().should.eql(['[lynx     ] lynx error(test): test error']);
+        test.pp.snapshot().should.eql(['[lynx      ] lynx error(test): test error']);
     });
 
 });

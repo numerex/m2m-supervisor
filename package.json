@@ -37,6 +37,7 @@
     "lodash": "^3.6.0",
     "lynx": "^0.2.0",
     "m2m-ota-javascript": "0.0.6",
+    "moment": "^2.10.0",
     "redis": "^0.12.1",
     "serialport": "^1.6.3",
     "serve-favicon": "~2.2.0",
@@ -47,6 +48,7 @@
     "coveralls": "^2.11.2",
     "mocha": "^2.2.1",
     "mocha-lcov-reporter": "0.0.2",
-    "mockery": "^1.4.0"
+    "mockery": "^1.4.0",
+    "timekeeper": "0.0.5"
   }
 }

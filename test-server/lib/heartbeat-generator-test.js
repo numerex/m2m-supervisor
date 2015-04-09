@@ -32,8 +32,9 @@ describe('HeartbeatGenerator',function() {
                 heartbeat.stop();
                 events.should.eql(['heartbeat','skip']);
                 test.pp.snapshot().should.eql([
-                    '[heartbeat] start heartbeat',
-                    '[heartbeat] stop heartbeat']);
+                    '[heartbeat ] start heartbeat',
+                    '[heartbeat ] send heartbeat: 1',
+                    '[heartbeat ] stop heartbeat']);
                 test.mocklynx.snapshot().should.eql([
                     {increment: 'started'},
                     {increment: 'sent'},
@@ -61,8 +62,9 @@ describe('HeartbeatGenerator',function() {
                 heartbeat.stop();
                 events.should.eql(['heartbeat','skip']);
                 test.pp.snapshot().should.eql([
-                    '[heartbeat] start heartbeat',
-                    '[heartbeat] stop heartbeat']);
+                    '[heartbeat ] start heartbeat',
+                    '[heartbeat ] send heartbeat: 1',
+                    '[heartbeat ] stop heartbeat']);
                 test.mocklynx.snapshot().should.eql([
                     {increment: 'started'},
                     {increment: 'sent'},
@@ -92,8 +94,10 @@ describe('HeartbeatGenerator',function() {
                 heartbeat.stop();
                 events.should.eql(['heartbeat','heartbeat']);
                 test.pp.snapshot().should.eql([
-                    '[heartbeat] start heartbeat',
-                    '[heartbeat] stop heartbeat']);
+                    '[heartbeat ] start heartbeat',
+                    '[heartbeat ] send heartbeat: 1',
+                    '[heartbeat ] send heartbeat: 0',
+                    '[heartbeat ] stop heartbeat']);
                 test.mocklynx.snapshot().should.eql([
                     {increment: 'started'},
                     {increment: 'sent'},
@@ -122,8 +126,8 @@ describe('HeartbeatGenerator',function() {
             events.push(event);
             events.should.eql(['error']);
             test.pp.snapshot().should.eql([
-                '[heartbeat] start heartbeat',
-                '[heartbeat] redis error: test error']);
+                '[heartbeat ] start heartbeat',
+                '[heartbeat ] redis error: test error']);
             test.mocklynx.snapshot().should.eql([
                 {increment: 'started'},
                 {increment: 'error'}
@@ -147,9 +151,10 @@ describe('HeartbeatGenerator',function() {
                 events.should.eql(['heartbeat','error']);
                 heartbeat.stop();
                 test.pp.snapshot().should.eql([
-                    '[heartbeat] start heartbeat',
-                    '[heartbeat] redis error: test error',
-                    '[heartbeat] stop heartbeat']);
+                    '[heartbeat ] start heartbeat',
+                    '[heartbeat ] send heartbeat: 1',
+                    '[heartbeat ] redis error: test error',
+                    '[heartbeat ] stop heartbeat']);
                 test.mocklynx.snapshot().should.eql([
                     {increment: 'started'},
                     {increment: 'sent'},
@@ -171,12 +176,15 @@ describe('HeartbeatGenerator',function() {
         test.expect(function(){ watcher.start(); }).to.throw('already started');
         watcher.stop();
         test.pp.snapshot().should.eql([
-            '[heartbeat] start heartbeat',
-            '[heartbeat] stop heartbeat']);
+            '[heartbeat ] start heartbeat',
+            '[heartbeat ] send heartbeat: 1',
+            '[heartbeat ] stop heartbeat']);
         test.mocklynx.snapshot().should.eql([
             {increment: 'started'},
             {increment: 'sent'},
             {increment: 'stopped'}]);
+        test.mockredis.snapshot().should.eql([
+            {lpush: ['transmit:queue','{"eventCode":1}']}]);
         done();
     });
 
@@ -185,6 +193,7 @@ describe('HeartbeatGenerator',function() {
         test.expect(function(){ watcher.stop(); }).to.throw('not started');
         test.pp.snapshot().should.eql([]);
         test.mocklynx.snapshot().should.eql([]);
+        test.mockredis.snapshot().should.eql([]);
         done();
     });
 

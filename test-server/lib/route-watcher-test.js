@@ -24,9 +24,9 @@ describe('RouteWatcher',function(){
         var watcher = new RouteWatcher().start();
         watcher.stop();
         test.pp.snapshot().should.eql([
-            '[route    ] start watcher',
-            '[route    ] pppstats error: Error: no response found: pppstats',
-            '[route    ] stop watcher']);
+            '[route     ] start watcher',
+            '[route     ] pppstats error: Error: no response found: pppstats',
+            '[route     ] stop watcher']);
         test.mocklynx.snapshot().should.eql([
             {increment: 'started'},
             {increment: 'error'},
@@ -41,9 +41,9 @@ describe('RouteWatcher',function(){
         test.expect(function(){ watcher.start(); }).to.throw('already started');
         watcher.stop();
         test.pp.snapshot().should.eql([
-            '[route    ] start watcher',
-            '[route    ] pppstats error: Error: no response found: pppstats',
-            '[route    ] stop watcher']);
+            '[route     ] start watcher',
+            '[route     ] pppstats error: Error: no response found: pppstats',
+            '[route     ] stop watcher']);
         test.mocklynx.snapshot().should.eql([
             {increment: 'started'},
             {increment: 'error'},
@@ -67,9 +67,9 @@ describe('RouteWatcher',function(){
         });
         watcher.stop();
         test.pp.snapshot().should.eql([
-            '[route    ] start watcher',
-            '[route    ] starting pppd',
-            '[route    ] stop watcher']);
+            '[route     ] start watcher',
+            '[route     ] starting pppd',
+            '[route     ] stop watcher']);
         test.mocklynx.snapshot().should.eql([
             {increment: 'started'},
             {increment: 'start-pppd'},
@@ -87,9 +87,9 @@ describe('RouteWatcher',function(){
         });
         watcher.stop();
         test.pp.snapshot().should.eql([
-            '[route    ] start watcher',
-            '[route    ] add ppp route to GWaaS',
-            '[route    ] stop watcher']);
+            '[route     ] start watcher',
+            '[route     ] add ppp route to GWaaS',
+            '[route     ] stop watcher']);
         test.mocklynx.snapshot().should.eql([
             {increment: 'started'},
             {increment: 'add-route'},
@@ -106,8 +106,8 @@ describe('RouteWatcher',function(){
         });
         watcher.stop();
         test.pp.snapshot().should.eql([
-            '[route    ] start watcher',
-            '[route    ] stop watcher']);
+            '[route     ] start watcher',
+            '[route     ] stop watcher']);
         test.mocklynx.snapshot().should.eql([
             {increment: 'started'},
             {increment: 'stopped'}]);
@@ -133,10 +133,10 @@ describe('RouteWatcher',function(){
             if (count++ > 0) {
                 watcher.stop();
                 test.pp.snapshot().should.eql([
-                    '[route    ] start watcher',
-                    '[route    ] pppstats error: Error: no response found: pppstats',
-                    '[route    ] pppstats error: Error: no response found: pppstats',
-                    '[route    ] stop watcher']);
+                    '[route     ] start watcher',
+                    '[route     ] pppstats error: Error: no response found: pppstats',
+                    '[route     ] pppstats error: Error: no response found: pppstats',
+                    '[route     ] stop watcher']);
                 test.mocklynx.snapshot().should.eql([
                     {increment: 'started'},
                     {increment: 'error'},
@@ -179,7 +179,7 @@ describe('RouteWatcher',function(){
         test.mockshelljs.lookup['pppstats'] = [0,'unexpected'];
         watcher.checkRoutes(function(event){
             event.should.eql('error');
-            test.pp.snapshot().should.eql(['[route    ] unexpected pppstats output: unexpected']);
+            test.pp.snapshot().should.eql(['[route     ] unexpected pppstats output: unexpected']);
             done();
         });
     });
