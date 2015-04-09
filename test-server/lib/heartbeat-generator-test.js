@@ -33,6 +33,7 @@ describe('HeartbeatGenerator',function() {
                 events.should.eql(['heartbeat','skip']);
                 test.pp.snapshot().should.eql([
                     '[heartbeat ] start heartbeat',
+                    '[heartbeat ] send heartbeat: 1',
                     '[heartbeat ] stop heartbeat']);
                 test.mocklynx.snapshot().should.eql([
                     {increment: 'started'},
@@ -62,6 +63,7 @@ describe('HeartbeatGenerator',function() {
                 events.should.eql(['heartbeat','skip']);
                 test.pp.snapshot().should.eql([
                     '[heartbeat ] start heartbeat',
+                    '[heartbeat ] send heartbeat: 1',
                     '[heartbeat ] stop heartbeat']);
                 test.mocklynx.snapshot().should.eql([
                     {increment: 'started'},
@@ -93,6 +95,8 @@ describe('HeartbeatGenerator',function() {
                 events.should.eql(['heartbeat','heartbeat']);
                 test.pp.snapshot().should.eql([
                     '[heartbeat ] start heartbeat',
+                    '[heartbeat ] send heartbeat: 1',
+                    '[heartbeat ] send heartbeat: 0',
                     '[heartbeat ] stop heartbeat']);
                 test.mocklynx.snapshot().should.eql([
                     {increment: 'started'},
@@ -148,6 +152,7 @@ describe('HeartbeatGenerator',function() {
                 heartbeat.stop();
                 test.pp.snapshot().should.eql([
                     '[heartbeat ] start heartbeat',
+                    '[heartbeat ] send heartbeat: 1',
                     '[heartbeat ] redis error: test error',
                     '[heartbeat ] stop heartbeat']);
                 test.mocklynx.snapshot().should.eql([
@@ -172,6 +177,7 @@ describe('HeartbeatGenerator',function() {
         watcher.stop();
         test.pp.snapshot().should.eql([
             '[heartbeat ] start heartbeat',
+            '[heartbeat ] send heartbeat: 1',
             '[heartbeat ] stop heartbeat']);
         test.mocklynx.snapshot().should.eql([
             {increment: 'started'},

@@ -31,11 +31,8 @@ var redisChk = new RedisCheckpoint().start(function(event,redis) {
             // TODO detect failure and stop the dependent objects... then restart on ready
             if (event == 'ready' && !modem) {
                 modem = new ModemWatcher(gateway).start(function(event){
-                    if (event == 'ready' && !heartbeat) {
-                        heartbeat = new HeartbeatGenerator().start(function(event){
-                            console.log('heartbeat: ' + event);
-                        });
-                    }
+                    if (event == 'ready' && !heartbeat)
+                        heartbeat = new HeartbeatGenerator().start();
                 });
             }
         });
