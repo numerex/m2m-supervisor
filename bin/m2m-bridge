@@ -18,7 +18,10 @@ var redisChk = new RedisCheckpoint().start(function(event,redis) {
         if (event !== 'ready') return;
 
         gateway.imeiFound = function(imei){
-            if (!gateway.imei) gateway.imei = imei;
+            if (!gateway.imei) {
+                proxy.gateway.imei = imei;
+                gateway.imei = imei;
+            }
             redis.hsetnx(require('../lib/redis-schema').config.gateway.key,'imei',imei);
         };
         

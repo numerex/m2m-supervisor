@@ -18,6 +18,7 @@ describe('RedisCheckpoint',function() {
     });
 
     it('should properly initialize data with minimal arguments',function(){
+        console.log('time:' + new Date().valueOf());
         var checkpoint = new RedisCheckpoint();
         checkpoint.config.should.eql({retryInterval: 5000});
         test.pp.snapshot().should.eql([]);

@@ -1,8 +1,11 @@
+var _ = require('lodash');
+
 module.exports.chai = require('chai');
 module.exports.should = module.exports.chai.should();
 module.exports.expect = module.exports.chai.expect;
 module.exports.pp = require(process.cwd() + '/lib/bunyan-prettyprinter');
 module.exports.mockery = require('mockery');
+module.exports.timekeeper = require('timekeeper');
 
 require(process.cwd() + '/lib/logger')('test      ').info('test environment loaded');
 
@@ -10,29 +13,28 @@ require(process.cwd() + '/lib/logger')('test      ').info('test environment load
 
 module.exports.mockdgram = function() {
     var self = this;
-    self.closed = false;
-    self.socketType = null;
-    self.events = {};
     self.deliveries = [];
     self.createSocket = function(argument) {
-        self.socketType = argument;
-        return self;
+        var socket = {
+            events: {},
+            socketType: argument,
+            closed: false,
+            address: function() { return {address: 'localhost',port: 1000}; }
+        };
+        socket.bind = function(port){
+            socket.port = port;
+        };
+        socket.on = function(event,callback) {
+            socket.events[event] = callback;
+        };
+        socket.send = function(data,start,end,port,host) {
+            self.deliveries.push([data,start,end,port,host]);
+        };
+        socket.close = function () {
+            socket.closed = true;
+        };
+        return socket;
     };
-    self.address = function(){
-        return {address: 'localhost',port: 1000};
-    };
-    self.bind = function(port){
-        self.port = port;
-    };
-    self.on = function(event,callback) {
-        self.events[event] = callback;
-    };
-    self.send = function() {
-        self.deliveries.push(arguments);
-    };
-    self.close = function () {
-        self.closed = true;
-    }
 };
 
 // LYNX -----------------------
@@ -113,23 +115,34 @@ module.exports.mockredis.createClient = function () {
     return {
         get: function(key,callback) {
             module.exports.mockredis.calls.push({get: key});
-            callback(module.exports.mockredis.errors[key] || null,module.exports.mockredis.lookup.get[key] || '0');
+            callback && callback(module.exports.mockredis.errors[key] || null,module.exports.mockredis.lookup.get[key] || '0');
         },
         hgetall: function(key,callback){
             module.exports.mockredis.calls.push({hgetall: key});
-            callback(module.exports.mockredis.errors[key] || null,module.exports.mockredis.lookup.hgetall[key]);
+            callback && callback(module.exports.mockredis.errors[key] || null,module.exports.mockredis.lookup.hgetall[key]);
         },
         llen: function(key,callback) {
             module.exports.mockredis.calls.push({llen: key});
-            callback(module.exports.mockredis.errors[key] || null,module.exports.mockredis.lookup.llen[key] || '0');
+            callback && callback(module.exports.mockredis.errors[key] || null,module.exports.mockredis.lookup.llen[key] || '0');
         },
         lpush: function(key,value,callback) {
             module.exports.mockredis.calls.push({lpush: [key,value]});
             var list = module.exports.mockredis.lookup.lpush[key] = module.exports.mockredis.lookup.lpush[key] || [];
-            callback(module.exports.mockredis.errors[key] || null,list.unshift('value'));
+            list.unshift(value);
+            callback && callback(module.exports.mockredis.errors[key] || null,list.length);
         },
         quit: function(){
             module.exports.mockredis.calls.push({quit: null});
+        },
+        mset: function(){
+            var arglength = Math.floor(arguments.length / 2) * 2;
+            var callback = arguments.length > arglength && arguments[arglength];
+            module.exports.mockredis.calls.push({mset: _.take(_.toArray(arguments),arglength)});
+            callback && callback(module.exports.mockredis.errors[key] || null,arglength / 2);
+        },
+        set: function(key,value,callback){
+            module.exports.mockredis.calls.push({set: [key,value]});
+            callback && callback(module.exports.mockredis.errors[key] || null,true);
         }
     }
 };
