@@ -4,7 +4,7 @@ module.exports.expect = module.exports.chai.expect;
 module.exports.pp = require(process.cwd() + '/lib/bunyan-prettyprinter');
 module.exports.mockery = require('mockery');
 
-require(process.cwd() + '/lib/logger')('test').info('test environment loaded');
+require(process.cwd() + '/lib/logger')('test      ').info('test environment loaded');
 
 // DRAM -----------------------
 
@@ -92,6 +92,7 @@ module.exports.mockshelljs.exec = function() {
 module.exports.mockredis = {calls: []};
 
 module.exports.mockredis.reset = function(){
+    module.exports.clientException = null;
     module.exports.mockredis.lookup = {
         get: {},
         hgetall: {},
@@ -107,12 +108,8 @@ module.exports.mockredis.snapshot = function(){
     return result;
 };
 
-module.exports.mockredis.setCommandKeyValue = function(command,key,value){
-    if (!module.exports.mockredis.lookup[command]) module.exports.mockredis.lookup[command] = {};
-    module.exports.mockredis.lookup[command][key] = value;
-};
-
 module.exports.mockredis.createClient = function () {
+    if (module.exports.clientException) throw(new Error(module.exports.clientException));
     return {
         get: function(key,callback) {
             module.exports.mockredis.calls.push({get: key});
@@ -130,6 +127,9 @@ module.exports.mockredis.createClient = function () {
             module.exports.mockredis.calls.push({lpush: [key,value]});
             var list = module.exports.mockredis.lookup.lpush[key] = module.exports.mockredis.lookup.lpush[key] || [];
             callback(module.exports.mockredis.errors[key] || null,list.unshift('value'));
+        },
+        quit: function(){
+            module.exports.mockredis.calls.push({quit: null});
         }
     }
 };

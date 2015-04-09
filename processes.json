@@ -12,20 +12,19 @@
     },
     {
       "name":           "ppp-monitor",
-      "script":         "bin/ppp-monitor",
+      "script":         "bin/ppp-monitor"
     },
     {
       "name":           "gwaas-proxy",
-      "script":         "bin/gwaas-proxy",
+      "script":         "bin/gwaas-proxy"
     },
     {
       "name":           "gwaas-transmitter",
-      "script":         "bin/gwaas-transmitter",
+      "script":         "bin/gwaas-transmitter"
     },
     {
       "name":           "web-server",
-      "script":         "bin/web-server",
-      "log_date_format":"YYYY-MM-DD HH:mm:ss.SSS"
+      "script":         "bin/web-server"
     }
   ]
 }

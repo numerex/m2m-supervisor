@@ -33,8 +33,8 @@ describe('ModemWatcher',function(){
             watcher.started().should.not.be.ok;
             watcher.ready().should.not.be.ok;
             test.pp.snapshot().should.eql([
-                '[modem    ] start watcher',
-                '[modem    ] stop watcher']);
+                '[modem     ] start watcher',
+                '[modem     ] stop watcher']);
             test.mocklynx.snapshot().should.eql([
                 {increment: 'started'},
                 {increment: 'stopped'}]);
@@ -50,10 +50,10 @@ describe('ModemWatcher',function(){
                 watcher.imei.should.eql('352214046337094');
                 watcher.stop();
                 test.pp.snapshot().should.eql([
-                    '[modem    ] start watcher',
-                    '[modem    ] RSSI: 21,99',
-                    '[modem    ] IMEI: 352214046337094',
-                    '[modem    ] stop watcher'                    
+                    '[modem     ] start watcher',
+                    '[modem     ] RSSI: 21,99',
+                    '[modem     ] IMEI: 352214046337094',
+                    '[modem     ] stop watcher'                    
                 ]);
                 test.mocklynx.snapshot().should.eql([
                     {increment: 'started'},
@@ -73,10 +73,10 @@ describe('ModemWatcher',function(){
             if (event == 'rssi' && count++ > 0) {
                 watcher.stop();
                 test.pp.snapshot().should.eql([
-                    '[modem    ] start watcher',
-                    '[modem    ] FLOW: 000035D4,00000000,00000000,000000000001013E,000000000001520B,000ADD40,00107AC0',
-                    '[modem    ] RSSI: 24,99',
-                    '[modem    ] stop watcher']);
+                    '[modem     ] start watcher',
+                    '[modem     ] FLOW: 000035D4,00000000,00000000,000000000001013E,000000000001520B,000ADD40,00107AC0',
+                    '[modem     ] RSSI: 24,99',
+                    '[modem     ] stop watcher']);
                 test.mocklynx.snapshot().should.eql([
                     {increment: 'started'},
                     {increment: 'imei-request'},
@@ -97,8 +97,8 @@ describe('ModemWatcher',function(){
             if (event == 'rssi' && count++ > 0) {
                 watcher.stop();
                 test.pp.snapshot().should.eql([
-                    '[modem    ] start watcher',
-                    '[modem    ] stop watcher']);
+                    '[modem     ] start watcher',
+                    '[modem     ] stop watcher']);
                 test.mocklynx.snapshot().should.eql([
                     {increment: 'started'},
                     {increment: 'imei-request'},
@@ -117,10 +117,10 @@ describe('ModemWatcher',function(){
             if (events.report && events.rssi && events.rssi > 1) {
                 watcher.stop();
                 test.pp.snapshot().should.eql([
-                    '[modem    ] start watcher',
-                    '[modem    ] FLOW: 000035D4,00000000,00000000,000000000001013E,000000000001520B,000ADD40,00107AC0',
-                    '[modem    ] RSSI: 24,99',
-                    '[modem    ] stop watcher']);
+                    '[modem     ] start watcher',
+                    '[modem     ] FLOW: 000035D4,00000000,00000000,000000000001013E,000000000001520B,000ADD40,00107AC0',
+                    '[modem     ] RSSI: 24,99',
+                    '[modem     ] stop watcher']);
                 test.mocklynx.snapshot().should.eql([
                     {increment: 'started'},
                     {increment: 'imei-request'},
@@ -143,12 +143,12 @@ describe('ModemWatcher',function(){
             if (event == 'report' && count++ > 1) {
                 watcher.stop();
                 test.pp.snapshot().should.eql([
-                    '[modem    ] start watcher',
-                    '[modem    ] FLOW: ',
-                    '[modem    ] flow error: Error: invalid value',
-                    '[modem    ] RSSI:',
-                    '[modem    ] rssi error: Error: invalid value',
-                    '[modem    ] stop watcher']);
+                    '[modem     ] start watcher',
+                    '[modem     ] FLOW: ',
+                    '[modem     ] flow error: Error: invalid value',
+                    '[modem     ] RSSI:',
+                    '[modem     ] rssi error: Error: invalid value',
+                    '[modem     ] stop watcher']);
                 test.mocklynx.snapshot().should.eql([
                     {increment: 'started'},
                     {increment: 'imei-request'},
@@ -168,10 +168,10 @@ describe('ModemWatcher',function(){
             if (event == 'retry' && count++ > 0) {
                 watcher.stop();
                 test.pp.snapshot().should.eql([
-                    '[modem    ] start watcher',
-                    "[modem    ] start error: Error: ENOENT, no such file or directory 'unknown.file'",
-                    "[modem    ] start error: Error: ENOENT, no such file or directory 'unknown.file'",
-                    '[modem    ] stop watcher']);
+                    '[modem     ] start watcher',
+                    "[modem     ] start error: Error: ENOENT, no such file or directory 'unknown.file'",
+                    "[modem     ] start error: Error: ENOENT, no such file or directory 'unknown.file'",
+                    '[modem     ] stop watcher']);
                 test.mocklynx.snapshot().should.eql([
                     {increment: 'retry'},
                     {increment: 'retry'},
@@ -187,9 +187,9 @@ describe('ModemWatcher',function(){
             if (event == 'error') {
                 watcher.stop();
                 test.pp.snapshot().should.eql([
-                    '[modem    ] start watcher',
-                    '[modem    ] request error: TypeError: path must be a string',
-                    '[modem    ] stop watcher']);
+                    '[modem     ] start watcher',
+                    '[modem     ] request error: TypeError: path must be a string',
+                    '[modem     ] stop watcher']);
                 test.mocklynx.snapshot().should.eql([
                     {increment: 'started'},
                     {increment: 'imei-request'},
@@ -206,8 +206,8 @@ describe('ModemWatcher',function(){
         test.expect(function(){ watcher.start(); }).to.throw('already started');
         watcher.stop();
         test.pp.snapshot().should.eql([
-            '[modem    ] start watcher',
-            '[modem    ] stop watcher']);
+            '[modem     ] start watcher',
+            '[modem     ] stop watcher']);
         test.mocklynx.snapshot().should.eql([
             {increment: 'started'},
             {increment: 'stopped'}]);
