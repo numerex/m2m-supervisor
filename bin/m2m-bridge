@@ -12,8 +12,6 @@ var schema = require('../lib/redis-schema');
 var redisChk = new RedisCheckpoint().start(function(event,redis) {
     if (event !== 'ready') return;
 
-    var proxy = new M2mProxy(redis);
-
     var configChk = new ConfigCheckpoint(redis,schema.config.gateway.key,defaults).start(function(event,gateway) {
         if (event !== 'ready') return;
 
@@ -27,6 +25,7 @@ var redisChk = new RedisCheckpoint().start(function(event,redis) {
         
         var heartbeat = null;
         var modem = null;
+        var proxy = new M2mProxy(redis,gateway);
         var route = new RouteWatcher(gateway).start(function(event){
             // TODO detect failure and stop the dependent objects... then restart on ready
             if (event == 'ready' && !modem) {
