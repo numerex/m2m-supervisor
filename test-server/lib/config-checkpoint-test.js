@@ -59,11 +59,11 @@ describe('ConfigCheckpoint',function() {
         });
     });
 
-    it('should retry if no configuration exists',function(done){
+    it('should retry if no configuration exists and there are any requirements',function(done){
         test.mockredis.lookup.hgetall['m2m-config'] = null;
 
         var count = 0;
-        var checkpoint = new ConfigCheckpoint(redis,null,null,{retryInterval: 10});
+        var checkpoint = new ConfigCheckpoint(redis,null,['something'],{retryInterval: 10});
         checkpoint.start(function(event,config){
             event.should.eql('retry');
             if (count++ > 0) {
@@ -79,6 +79,25 @@ describe('ConfigCheckpoint',function() {
                     {hgetall: 'm2m-config'}]);
                 done();
             }
+        });
+    });
+
+    it('should return ready if no configuration exists but also not requirements',function(done){
+        test.mockredis.lookup.hgetall['m2m-config'] = null;
+
+        var count = 0;
+        var checkpoint = new ConfigCheckpoint(redis,{test: {key: 'test-key',type: 'number',default: 1}},null);
+        checkpoint.start(function(event,config){
+            checkpoint.stop();
+            event.should.eql('ready');
+            config.should.eql({test: 1});
+            test.pp.snapshot().should.eql([
+                '[cfg-chk   ] start checkpoint',
+                '[cfg-chk   ] stop checkpoint'
+            ]);
+            test.mockredis.snapshot().should.eql([
+                {hgetall: 'm2m-config'}]);
+            done();
         });
     });
 
@@ -106,7 +125,12 @@ describe('ConfigCheckpoint',function() {
     });
 
     it('should return ready if redis config meets requirements',function(done){
-        test.mockredis.lookup.hgetall['m2m-config'] = {'gateway:imei': '123456789012345','gateway:private-host': 'private-host','gateway:public-host': 'public-host'};
+        test.mockredis.lookup.hgetall['m2m-config'] = {
+            'gateway:imei': '123456789012345',
+            'gateway:private-host': 'private-host',
+            'gateway:private-port': '1234',
+            'gateway:public-host': 'public-host',
+            'gateway:public-port': '5678'};
 
         var count = 0;
         var checkpoint = new ConfigCheckpoint(redis,hashkeys.gateway,[hashkeys.gateway.imei.key]);
@@ -117,10 +141,10 @@ describe('ConfigCheckpoint',function() {
                 imei: '123456789012345',
                 primary: 'public',
                 privateHost: 'private-host',
-                privatePort: 3011,
+                privatePort: 1234,
                 privateRelay: 4000,
                 publicHost: 'public-host',
-                publicPort: 3011,
+                publicPort: 5678,
                 publicRelay: 4001
             });
             test.pp.snapshot().should.eql([
