@@ -74,7 +74,7 @@ describe('ModemWatcher',function(){
                 watcher.stop();
                 test.pp.snapshot().should.eql([
                     '[modem     ] start watcher',
-                    '[modem     ] FLOW: 000035D4,00000000,00000000,000000000001013E,000000000001520B,000ADD40,00107AC0',
+                    //'[modem     ] FLOW: 000035D4,00000000,00000000,000000000001013E,000000000001520B,000ADD40,00107AC0',
                     '[modem     ] RSSI: 24,99',
                     '[modem     ] stop watcher']);
                 test.mocklynx.snapshot().should.eql([
@@ -118,7 +118,7 @@ describe('ModemWatcher',function(){
                 watcher.stop();
                 test.pp.snapshot().should.eql([
                     '[modem     ] start watcher',
-                    '[modem     ] FLOW: 000035D4,00000000,00000000,000000000001013E,000000000001520B,000ADD40,00107AC0',
+                    //'[modem     ] FLOW: 000035D4,00000000,00000000,000000000001013E,000000000001520B,000ADD40,00107AC0',
                     '[modem     ] RSSI: 24,99',
                     '[modem     ] stop watcher']);
                 test.mocklynx.snapshot().should.eql([
@@ -144,7 +144,7 @@ describe('ModemWatcher',function(){
                 watcher.stop();
                 test.pp.snapshot().should.eql([
                     '[modem     ] start watcher',
-                    '[modem     ] FLOW: ',
+                    //'[modem     ] FLOW: ',
                     '[modem     ] flow error: Error: invalid value',
                     '[modem     ] RSSI:',
                     '[modem     ] rssi error: Error: invalid value',
