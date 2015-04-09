@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 var RedisCheckpoint = require('../lib/redis-checkpoint');
+var ConfigCheckpoint = require('../lib/config-checkpoint');
 var M2mProxy = require('../lib/m2m-proxy');
 var RouteWatcher = require('../lib/route-watcher');
 var ModemWatcher = require('../lib/modem-watcher');
