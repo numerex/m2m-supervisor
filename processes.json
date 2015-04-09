@@ -11,7 +11,7 @@
       "log_date_format":"YYYY-MM-DD HH:mm:ss.SSS"
     },
     {
-      "name":           "m2m-brige",
+      "name":           "m2m-bridge",
       "script":         "bin/m2m-bridge"
     },
     {
