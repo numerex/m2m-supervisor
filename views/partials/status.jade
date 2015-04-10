@@ -1,0 +1,15 @@
+h1 Status Summary
+.alert.alert-danger(ng-cloak,ng-if='globalStatus.error') {{ globalStatus.error }}
+.row
+  .col-lg-4
+    .well(ng-cloak,ng-if='globalStatus.breakdown')
+      table.table.table-striped
+        thead
+          tr
+            th Resource
+            th Status
+        tbody
+          tr(ng-repeat='entry in globalStatus.breakdown')
+            td {{ entry[0] }}
+            td {{ entry[1] ? 'OK' : 'ERROR' }}
+

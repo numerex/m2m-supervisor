@@ -11,9 +11,9 @@ block content
           a(ui-sref = 'home') Home
         li(ng-class = "{active: $state.includes('Config')}")
           a(ui-sref = 'config') Config
-      ul.nav.navbar-nav.navbar-right
-        li
-          a Admin
+      .btn-toolbar.pull-right
+        h4
+          span.label(ng-class='globalStatus.css',ui-sref='status') {{ globalStatus.label }}
   .container-fluid
     .page-header
     #main_view(ui-view)

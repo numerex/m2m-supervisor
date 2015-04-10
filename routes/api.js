@@ -41,6 +41,7 @@ router.get('/config',function(req,res,next){
 
 router.post('/config',function(req,res,next){
     checkRedis(function(){
+        // TODO 1) delete keys that match defaults?
         logger.info('config changes: ' + JSON.stringify(req.body));
         var args = [schema.config.key];
         _.each(req.body,function(value,key){
@@ -59,7 +60,13 @@ router.post('/config',function(req,res,next){
 router.get('/status',function(req,res,next){
     checkRedis(function(){
         res.send({
-            redis: !!redisChk.client
+            redis: !!redisChk.client,
+            ethernet: true, // TODO check these other services
+            ppp: true,
+            cpu: true,
+            memory: true,
+            disk: true,
+            logic: true
         })
     });
 });
