@@ -9,6 +9,8 @@ block content
       ul.nav.navbar-nav
         li(ng-class = "{active: $state.includes('Home')}")
           a(ui-sref = 'home') Home
+        li(ng-class = "{active: $state.includes('Metrics')}")
+          a(ui-sref = 'metrics') Metrics
         li(ng-class = "{active: $state.includes('Config')}")
           a(ui-sref = 'config') Config
       .btn-toolbar.pull-right

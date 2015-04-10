@@ -11,6 +11,12 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
                 controller: 'HomeController',
                 redirectTo: 'home'
             })
+            .state('metrics',{
+                url: '/',
+                templateUrl: 'partials/metrics',
+                controller: 'MetricsController',
+                redirectTo: 'metrics'
+            })
             .state('config',{
                 url: '#config',
                 templateUrl: 'partials/config',
