@@ -17,21 +17,42 @@ function checkRedis(callback){
         redisChk.start(function() { callback(); });
 }
 
+function requestConfig(res){
+    if (!redisChk.client)
+        res.send({error: 'Redis not ready'});
+    else
+        try {
+            redisChk.client.hgetall(schema.config.key,function(err,hash){
+                if (err)
+                    res.send({error: 'redis error: ' + err});
+                else
+                    res.send({config: helpers.hash2tuples(hash || {},hashkeys)});
+            });
+        } catch(e) {
+            res.send({error: 'config error: ' + e});
+        }
+}
+
 router.get('/config',function(req,res,next){
     checkRedis(function(){
-        if (!redisChk.client)
-            res.send({error: 'Redis not ready'});
-        else
-            try {
-                redisChk.client.hgetall(schema.config.key,function(err,hash){
-                    if (err)
-                        res.send({error: 'redis error: ' + err});
-                    else
-                        res.send({config: helpers.hash2tuples(hash || {},hashkeys)});
-                });
-            } catch(e) {
-                res.send({error: 'config error: ' + e});
-            }
+        requestConfig(res);
+    });
+});
+
+router.post('/config',function(req,res,next){
+    checkRedis(function(){
+        logger.info('config changes: ' + JSON.stringify(req.body));
+        var args = [schema.config.key];
+        _.each(req.body,function(value,key){
+            args.push(key);
+            args.push(value);
+        });
+        redisChk.client.hset(args,function(err,result){
+            if (err)
+                res.send({error: 'redis error: ' + err});
+            else
+                requestConfig(res);
+        });
     });
 });
 
