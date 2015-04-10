@@ -1,8 +1,11 @@
+var _ = require('lodash');
 var express = require('express');
 
 var RedisCheckpoint = require('../lib/redis-checkpoint');
 var logger = require('../lib/logger')('api');
 var schema = require('../lib/redis-schema');
+var helpers = require('../lib/config-helpers');
+var hashkeys = require('../lib/config-hashkeys');
 
 var redisChk = new RedisCheckpoint();
 var router = express.Router();
@@ -24,7 +27,7 @@ router.get('/config',function(req,res,next){
                     if (err)
                         res.send({error: 'redis error: ' + err});
                     else
-                        res.send({config: hash || {}});
+                        res.send({config: helpers.hash2tuples(hash || {},hashkeys)});
                 });
             } catch(e) {
                 res.send({error: 'config error: ' + e});

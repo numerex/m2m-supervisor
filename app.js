@@ -25,6 +25,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'node_modules/angular')));
+app.use(express.static(path.join(__dirname, 'node_modules/angular-filter/dist')));
 app.use(express.static(path.join(__dirname, 'node_modules/angular-ui-router/release')));
 app.use(express.static(path.join(__dirname, 'node_modules/d3')));
 app.use(express.static(path.join(__dirname, 'node_modules/jquery/dist')));

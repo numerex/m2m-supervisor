@@ -7,11 +7,13 @@ block content
       .navbar-header
         .navbar-brand M2M Supervisor
       ul.nav.navbar-nav
-        li
-          a Dashboard
+        li(ng-class = "{active: $state.includes('Home')}")
+          a(ui-sref = 'home') Home
+        li(ng-class = "{active: $state.includes('Config')}")
+          a(ui-sref = 'config') Config
       ul.nav.navbar-nav.navbar-right
         li
           a Admin
   .container-fluid
     .page-header
-    #main_view(ui-view= true)
+    #main_view(ui-view)
