@@ -51,6 +51,7 @@
     "mocha": "^2.2.1",
     "mocha-lcov-reporter": "0.0.2",
     "mockery": "^1.4.0",
+    "supertest": "^0.15.0",
     "timekeeper": "0.0.5"
   }
 }

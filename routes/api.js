@@ -11,26 +11,38 @@ var redisChk = new RedisCheckpoint();
 var router = express.Router();
 
 function checkRedis(callback){
+    if (!redisChk) redisChk = new RedisCheckpoint();
     if (redisChk.started())
         callback();
     else
         redisChk.start(function() { callback(); });
 }
 
+function commonRedisCall(res,callback){
+    try {
+        callback();
+    } catch(e) {
+        // istanbul ignore next - not sure how to generate this error in mocking
+        res.send({error: 'redis exception: ' + e});
+    }
+}
+
+function commonRedisResult(res,err,result,callback){
+    if (err)
+        res.send({error: 'redis error: ' + err});
+    else
+        callback(result);
+}
+
 function requestConfig(res){
     if (!redisChk.client)
         res.send({error: 'Redis not ready'});
     else
-        try {
-            redisChk.client.hgetall(schema.config.key,function(err,hash){
-                if (err)
-                    res.send({error: 'redis error: ' + err});
-                else
-                    res.send({config: helpers.hash2tuples(hash || {},hashkeys)});
-            });
-        } catch(e) {
-            res.send({error: 'config error: ' + e});
-        }
+        commonRedisCall(res,function(){
+            redisChk.client.hgetall(schema.config.key,_.bind(commonRedisResult,this,res,_,_,function(hash){
+                res.send({config: helpers.hash2tuples(hash || {},hashkeys)});
+            }));
+        });
 }
 
 router.get('/config',function(req,res,next){
@@ -48,12 +60,14 @@ router.post('/config',function(req,res,next){
             args.push(key);
             args.push(value);
         });
-        redisChk.client.hset(args,function(err,result){
-            if (err)
-                res.send({error: 'redis error: ' + err});
-            else
-                requestConfig(res);
-        });
+        if (args.length <= 1)
+            res.send({error: 'No changes requested'});
+        else
+            commonRedisCall(res,function(){
+                redisChk.client.hmset(args,_.bind(commonRedisResult,this,res,_,_,function(result){
+                    requestConfig(res);
+                }));
+            });
     });
 });
 
@@ -72,3 +86,9 @@ router.get('/status',function(req,res,next){
 });
 
 module.exports = router;
+
+module.exports.resetRedisChk = function(){ // NOTE instrumentation for testing
+    // istanbul ignore else - testing scenario that isn't worth creating
+    if (redisChk && redisChk.started()) redisChk.stop();
+    redisChk = null;
+};
