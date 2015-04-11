@@ -7,11 +7,21 @@ block content
       .navbar-header
         .navbar-brand M2M Supervisor
       ul.nav.navbar-nav
-        li
-          a Dashboard
-      ul.nav.navbar-nav.navbar-right
-        li
-          a Admin
+        li(ng-class = "{active: $state.includes('home')}")
+          a(ui-sref = 'home') Home
+        li(ng-class = "{active: $state.includes('jobs')}")
+          a(ui-sref = 'jobs') Job History
+        li(ng-class = "{active: $state.includes('metrics')}")
+          a(ui-sref = 'metrics') Metrics
+        li(ng-class = "{active: $state.includes('diagnostics')}")
+          a(ui-sref = 'diagnostics') Diagnostics
+        li(ng-class = "{active: $state.includes('logs')}")
+          a(ui-sref = 'logs') Process Logs
+        li(ng-class = "{active: $state.includes('config')}")
+          a(ui-sref = 'config') Configuration
+      .btn-toolbar.pull-right
+        h4
+          span.label(ng-class='globalStatus.css',ui-sref='status') {{ globalStatus.label }}
   .container-fluid
     .page-header
-    | Hello!
+    #main_view(ui-view)

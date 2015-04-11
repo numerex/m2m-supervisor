@@ -9,6 +9,16 @@ module.exports.timekeeper = require('timekeeper');
 
 require(process.cwd() + '/lib/logger')('test      ').info('test environment loaded');
 
+module.exports.matchArrays = function(actual,expected){
+    actual.length.should.equal(expected.length);
+    for(var index = 0; index < actual.length; index++) {
+        if (typeof expected[index] === 'string')
+            actual[index].should.eql(expected[index]);
+        else
+            actual[index].should.match(expected[index]);
+    }
+};
+
 // DRAM -----------------------
 
 module.exports.mockdgram = function() {
@@ -91,7 +101,13 @@ module.exports.mockshelljs.exec = function() {
 
 // REDIS ----------------------
 
-module.exports.mockredis = {calls: []};
+function MockRedisClient(){
+
+}
+
+MockRedisClient.prototype.on_error = function (){};
+
+module.exports.mockredis = {calls: [],RedisClient: MockRedisClient};
 
 module.exports.mockredis.reset = function(){
     module.exports.mockredis.clientException = null;
@@ -120,6 +136,10 @@ module.exports.mockredis.createClient = function () {
         hgetall: function(key,callback){
             module.exports.mockredis.calls.push({hgetall: key});
             callback && callback(module.exports.mockredis.errors[key] || null,module.exports.mockredis.lookup.hgetall[key]);
+        },
+        hmset: function(args,callback){
+            module.exports.mockredis.calls.push({hmset: args});
+            callback && callback(module.exports.mockredis.errors[args[0]] || null,0); // TODO what should the return be??
         },
         llen: function(key,callback) {
             module.exports.mockredis.calls.push({llen: key});

@@ -1,0 +1,22 @@
+h1 Configuration Settings
+.alert.alert-danger(ng-cloak,ng-if='errorMessage') {{ errorMessage }}
+.alert.alert-warning(ng-cloak,ng-if='warningMessage') {{ warningMessage }}
+.alert.alert-info(ng-cloak,ng-if='infoMessage') {{ infoMessage }}
+.alert.alert-success(ng-cloak,ng-if='successMessage') {{ successMessage }}
+form.form-horizontal.well(ng-cloak,ng-if='config')
+  fieldset
+    .row
+      .col-lg-4(ng-repeat="(name,group) in config | groupBy:'group'")
+        legend {{ name }}
+        .form-group(ng-repeat='entry in group')
+          label.col-lg-4.control-label(for='{{ entry.key }}') {{ entry.label }}:
+          .col-lg-8
+            input.form-control(ng-disabled="entry.status === 'locked'",ng-model='configValues[entry.key]',type='text')
+      .form-group
+        .col-lg-12
+          legend
+        .col-lg-8.col-lg-offset-4
+          //- TODO figure out how to disable buttons unless dirty
+          button.btn.btn-primary(type='submit',ng-click='submitChanges()') Save Changes
+          | &nbsp;
+          button.btn.btn-default(ng-click='resetValues()') Discard Changes

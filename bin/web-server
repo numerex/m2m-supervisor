@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-var server = require('../lib/server');
+var server = require('../lib/web-server');
 
 server(normalizePort(process.env.PORT || '3000'));
 
