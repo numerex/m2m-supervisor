@@ -37,9 +37,9 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] ::ffff:127\.0\.0\.1 --> GET \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis-chk ] start checkpoint',
-                    /^\[express   \] ::ffff:127.0.0.1 <-- GET \/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
                     '[redis-chk ] stop checkpoint'
                 ]);
                 done();
@@ -57,9 +57,9 @@ describe('API router',function() {
                 // NOTE - drop through to next test to allow existing redisCheck to be used... facilitates test coverage
                 test.mockredis.snapshot().should.eql([{hgetall: 'm2m-config'}]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] ::ffff:127\.0\.0\.1 --> GET \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis-chk ] start checkpoint',
-                    /^\[express   \] ::ffff:127.0.0.1 <-- GET \/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
+                    /^\[express   \] \S+ <-- GET \/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
                 ]);
                 done();
             });
@@ -76,9 +76,9 @@ describe('API router',function() {
                 require(process.cwd() + '/routes/api').resetRedisChk();
                 test.mockredis.snapshot().should.eql([{quit: null}]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] ::ffff:127\.0\.0\.1 --> POST \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> POST \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[api       ] config changes: {}',
-                    /^\[express   \] ::ffff:127.0.0.1 <-- POST \/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- POST \/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
                     '[redis-chk ] stop checkpoint'
                 ]);
                 done();
@@ -100,10 +100,10 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] ::ffff:127\.0\.0\.1 --> POST \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] .* --> POST \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis-chk ] start checkpoint',
                     '[api       ] config changes: {"gateway:primary":"private"}',
-                    /^\[express   \] ::ffff:127.0.0.1 <-- POST \/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- POST \/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
                     '[redis-chk ] stop checkpoint'
                 ]);
                 done();
@@ -121,9 +121,9 @@ describe('API router',function() {
                 require(process.cwd() + '/routes/api').resetRedisChk();
                 test.mockredis.snapshot().should.eql([{quit: null}]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] ::ffff:127\.0\.0\.1 --> GET \/api\/status HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/api\/status HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis-chk ] start checkpoint',
-                    /^\[express   \] ::ffff:127.0.0.1 <-- GET \/api\/status HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/api\/status HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis-chk ] stop checkpoint'
                 ]);
                 done();
@@ -142,10 +142,10 @@ describe('API router',function() {
                 require(process.cwd() + '/routes/api').resetRedisChk();
                 test.mockredis.snapshot().should.eql([]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] ::ffff:127\.0\.0\.1 --> GET \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis-chk ] start checkpoint',
                     '[redis-chk ] not ready: Error: test error',
-                    /^\[express   \] ::ffff:127.0.0.1 <-- GET \/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
                     '[redis-chk ] stop checkpoint'
                 ]);
                 done();
