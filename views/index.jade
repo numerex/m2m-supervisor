@@ -1,6 +1,6 @@
 extends angular
 block styles
-  link(rel='stylesheet', href='/stylesheets/index.css')
+  link(rel='stylesheet', href='/stylesheets/common.css')
 block content
   .navbar.navbar-default.navbar-fixed-top
     .container-fluid
@@ -19,6 +19,8 @@ block content
           a(ui-sref = 'logs') Process Logs
         li(ng-class = "{active: $state.includes('config')}")
           a(ui-sref = 'config') Configuration
+        li(ng-class = "{active: $state.includes('shell')}")
+          a(ui-sref = 'shell') Shell
       .btn-toolbar.pull-right
         h4
           span.label(ng-class='globalStatus.css',ui-sref='status') {{ globalStatus.label }}

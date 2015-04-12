@@ -1,20 +1,5 @@
 #!/usr/bin/env node
-var server = require('../lib/web-server');
 
-server(normalizePort(process.env.PORT || '3000'));
-
-function normalizePort(val) {
-    var port = parseInt(val, 10);
-
-    if (isNaN(port)) {
-        // named pipe
-        return val;
-    }
-
-    if (port >= 0) {
-        // port number
-        return port;
-    }
-
-    return false;
-}
+var httpServer = require('../lib/http-server').start(process.env.PORT || '3000');
+var socketServer = require('../lib/socket-server').start(httpServer);
+var shellBehavior = require('../lib/shell-behavior').registerSelf(socketServer);

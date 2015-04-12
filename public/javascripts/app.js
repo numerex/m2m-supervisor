@@ -28,6 +28,12 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
                 templateUrl: 'partials/status',
                 controller: 'StatusController',
                 redirectTo: 'status'
+            })
+            .state('shell',{
+                url: '#shell',
+                templateUrl: 'partials/shell',
+                controller: 'ShellController',
+                redirectTo: 'shell'
             });
     }])
     .run(['$rootScope','$http','$interval',function($rootScope,$http,$interval) {
@@ -55,4 +61,5 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
         };
         $rootScope.checkStatus();
         $interval($rootScope.checkStatus,15*1000);
+
     }]);

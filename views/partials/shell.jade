@@ -1,0 +1,14 @@
+h1 Command Shell
+form.form-horizontal(ng-submit='executeCommand()')
+  fieldset
+    .form-group
+      .col-lg-1
+        label.control-label Command Line:
+      .col-lg-11
+        .input-group
+          input.form-control(type='text',ng-model='commandLine',placeholder='Enter shell command')
+          span.input-group-btn
+            button.btn.btn-default Submit
+.shellView
+  #shellOutput
+  div(style='position: absolute; bottom: 0;')

@@ -1,0 +1,21 @@
+.shellView { /* TODO figure out how to make the shell output scroll inside the shell view */
+    background-color: lightgray;
+    overflow: auto;
+    position: relative;
+    height: 100%;
+}
+
+#shellOutput {
+}
+
+.stdin, .stdout, .stderr {
+    font-family: monospace;
+}
+
+.stdin {
+    color: blue;
+}
+
+.stderr {
+    color: red;
+}
