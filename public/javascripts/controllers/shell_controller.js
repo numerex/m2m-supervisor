@@ -43,18 +43,23 @@ app.controller('ShellController',['$rootScope','$scope','$http','$location',func
         $rootScope.shellSocket = socket;
     }
 
+    var output = $('#shellOutput');
+    var lineID = 0;
+    $scope.clearOutput = function(){
+        output.children('.shell-line').remove();
+    };
+
     $scope.commandLine = '';
     $scope.executeCommand = function(){
         displayOutput('stdin','> ' + $scope.commandLine);
         $rootScope.shellSocket.emit('input',{command: $scope.commandLine});
+        return true;
     };
 
-    var lineID = 0;
-    var output = $('#shellOutput');
     displayOutput = function(css,text){
         if (text)
             _.each(text.split('\n'),function(line){
-                output.append('<div id="shell_line_' + lineID++ + '" class="' + css +'">' + _.escape(line).replace(/ /g,'&nbsp;') + '</div>');
+                output.append('<div id="shell_line_' + lineID++ + '" class="shell-line ' + css +'">' + _.escape(line).replace(/ /g,'&nbsp;') + '</div>');
             });
     };
 

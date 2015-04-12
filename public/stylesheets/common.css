@@ -8,6 +8,10 @@
 #shellOutput {
 }
 
+.shell-line {
+
+}
+
 .stdin, .stdout, .stderr {
     font-family: monospace;
 }
