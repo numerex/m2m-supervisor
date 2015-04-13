@@ -29,9 +29,8 @@ app.use(express.static(path.join(__dirname, 'node_modules/angular-ui-router/rele
 app.use(express.static(path.join(__dirname, 'node_modules/d3')));
 app.use(express.static(path.join(__dirname, 'node_modules/jquery/dist')));
 
-app.use('/', index);
-
-app.use('/api', api);
+app.use('/',index);
+app.use('/api',api);
 
 app.use('/partials',function (req,res) {
     res.render('partials' + req.path);
