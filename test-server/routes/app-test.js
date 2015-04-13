@@ -34,7 +34,7 @@ describe('app',function() {
                 test.should.not.exist(err);
                 test.matchArrays(test.pp.snapshot(),[
                     /\[express   \] \S+ --> GET \/missing HTTP\/1\.1 200 - - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
-                    /\[express   \] \S+ <-- GET \/missing HTTP\/1\.1 404 2459 - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
+                    /\[express   \] \S+ <-- GET \/missing HTTP\/1\.1 404 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
                 ]);
                 done();
             });
@@ -49,7 +49,7 @@ describe('app',function() {
                 test.should.not.exist(err);
                 test.matchArrays(test.pp.snapshot(),[
                     /\[express   \] \S+ --> GET \/partials\/home\.jade HTTP\/1\.1 200 - - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
-                    /\[express   \] \S+ <-- GET \/partials\/home\.jade HTTP\/1\.1 200 17 - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
+                    /\[express   \] \S+ <-- GET \/partials\/home\.jade HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
                 ]);
                 done();
             });

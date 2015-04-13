@@ -34,7 +34,7 @@ describe('index router',function() {
                 test.should.not.exist(err);
                 test.matchArrays(test.pp.snapshot(),[
                     /\[express   \] \S+ --> GET \/ HTTP\/1\.1 200 - - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
-                    /\[express   \] \S+ <-- GET \/ HTTP\/1\.1 200 1986 - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
+                    /\[express   \] \S+ <-- GET \/ HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
                 ]);
                 done();
             });
