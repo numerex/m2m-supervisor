@@ -13,6 +13,8 @@ describe('ModemWatcher',function(){
     afterEach(function() {
         test.mockery.deregisterMock('lynx');
         test.mockery.disable();
+        test.mocklynx.snapshot().should.eql([]);
+        test.pp.snapshot().should.eql([]);
     });
 
     it('should properly initialize with no parameters',function(){

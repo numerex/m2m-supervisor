@@ -13,7 +13,7 @@ SocketServer.prototype.start = function (httpServer) {
     var self = this;
     self.httpServer = httpServer;
     self.lastID = 0;
-    self.io = require('socket.io')(httpServer);
+    self.io = require('socket.io')(httpServer); // NOTE delay require for testability
     self.io.on('connection',function (socket) {
         socket.clientID = ++self.lastID;
         logger.info('connection(' + socket.clientID + ')');
@@ -54,4 +54,4 @@ SocketServer.prototype.applyBehavior = function(type,socket) {
     socket.emit('behavior',!!self.behavior);
 };
 
-module.exports = new SocketServer();
+module.exports = SocketServer;

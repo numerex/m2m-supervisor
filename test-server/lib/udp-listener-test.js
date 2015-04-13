@@ -15,6 +15,7 @@ describe('UdpListener',function() {
     afterEach(function () {
         test.mockery.deregisterMock('dgram');
         test.mockery.disable();
+        test.pp.snapshot().should.eql([]);
     });
 
     it('minimal setup is performed without port or onmessage function that logs an error when receiving data',function(){

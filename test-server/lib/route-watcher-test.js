@@ -18,6 +18,8 @@ describe('RouteWatcher',function(){
         test.mockery.deregisterMock('shelljs');
         test.mockery.deregisterMock('lynx');
         test.mockery.disable();
+        test.mocklynx.snapshot().should.eql([]);
+        test.pp.snapshot().should.eql([]);
     });
 
     it('should be immediately stopped',function(done){
@@ -54,6 +56,7 @@ describe('RouteWatcher',function(){
     it('should throw an error if stopped before started',function(done){
         var watcher = new RouteWatcher();
         test.expect(function(){ watcher.stop(); }).to.throw('not started');
+        test.mocklynx.snapshot().should.eql([]);
         test.pp.snapshot().should.eql([]);
         done();
     });
@@ -179,6 +182,7 @@ describe('RouteWatcher',function(){
         test.mockshelljs.lookup['pppstats'] = [0,'unexpected'];
         watcher.checkRoutes(function(event){
             event.should.eql('error');
+            test.mocklynx.snapshot().should.eql([{increment: 'error'}]);
             test.pp.snapshot().should.eql(['[route     ] unexpected pppstats output: unexpected']);
             done();
         });
@@ -190,6 +194,7 @@ describe('RouteWatcher',function(){
         test.mockshelljs.lookup['test'] = [1,'first'];
         watcher.getShellOutput('test','test',true,function(err,output) {
             [err,output].should.eql([1,'first']);
+            test.mocklynx.snapshot().should.eql([]);
             test.pp.snapshot().should.eql([]);
             done();
         });

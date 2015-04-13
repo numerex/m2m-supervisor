@@ -1,7 +1,5 @@
 var logger = require('../lib/logger')('shell');
 
-var childprocess = null;
-
 function ShellBehavior(){
     var self = this;
     self.shell = require('shelljs'); // NOTE delay require for testability
@@ -81,4 +79,4 @@ ShellBehavior.prototype.killEvent = function(socket,data){
 };
 
 
-module.exports = new ShellBehavior();
+module.exports = ShellBehavior;

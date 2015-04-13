@@ -20,6 +20,8 @@ describe('ConfigCheckpoint',function() {
     afterEach(function () {
         test.mockery.deregisterMock('redis');
         test.mockery.disable();
+        test.mockredis.snapshot().should.eql([]);
+        test.pp.snapshot().should.eql([]);
     });
 
     it('should properly initialize data with minimal arguments',function(){
