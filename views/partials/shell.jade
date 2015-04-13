@@ -6,8 +6,10 @@ form.form-horizontal
         .input-group
           input.form-control(type='text',ng-model='commandLine',placeholder='Enter shell command')
           span.input-group-btn
-            button.btn.btn-default(ng-click='executeCommand()') Submit
+            button.btn.btn-primary(ng-click='executeCommand()',ng-disabled='commandActive') Submit
       .col-lg-1
-        button.btn.btn-default(ng-click='clearOutput()') Clear
+          button.btn.btn-default(ng-click='clearOutput()',ng-disabled='lineID === 0') Clear
+          | &nbsp;
+          button.btn.btn-default(ng-click='killCommand()',ng-disabled='!commandActive') Kill
 .shellView
   #shellOutput
