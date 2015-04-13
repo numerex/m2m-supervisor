@@ -10,7 +10,6 @@ var pretty = require('./lib/bunyan-prettyprinter');
 
 var index = require('./routes/index');
 var api = require('./routes/api');
-var shell = require('./routes/shell');
 
 var app = express();
 
@@ -32,7 +31,6 @@ app.use(express.static(path.join(__dirname, 'node_modules/jquery/dist')));
 
 app.use('/',index);
 app.use('/api',api);
-app.use('/shell',shell);
 
 app.use('/partials',function (req,res) {
     res.render('partials' + req.path);

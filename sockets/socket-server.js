@@ -1,5 +1,5 @@
 var _ = require('lodash');
-var logger = require('./logger')('socket');
+var logger = require('./../lib/logger')('socket');
 
 function SocketServer(){
     this.behaviors = {};
