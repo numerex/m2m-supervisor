@@ -57,15 +57,15 @@ M2mTransmitter.prototype.checkQueue = function(){
     if (!this.ready()) return;
 
     var self = this;
-    self.redis.mget(schema.ack.message.key,schema.ack.retries.key,schema.transmit.lastSequenceNumber.key,_.bind(self.redisCheckResult,self,_,_,function(values){
+    self.redis.mget(schema.ack.message.key,schema.ack.retries.key,schema.ack.sequenceNumber.key,_.bind(self.redisCheckResult,self,_,_,function(values){
         var message = values[0];
         var retries = values[1] || '0';
-        var lastSequenceNumber = values[2] || '0';
+        var ackSequenceNumber = values[2] || '0';
         if (message)
             self.redis.brpop(schema.ack.queue.key,self.config.timeoutInterval,_.bind(self.redisCheckResult,self,_,_,function(result){
-                if (result && result[0] == schema.ack.queue.key && +result[1] === +lastSequenceNumber) {
-                    logger.info('acked: ' + lastSequenceNumber);
-                    self.redis.del(schema.ack.message.key,schema.ack.retries.key,self.redisLogErrorCallback);
+                if (result && result[0] == schema.ack.queue.key && +result[1] === +ackSequenceNumber) {
+                    logger.info('acked: ' + ackSequenceNumber);
+                    self.redis.del(schema.ack.message.key,schema.ack.retries.key,schema.ack.sequenceNumber.key,self.redisLogErrorCallback);
                     self.stats.increment('acks');
                     self.noteEvent('ack');
                 } else if (+retries > self.config.maxRetries) {
@@ -74,7 +74,7 @@ M2mTransmitter.prototype.checkQueue = function(){
                     self.stats.increment('error');
                     self.noteEvent('error');
                 } else {
-                    logger.info('retry: ' + lastSequenceNumber);
+                    logger.info('retry: ' + ackSequenceNumber);
                     self.stats.increment('retries');
                     self.redis.incr(schema.ack.retries.key,self.redisLogErrorCallback);
                     self.transmitMessage(new m2m.Message({json: message}));
@@ -89,40 +89,41 @@ M2mTransmitter.prototype.checkQueue = function(){
                     logger.warn('ignoring queue entry: ' + result);
                 else {
                     var attributes = self.safeParseJSON(result[1]);
-                    if (attributes)
-                        self.transmitMessage(self.createMessage(attributes,+lastSequenceNumber));
-                    else
+                    if (!attributes)
                         self.noteEvent('error');
+                    else {
+                        self.generateMessage(attributes);
+                        return; // NOTE - prevent drop-through to "asyncCheckQueue" call
+                    }
                 }
                 self.asyncCheckQueue();
             }));
     }));
 };
 
-M2mTransmitter.prototype.createMessage = function(attributes,lastSequenceNumber) {
+M2mTransmitter.prototype.generateMessage = function(attributes) {
     var eventCode = attributes.eventCode || settings.EventCodes.heartbeat;
     delete attributes.eventCode;
-
-    var sequenceNumber = attributes.sequenceNumber;
-    if (sequenceNumber)
-        delete attributes.sequenceNumber;
-    else
-        this.redis.set(schema.transmit.lastSequenceNumber.key,sequenceNumber = lastSequenceNumber + 1,this.redisLogErrorCallback);
 
     var timestamp = attributes.timestamp;
     delete attributes.timestamp;
 
-    var message = new m2m.Message({messageType: m2m.Common.MOBILE_ORIGINATED_EVENT,eventCode: eventCode,sequenceNumber: sequenceNumber,timestamp: timestamp})
-        .pushString(0,this.gateway.imei);
-    for (var key in attributes) {
-        var code = +key;
-        if (code > 0)
-            message.pushInt(code,+attributes[key]); // TODO expand...
-    }
+    var sequenceNumber = attributes.sequenceNumber;
+    delete attributes.sequenceNumber;
+    
+    var self = this;
+    self.redis.incr(schema.transmit.lastSequenceNumber.key,_.bind(self.redisCheckResult,self,_,_,function(newSequenceNumber){
+        var message = new m2m.Message({messageType: m2m.Common.MOBILE_ORIGINATED_EVENT,eventCode: eventCode,sequenceNumber: sequenceNumber || newSequenceNumber,timestamp: timestamp})
+            .pushString(0,self.gateway.imei);
+        for (var key in attributes) {
+            var code = +key;
+            if (code > 0)
+                message.pushInt(code,+attributes[key]); // TODO expand...
+        }
 
-    this.redis.set(schema.ack.message.key,JSON.stringify(message));
-
-    return message;
+        self.redis.mset([schema.ack.message.key,JSON.stringify(message),message.sequenceNumber,schema.ack.retries.key,0,schema.ack.sequenceNumber.key],self.redisLogError);
+        self.transmitMessage(message.toWire());
+    }));
 };
 
 M2mTransmitter.prototype.transmitMessage = function(message){

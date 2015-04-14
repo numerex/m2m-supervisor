@@ -3,14 +3,29 @@ var HeartbeatGenerator = require(process.cwd() + '/services/heartbeat-generator'
 
 describe('HeartbeatGenerator',function() {
 
+    var BASE_TIME = 1000000000000;
+
+    var mockProxy = null;
+
     beforeEach(function () {
+        test.timekeeper.freeze(BASE_TIME);
         test.mockery.enable();
         test.mockery.registerMock('lynx',test.mocklynx);
         test.mockery.registerMock('redis', test.mockredis);
         test.mockery.warnOnUnregistered(false);
         test.mockredis.reset();
-        //test.mockery.registerAllowables(['./logger', './statsd-client']);
-        //test.pp.snapshot();
+        mockProxy = {
+            gateway: {imei: '123456789012345'},
+            messages: []
+        };
+        mockProxy.sendPrimary = function(buffer){
+            mockProxy.messages.push(JSON.stringify(buffer))
+        };
+        mockProxy.snapshot = function(){
+            var messages = mockProxy.messages;
+            mockProxy.messages = [];
+            return messages;
+        }
     });
 
     afterEach(function () {
@@ -20,15 +35,17 @@ describe('HeartbeatGenerator',function() {
         test.mocklynx.snapshot().should.eql([]);
         test.mockredis.snapshot().should.eql([]);
         test.pp.snapshot().should.eql([]);
+        mockProxy.snapshot().should.eql([]);
+        test.timekeeper.reset();
     });
 
     it('should send a startup but then skip regular heartbeats if recent messages have been sent',function(done){
-        test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = new Date().valueOf() + 20;
-        test.mockredis.lookup.lpush['m2m-transmit:queue'] = [];
+        test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = BASE_TIME;
         test.mockredis.lookup.llen['m2m-transmit:queue'] = 0;
+        test.mockredis.lookup.incr['m2m-transmit:last-sequence-number'] = 8;
 
         var events = [];
-        var heartbeat = new HeartbeatGenerator({heartbeatInterval: 10});
+        var heartbeat = new HeartbeatGenerator(mockProxy,{heartbeatInterval: 10});
         heartbeat.start(function(event){
             events.push(event);
             if (events.length > 1) {
@@ -45,22 +62,26 @@ describe('HeartbeatGenerator',function() {
                     {increment: 'stopped'}
                 ]);
                 test.mockredis.snapshot().should.eql([
-                    {lpush: ['m2m-transmit:queue','{"eventCode":1}']},
+                    {incr: 'm2m-transmit:last-sequence-number'},
                     {get: 'm2m-transmit:last-private-timestamp'}]);
+                mockProxy.snapshot().should.eql(['{"type":"Buffer","data":[170,16,1,0,8,0,0,0,232,212,165,16,0,1,0,2,0,15,49,50,51,52,53,54,55,56,57,48,49,50,51,52,53,17]}']);
                 done();
             }
         });
     });
 
     it('should send a startup but then skip regular heartbeats if messages are in the queue',function(done){
-        test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = new Date().valueOf();
-        test.mockredis.lookup.lpush['m2m-transmit:queue'] = [];
+        var nextTime = BASE_TIME;
+        test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = nextTime;
         test.mockredis.lookup.llen['m2m-transmit:queue'] = 1;
+        test.mockredis.lookup.incr['m2m-transmit:last-sequence-number'] = 8;
 
         var events = [];
-        var heartbeat = new HeartbeatGenerator({heartbeatInterval: 10});
+        var heartbeat = new HeartbeatGenerator(mockProxy,{heartbeatInterval: 10});
         heartbeat.start(function(event){
             events.push(event);
+            test.timekeeper.reset();
+            test.timekeeper.freeze(nextTime += 20);
             if (events.length > 1) {
                 heartbeat.stop();
                 events.should.eql(['heartbeat','skip']);
@@ -75,24 +96,29 @@ describe('HeartbeatGenerator',function() {
                     {increment: 'stopped'}
                 ]);
                 test.mockredis.snapshot().should.eql([
-                    {lpush: ['m2m-transmit:queue','{"eventCode":1}']},
+                    {incr: 'm2m-transmit:last-sequence-number'},
                     {get: 'm2m-transmit:last-private-timestamp'},
                     {llen: 'm2m-transmit:queue'}
                 ]);
+                mockProxy.snapshot().should.eql(['{"type":"Buffer","data":[170,16,1,0,8,0,0,0,232,212,165,16,0,1,0,2,0,15,49,50,51,52,53,54,55,56,57,48,49,50,51,52,53,17]}']);
                 done();
             }
         });
     });
 
     it('should send a startup and then regular heartbeats if no other messages have been sent and the queue is empty',function(done){
-        test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = new Date().valueOf();
-        test.mockredis.lookup.lpush['m2m-transmit:queue'] = [];
+        var nextTime = BASE_TIME;
+        test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = nextTime;
+        test.mockredis.lookup.incr['m2m-transmit:last-sequence-number'] = 8;
         test.mockredis.lookup.llen['m2m-transmit:queue'] = 0;
 
         var events = [];
-        var heartbeat = new HeartbeatGenerator({heartbeatInterval: 10});
+        var heartbeat = new HeartbeatGenerator(mockProxy,{heartbeatInterval: 10});
         heartbeat.start(function(event){
             events.push(event);
+            test.timekeeper.reset();
+            test.timekeeper.freeze(nextTime += 20);
+            test.mockredis.lookup.incr['m2m-transmit:last-sequence-number'] = 9;
             if (events.length > 1) {
                 heartbeat.stop();
                 events.should.eql(['heartbeat','heartbeat']);
@@ -108,23 +134,25 @@ describe('HeartbeatGenerator',function() {
                     {increment: 'stopped'}
                 ]);
                 test.mockredis.snapshot().should.eql([
-                    {lpush: ['m2m-transmit:queue','{"eventCode":1}']},
+                    {incr: 'm2m-transmit:last-sequence-number'},
                     {get: 'm2m-transmit:last-private-timestamp'},
                     {llen: 'm2m-transmit:queue'},
-                    {lpush: ['m2m-transmit:queue','{"eventCode":0}']}
+                    {incr: 'm2m-transmit:last-sequence-number'}
+                ]);
+                mockProxy.snapshot().should.eql([
+                    '{"type":"Buffer","data":[170,16,1,0,8,0,0,0,232,212,165,16,0,1,0,2,0,15,49,50,51,52,53,54,55,56,57,48,49,50,51,52,53,17]}',
+                    '{"type":"Buffer","data":[170,16,0,0,9,0,0,0,232,212,165,16,20,1,0,2,0,15,49,50,51,52,53,54,55,56,57,48,49,50,51,52,53,24]}'
                 ]);
                 done();
             }
         });
     });
 
-    it('should throw an error if redis fails on lpush',function(done){
-        test.mockredis.errors['m2m-transmit:queue'] = 'test error';
-        test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = 0;
-        test.mockredis.lookup.lpush['m2m-transmit:queue'] = [];
+    it('should throw an error if redis fails on incr',function(done){
+        test.mockredis.errors['m2m-transmit:last-sequence-number'] = 'test error';
 
         var events = [];
-        var heartbeat = new HeartbeatGenerator();
+        var heartbeat = new HeartbeatGenerator(mockProxy);
         heartbeat.start(function(event){
             events.push(event);
             events.should.eql(['error']);
@@ -136,7 +164,8 @@ describe('HeartbeatGenerator',function() {
                 {increment: 'error'}
             ]);
             test.mockredis.snapshot().should.eql([
-                {lpush: ['m2m-transmit:queue','{"eventCode":1}']}]);
+                {incr: 'm2m-transmit:last-sequence-number'}
+            ]);
             done();
         });
     });
@@ -144,10 +173,10 @@ describe('HeartbeatGenerator',function() {
     it('should throw an error if redis fails on get',function(done){
         test.mockredis.errors['m2m-transmit:last-private-timestamp'] = 'test error';
         test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = 0;
-        test.mockredis.lookup.lpush['m2m-transmit:queue'] = [];
+        test.mockredis.lookup.incr['m2m-transmit:last-sequence-number'] = 8;
 
         var events = [];
-        var heartbeat = new HeartbeatGenerator({heartbeatInterval: 10});
+        var heartbeat = new HeartbeatGenerator(mockProxy,{heartbeatInterval: 10});
         heartbeat.start(function(event){
             events.push(event);
             if (events.length > 1) {
@@ -165,17 +194,18 @@ describe('HeartbeatGenerator',function() {
                     {increment: 'stopped'}
                 ]);
                 test.mockredis.snapshot().should.eql([
-                    {lpush: ['m2m-transmit:queue','{"eventCode":1}']},
+                    {incr: 'm2m-transmit:last-sequence-number'},
                     {get: 'm2m-transmit:last-private-timestamp'}]);
+                mockProxy.snapshot().should.eql(['{"type":"Buffer","data":[170,16,1,0,8,0,0,0,232,212,165,16,0,1,0,2,0,15,49,50,51,52,53,54,55,56,57,48,49,50,51,52,53,17]}']);
                 done();
             }
         });
     });
 
     it('should throw an error if start called twice',function(done){
-        test.mockredis.lookup.lpush['m2m-transmit:queue'] = [];
+        test.mockredis.lookup.incr['m2m-transmit:last-sequence-number'] = 8;
 
-        var watcher = new HeartbeatGenerator().start();
+        var watcher = new HeartbeatGenerator(mockProxy).start();
         test.expect(function(){ watcher.start(); }).to.throw('already started');
         watcher.stop();
         test.pp.snapshot().should.eql([
@@ -187,12 +217,14 @@ describe('HeartbeatGenerator',function() {
             {increment: 'sent'},
             {increment: 'stopped'}]);
         test.mockredis.snapshot().should.eql([
-            {lpush: ['m2m-transmit:queue','{"eventCode":1}']}]);
+            {incr: 'm2m-transmit:last-sequence-number'}
+        ]);
+        mockProxy.snapshot().should.eql(['{"type":"Buffer","data":[170,16,1,0,8,0,0,0,232,212,165,16,0,1,0,2,0,15,49,50,51,52,53,54,55,56,57,48,49,50,51,52,53,17]}']);
         done();
     });
 
     it('should throw an error if stopped before started',function(done){
-        var watcher = new HeartbeatGenerator();
+        var watcher = new HeartbeatGenerator(mockProxy);
         test.expect(function(){ watcher.stop(); }).to.throw('not started');
         test.pp.snapshot().should.eql([]);
         test.mocklynx.snapshot().should.eql([]);

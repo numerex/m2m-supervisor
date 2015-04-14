@@ -164,8 +164,12 @@ MockRedis.reset = function(){
     MockRedis.lookup = {
         get: {},
         hgetall: {},
+        hmset: {},
+        incr: {},
         llen: {},
-        lpush: {}
+        lpush: {},
+        mset: {},
+        set: {}
     };
     MockRedis.errors = {};
 };
@@ -191,6 +195,10 @@ MockRedis.createClient = function () {
             MockRedis.calls.push({hmset: args});
             callback && callback(MockRedis.errors[args[0]] || null,0); // TODO what should the return be??
         },
+        incr: function(key,callback) {
+            MockRedis.calls.push({incr: key});
+            callback && callback(MockRedis.errors[key] || null,MockRedis.lookup.incr[key] || '0');
+        },
         llen: function(key,callback) {
             MockRedis.calls.push({llen: key});
             callback && callback(MockRedis.errors[key] || null,MockRedis.lookup.llen[key] || '0');
@@ -201,9 +209,6 @@ MockRedis.createClient = function () {
             list.unshift(value);
             callback && callback(MockRedis.errors[key] || null,list.length);
         },
-        quit: function(){
-            MockRedis.calls.push({quit: null});
-        },
         mset: function(){
             var arglength = Math.floor(arguments.length / 2) * 2;
             var callback = arguments.length > arglength && arguments[arglength];
@@ -213,6 +218,9 @@ MockRedis.createClient = function () {
         set: function(key,value,callback){
             MockRedis.calls.push({set: [key,value]});
             callback && callback(MockRedis.errors[key] || null,true);
+        },
+        quit: function(){
+            MockRedis.calls.push({quit: null});
         }
     }
 };

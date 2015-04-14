@@ -26,8 +26,6 @@ describe('M2mProxy',function() {
         test.mockery.warnOnUnregistered(false);
         test.mockredis.reset();
         redis = test.mockredis.createClient();
-        //test.mockery.registerAllowables(['./logger', './statsd-client']);
-        //test.pp.snapshot();
     });
 
     afterEach(function () {
@@ -136,6 +134,24 @@ describe('M2mProxy',function() {
             {set: ['m2m-transmit:last-timestamp',1428594562570]}
         ]);
         test.timekeeper.reset();
+    });
+
+    it('should send a public and then a primvate message using sendPrimary',function(){
+        var events = [];
+        var proxy = new M2mProxy(redis,defaults,function(event){
+            events.push(event);
+        });
+
+        proxy.sendPrimary('test');
+        proxy.gateway.primary = 'private';
+        proxy.sendPrimary('test');
+
+        events.should.eql(['ready','public','private']);
+        test.pp.snapshot().should.eql([
+            '[outside   ] outgoing - size: 4 from: public-host:3011',
+            '[outside   ] outgoing - size: 4 from: private-host:3011'
+        ]);
+        test.mockredis.snapshot(); // clear snapshot
     });
 
 });
