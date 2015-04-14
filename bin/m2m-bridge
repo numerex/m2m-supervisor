@@ -32,7 +32,7 @@ var redisChk = new RedisCheckpoint().start(function(event,redis) {
             if (event == 'ready' && !modem) {
                 modem = new ModemWatcher(gateway).start(function(event){
                     if (event == 'ready' && !heartbeat)
-                        heartbeat = new HeartbeatGenerator().start();
+                        heartbeat = new HeartbeatGenerator(proxy).start();
                 });
             }
         });
