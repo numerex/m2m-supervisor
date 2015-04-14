@@ -1,8 +1,8 @@
 var _ = require('lodash');
 
-var helpers = require('./config-helpers');
-var schema = require('./redis-schema');
-var logger = require('./logger')('cfg-chk');
+var helpers = require('./../lib/config-helpers');
+var schema = require('./../lib/redis-schema');
+var logger = require('./../lib/logger')('cfg-chk');
 
 function ConfigCheckpoint(redis,hashkeys,required,config) {
     this.redis = redis;

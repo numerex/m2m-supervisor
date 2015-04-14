@@ -34,6 +34,8 @@ describe('M2mProxy',function() {
         test.mockery.deregisterMock('dgram');
         test.mockery.deregisterMock('redis');
         test.mockery.disable();
+        test.mockredis.snapshot().should.eql([]);
+        test.pp.snapshot().should.eql([]);
     });
 
     it('should properly initialize',function(){

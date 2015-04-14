@@ -19,6 +19,14 @@ module.exports.matchArrays = function(actual,expected){
     }
 };
 
+function MockEventHandler(){
+    this.eventHandlers = {};
+}
+
+MockEventHandler.prototype.on = function(event,callback){
+    this.eventHandlers[event] = callback;
+};
+
 // DRAM -----------------------
 
 module.exports.mockdgram = function() {
@@ -78,10 +86,38 @@ module.exports.mocklynx.snapshot = function() {
 
 // SHELLJS ---------------------
 
-module.exports.mockshelljs = {};
+module.exports.mockshelljs = {
+    calls: [],
+    processes: []
+};
 
 module.exports.mockshelljs.reset = function(){
+    module.exports.mockshelljs.processes = [];
     module.exports.mockshelljs.lookup = {};
+};
+
+module.exports.mockshelljs.newMockProcess = function(){
+    var process = new MockEventHandler();
+    process.id = module.exports.mockshelljs.processes.length;
+    process.stdin = new MockEventHandler();
+    process.stdout = new MockEventHandler();
+    process.stderr = new MockEventHandler();
+    process.kill = function(signal){
+        module.exports.mockshelljs.calls.push({id: process.id,kill: signal});
+        process.eventHandlers.exit && process.eventHandlers.exit(null,signal);
+        process.eventHandlers.close && process.eventHandlers.close(null,signal);
+    };
+    process.snapshot = function(){
+        return {
+            id: process.id,
+            events: _.keys(process.eventHandlers),
+            stdin: _.keys(process.stdin.eventHandlers),
+            stdout: _.keys(process.stdout.eventHandlers),
+            stderr: _.keys(process.stderr.eventHandlers)
+        };
+    };
+    module.exports.mockshelljs.processes.push(process);
+    return process;
 };
 
 module.exports.mockshelljs.exec = function() {
@@ -89,15 +125,29 @@ module.exports.mockshelljs.exec = function() {
     var response = module.exports.mockshelljs.lookup[command];
     if (!response) throw(new Error('no response found: ' + command));
 
+    var process = module.exports.mockshelljs.newMockProcess();
+    module.exports.mockshelljs.calls.push({id: process.id,exec: [command,response]});
+
     var lastArgument = arguments[arguments.length - 1];
     switch(typeof lastArgument){
         case 'object':
+            if (lastArgument && lastArgument.async) break;
+
         case 'string':
-            return {output: response};
+            return {code: 0,output: response};
+
         case 'function':
             lastArgument(response[0],response[1]);
     }
+    return process;
 };
+
+module.exports.mockshelljs.snapshot = function(){
+    var result = module.exports.mockshelljs.calls;
+    module.exports.mockshelljs.calls = [];
+    return result;
+};
+
 
 // REDIS ----------------------
 
@@ -107,64 +157,124 @@ function MockRedisClient(){
 
 MockRedisClient.prototype.on_error = function (){};
 
-module.exports.mockredis = {calls: [],RedisClient: MockRedisClient};
+var MockRedis = {calls: [],RedisClient: MockRedisClient};
 
-module.exports.mockredis.reset = function(){
-    module.exports.mockredis.clientException = null;
-    module.exports.mockredis.lookup = {
+MockRedis.reset = function(){
+    MockRedis.clientException = null;
+    MockRedis.lookup = {
         get: {},
         hgetall: {},
         llen: {},
         lpush: {}
     };
-    module.exports.mockredis.errors = {};
+    MockRedis.errors = {};
 };
 
-module.exports.mockredis.snapshot = function(){
-    var result = module.exports.mockredis.calls;
-    module.exports.mockredis.calls = [];
+MockRedis.snapshot = function(){
+    var result = MockRedis.calls;
+    MockRedis.calls = [];
     return result;
 };
 
-module.exports.mockredis.createClient = function () {
-    if (module.exports.mockredis.clientException) throw(new Error(module.exports.mockredis.clientException));
+MockRedis.createClient = function () {
+    if (MockRedis.clientException) throw(new Error(MockRedis.clientException));
     return {
         get: function(key,callback) {
-            module.exports.mockredis.calls.push({get: key});
-            callback && callback(module.exports.mockredis.errors[key] || null,module.exports.mockredis.lookup.get[key] || '0');
+            MockRedis.calls.push({get: key});
+            callback && callback(MockRedis.errors[key] || null,MockRedis.lookup.get[key] || '0');
         },
         hgetall: function(key,callback){
-            module.exports.mockredis.calls.push({hgetall: key});
-            callback && callback(module.exports.mockredis.errors[key] || null,module.exports.mockredis.lookup.hgetall[key]);
+            MockRedis.calls.push({hgetall: key});
+            callback && callback(MockRedis.errors[key] || null,MockRedis.lookup.hgetall[key]);
         },
         hmset: function(args,callback){
-            module.exports.mockredis.calls.push({hmset: args});
-            callback && callback(module.exports.mockredis.errors[args[0]] || null,0); // TODO what should the return be??
+            MockRedis.calls.push({hmset: args});
+            callback && callback(MockRedis.errors[args[0]] || null,0); // TODO what should the return be??
         },
         llen: function(key,callback) {
-            module.exports.mockredis.calls.push({llen: key});
-            callback && callback(module.exports.mockredis.errors[key] || null,module.exports.mockredis.lookup.llen[key] || '0');
+            MockRedis.calls.push({llen: key});
+            callback && callback(MockRedis.errors[key] || null,MockRedis.lookup.llen[key] || '0');
         },
         lpush: function(key,value,callback) {
-            module.exports.mockredis.calls.push({lpush: [key,value]});
-            var list = module.exports.mockredis.lookup.lpush[key] = module.exports.mockredis.lookup.lpush[key] || [];
+            MockRedis.calls.push({lpush: [key,value]});
+            var list = MockRedis.lookup.lpush[key] = MockRedis.lookup.lpush[key] || [];
             list.unshift(value);
-            callback && callback(module.exports.mockredis.errors[key] || null,list.length);
+            callback && callback(MockRedis.errors[key] || null,list.length);
         },
         quit: function(){
-            module.exports.mockredis.calls.push({quit: null});
+            MockRedis.calls.push({quit: null});
         },
         mset: function(){
             var arglength = Math.floor(arguments.length / 2) * 2;
             var callback = arguments.length > arglength && arguments[arglength];
-            module.exports.mockredis.calls.push({mset: _.take(_.toArray(arguments),arglength)});
-            callback && callback(module.exports.mockredis.errors[key] || null,arglength / 2);
+            MockRedis.calls.push({mset: _.take(_.toArray(arguments),arglength)});
+            callback && callback(MockRedis.errors[key] || null,arglength / 2);
         },
         set: function(key,value,callback){
-            module.exports.mockredis.calls.push({set: [key,value]});
-            callback && callback(module.exports.mockredis.errors[key] || null,true);
+            MockRedis.calls.push({set: [key,value]});
+            callback && callback(MockRedis.errors[key] || null,true);
         }
     }
+};
+
+module.exports.mockredis = MockRedis;
+
+// SOCKET.IO ----------------------
+
+var mockSocketIO = {
+    httpServer: null,
+    calls: []
+};
+
+mockSocketIO.on = function(event,callback) {
+    mockSocketIO.eventHandlers[event] = callback;
+};
+
+mockSocketIO.reset = function(){
+    mockSocketIO.httpServer = null;
+    mockSocketIO.eventHandlers = {};
+    mockSocketIO.sockets = [];
+};
+
+mockSocketIO.newMockSocket = function(){
+    var mockSocket = {
+        socketID: mockSocketIO.sockets.length,
+        eventHandlers: {}
+    };
+    mockSocket.on = function(event,callback){
+        mockSocket.eventHandlers[event] = callback;
+    };
+    mockSocket.emit = function(event,data){
+        var args = {socket: mockSocket.socketID};
+        args[event] = data;
+        mockSocketIO.calls.push({emit: args});
+    };
+    mockSocketIO.sockets.push(mockSocket);
+    return mockSocket;
+};
+
+module.exports.mocksocketio = function (httpServer){
+    mockSocketIO.reset();
+    mockSocketIO.httpServer = httpServer;
+    return mockSocketIO;
+};
+
+module.exports.mocksocketio.model = mockSocketIO;
+
+module.exports.mocksocketio.reset = function(){
+    mockSocketIO.reset();
+};
+
+module.exports.mocksocketio.snapshot = function(){
+    var calls = mockSocketIO.calls;
+    mockSocketIO.calls = [];
+    return {
+        events: _.keys(mockSocketIO.eventHandlers),
+        sockets: _.map(mockSocketIO.sockets,function(socket){
+            return {id: socket.socketID,events: _.keys(socket.eventHandlers)};
+        }),
+        calls: calls
+    };
 };
 
 process.env.testing = true;

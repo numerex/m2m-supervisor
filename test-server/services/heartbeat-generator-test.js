@@ -1,5 +1,5 @@
 var test = require('../test');
-var HeartbeatGenerator = require(process.cwd() + '/lib/heartbeat-generator');
+var HeartbeatGenerator = require(process.cwd() + '/services/heartbeat-generator');
 
 describe('HeartbeatGenerator',function() {
 
@@ -17,6 +17,9 @@ describe('HeartbeatGenerator',function() {
         test.mockery.deregisterMock('redis');
         test.mockery.deregisterMock('lynx');
         test.mockery.disable();
+        test.mocklynx.snapshot().should.eql([]);
+        test.mockredis.snapshot().should.eql([]);
+        test.pp.snapshot().should.eql([]);
     });
 
     it('should send a startup but then skip regular heartbeats if recent messages have been sent',function(done){

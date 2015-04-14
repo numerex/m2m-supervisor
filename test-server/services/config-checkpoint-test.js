@@ -1,5 +1,5 @@
 var test = require('../test');
-var ConfigCheckpoint = require(process.cwd() + '/lib/config-checkpoint');
+var ConfigCheckpoint = require(process.cwd() + '/services/config-checkpoint');
 
 var hashkeys = require(process.cwd() + '/lib/config-hashkeys');
 
@@ -20,6 +20,8 @@ describe('ConfigCheckpoint',function() {
     afterEach(function () {
         test.mockery.deregisterMock('redis');
         test.mockery.disable();
+        test.mockredis.snapshot().should.eql([]);
+        test.pp.snapshot().should.eql([]);
     });
 
     it('should properly initialize data with minimal arguments',function(){

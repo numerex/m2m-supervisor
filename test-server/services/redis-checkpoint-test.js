@@ -1,5 +1,5 @@
 var test = require('../test');
-var RedisCheckpoint = require(process.cwd() + '/lib/redis-checkpoint');
+var RedisCheckpoint = require(process.cwd() + '/services/redis-checkpoint');
 
 describe('RedisCheckpoint',function() {
 
@@ -15,6 +15,8 @@ describe('RedisCheckpoint',function() {
     afterEach(function () {
         test.mockery.deregisterMock('redis');
         test.mockery.disable();
+        test.mockredis.snapshot().should.eql([]);
+        test.pp.snapshot().should.eql([]);
     });
 
     it('should properly initialize data with minimal arguments',function(){

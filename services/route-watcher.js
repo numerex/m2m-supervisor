@@ -1,5 +1,5 @@
 var _ = require('lodash');
-var logger = require('./logger')('route');
+var logger = require('./../lib/logger')('route');
 
 function RouteWatcher(config,note) {
     this.config = _.defaults(config || {},{
@@ -8,7 +8,7 @@ function RouteWatcher(config,note) {
         pppMask:        '255.255.255.0',
         routeInterval:  15*1000
     });
-    this.stats = require('./statsd-client')('ppp'); // NOTE - delay 'require' for mocking
+    this.stats = require('./../lib/statsd-client')('ppp'); // NOTE - delay 'require' for mocking
     this.shell = require('shelljs');                // NOTE - delay 'require' for mocking
     this.outputs = {};
 }

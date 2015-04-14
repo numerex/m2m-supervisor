@@ -1,4 +1,4 @@
-var logger = require('./logger')('http');
+var logger = require('./../lib/logger')('http');
 
 function HttpServer() {
 }
@@ -54,4 +54,4 @@ function normalizePort(value) {
     return false;
 }
 
-module.exports = new HttpServer();
+module.exports = HttpServer;

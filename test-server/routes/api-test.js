@@ -20,6 +20,8 @@ describe('API router',function() {
     });
 
     afterEach(function () {
+        test.mockredis.snapshot().should.eql([]);
+        test.pp.snapshot().should.eql([]);
     });
 
     it('GET /config should detect a redis error',function(done) {

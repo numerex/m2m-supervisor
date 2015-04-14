@@ -1,5 +1,5 @@
 var _ = require('lodash');
-var logger = require('./logger')('redis-chk');
+var logger = require('./../lib/logger')('redis-chk');
 
 function RedisCheckpoint(config){
     var self = this;

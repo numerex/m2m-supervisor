@@ -1,6 +1,6 @@
 var fs = require('fs');
 var test = require('../test');
-var RouteWatcher = require(process.cwd() + '/lib/route-watcher');
+var RouteWatcher = require(process.cwd() + '/services/route-watcher');
 
 describe('RouteWatcher',function(){
 
@@ -18,6 +18,9 @@ describe('RouteWatcher',function(){
         test.mockery.deregisterMock('shelljs');
         test.mockery.deregisterMock('lynx');
         test.mockery.disable();
+        test.mockshelljs.snapshot().should.eql([]);
+        test.mocklynx.snapshot().should.eql([]);
+        test.pp.snapshot().should.eql([]);
     });
 
     it('should be immediately stopped',function(done){
@@ -31,6 +34,7 @@ describe('RouteWatcher',function(){
             {increment: 'started'},
             {increment: 'error'},
             {increment: 'stopped'}]);
+        test.mockshelljs.snapshot().should.eql([]);
         done();
     });
 
@@ -48,13 +52,16 @@ describe('RouteWatcher',function(){
             {increment: 'started'},
             {increment: 'error'},
             {increment: 'stopped'}]);
+        test.mockshelljs.snapshot().should.eql([]);
         done();
     });
 
     it('should throw an error if stopped before started',function(done){
         var watcher = new RouteWatcher();
         test.expect(function(){ watcher.stop(); }).to.throw('not started');
+        test.mocklynx.snapshot().should.eql([]);
         test.pp.snapshot().should.eql([]);
+        test.mockshelljs.snapshot().should.eql([]);
         done();
     });
 
@@ -74,6 +81,7 @@ describe('RouteWatcher',function(){
             {increment: 'started'},
             {increment: 'start-pppd'},
             {increment: 'stopped'}]);
+        test.mockshelljs.snapshot(); // clear snapshot
         done();
     });
 
@@ -94,6 +102,7 @@ describe('RouteWatcher',function(){
             {increment: 'started'},
             {increment: 'add-route'},
             {increment: 'stopped'}]);
+        test.mockshelljs.snapshot(); // clear snapshot
         done();
     });
 
@@ -111,18 +120,20 @@ describe('RouteWatcher',function(){
         test.mocklynx.snapshot().should.eql([
             {increment: 'started'},
             {increment: 'stopped'}]);
+        test.mockshelljs.snapshot(); // clear snapshot
         done();
     });
 
     it('should detect failed response from route',function(done){
-        var watcher = new RouteWatcher();
-
         test.mockshelljs.lookup['pppstats'] = [0,'IN   PACK VJCOMP  VJUNC  VJERR  |      OUT   PACK VJCOMP  VJUNC NON-VJ'];
         test.mockshelljs.lookup['route -n'] = [1,null];
+
+        var watcher = new RouteWatcher();
         watcher.checkRoutes(function(event){
             event.should.eql('error');
             test.pp.snapshot().should.eql([]);
             test.mocklynx.snapshot().should.eql([{ increment: 'error' }]);
+            test.mockshelljs.snapshot(); // clear snapshot
             done();
         });
     });
@@ -142,6 +153,7 @@ describe('RouteWatcher',function(){
                     {increment: 'error'},
                     {increment: 'error'},
                     {increment: 'stopped'}]);
+                test.mockshelljs.snapshot().should.eql([]);
                 done();
             }
         });
@@ -171,6 +183,7 @@ describe('RouteWatcher',function(){
 
         count.should.equal(3);
         test.pp.snapshot().should.eql([]);
+        test.mockshelljs.snapshot(); // clear snapshot
     });
 
     it('should detect unexpected responses for pppstats',function(done){
@@ -179,18 +192,22 @@ describe('RouteWatcher',function(){
         test.mockshelljs.lookup['pppstats'] = [0,'unexpected'];
         watcher.checkRoutes(function(event){
             event.should.eql('error');
+            test.mocklynx.snapshot().should.eql([{increment: 'error'}]);
             test.pp.snapshot().should.eql(['[route     ] unexpected pppstats output: unexpected']);
+            test.mockshelljs.snapshot(); // clear snapshot
             done();
         });
     });
 
     it('should detect failed shell responses',function(done){
-        var watcher = new RouteWatcher();
-
         test.mockshelljs.lookup['test'] = [1,'first'];
+
+        var watcher = new RouteWatcher();
         watcher.getShellOutput('test','test',true,function(err,output) {
             [err,output].should.eql([1,'first']);
+            test.mocklynx.snapshot().should.eql([]);
             test.pp.snapshot().should.eql([]);
+            test.mockshelljs.snapshot(); // clear snapshot
             done();
         });
     });

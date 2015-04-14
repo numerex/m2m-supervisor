@@ -1,14 +1,14 @@
 var _ = require('lodash');
-var logger = require('./logger')('heartbeat');
-var schema = require('./redis-schema');
-var settings = require('./m2m-settings');
+var logger = require('./../lib/logger')('heartbeat');
+var schema = require('./../lib/redis-schema');
+var settings = require('./../lib/m2m-settings');
 
 function HeartbeatGenerator(config) {
     var self = this;
     self.config = _.defaults(config || {},{
         heartbeatInterval:  60*60*1000
     });
-    self.stats = require('./statsd-client')('heartbeat');   // NOTE - delay require for mockery testing
+    self.stats = require('./../lib/statsd-client')('heartbeat');   // NOTE - delay require for mockery testing
     self.redis = require('redis').createClient();           // NOTE - delay require for mockery testing
 }
 
