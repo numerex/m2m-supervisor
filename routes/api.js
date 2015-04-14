@@ -1,7 +1,7 @@
 var _ = require('lodash');
 var express = require('express');
 
-var RedisCheckpoint = require('../lib/redis-checkpoint');
+var RedisCheckpoint = require('../services/redis-checkpoint');
 var logger = require('../lib/logger')('api');
 var schema = require('../lib/redis-schema');
 var helpers = require('../lib/config-helpers');

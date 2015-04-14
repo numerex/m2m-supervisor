@@ -1,5 +1,5 @@
 var test = require('../test');
-var HeartbeatGenerator = require(process.cwd() + '/lib/heartbeat-generator');
+var HeartbeatGenerator = require(process.cwd() + '/services/heartbeat-generator');
 
 describe('HeartbeatGenerator',function() {
 

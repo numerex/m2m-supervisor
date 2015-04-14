@@ -1,6 +1,6 @@
 var _ = require('lodash');
 var fs = require('fs');
-var logger = require('./logger')('modem');
+var logger = require('./../lib/logger')('modem');
 
 function ModemWatcher(config) {
     var self = this;
@@ -10,7 +10,7 @@ function ModemWatcher(config) {
         rssiInterval:   60*1000
     });
     self.imeiFound = self.config.imeiFound || function(){};
-    self.stats = require('./statsd-client')('modem'); // NOTE - delay require for mockery testing
+    self.stats = require('./../lib/statsd-client')('modem'); // NOTE - delay require for mockery testing
     self.attemptStartCallback = function(){ self.attemptStart(); };
     self.readEventsCallback = function(){ self.readEvents(); };
     self.requestIMEICallback = function(){ self.requestIMEI(); };

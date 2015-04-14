@@ -1,6 +1,6 @@
 var fs = require('fs');
 var test = require('../test');
-var RouteWatcher = require(process.cwd() + '/lib/route-watcher');
+var RouteWatcher = require(process.cwd() + '/services/route-watcher');
 
 describe('RouteWatcher',function(){
 

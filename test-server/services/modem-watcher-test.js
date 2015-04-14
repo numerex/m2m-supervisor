@@ -1,5 +1,5 @@
 var test = require('../test');
-var ModemWatcher = require(process.cwd() + '/lib/modem-watcher');
+var ModemWatcher = require(process.cwd() + '/services/modem-watcher');
 
 var huaweiSerialPorts = [ // NOTE - may come in handy later...
     {

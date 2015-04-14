@@ -1,4 +1,4 @@
-var logger = require('./logger')('http');
+var logger = require('./../lib/logger')('http');
 
 function HttpServer() {
 }

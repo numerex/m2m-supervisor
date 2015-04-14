@@ -1,5 +1,5 @@
 var test = require('../test');
-var RedisCheckpoint = require(process.cwd() + '/lib/redis-checkpoint');
+var RedisCheckpoint = require(process.cwd() + '/services/redis-checkpoint');
 
 describe('RedisCheckpoint',function() {
 

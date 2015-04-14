@@ -1,5 +1,5 @@
 var test = require('../test');
-var ConfigCheckpoint = require(process.cwd() + '/lib/config-checkpoint');
+var ConfigCheckpoint = require(process.cwd() + '/services/config-checkpoint');
 
 var hashkeys = require(process.cwd() + '/lib/config-hashkeys');
 

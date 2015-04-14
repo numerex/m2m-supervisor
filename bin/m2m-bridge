@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-var RedisCheckpoint = require('../lib/redis-checkpoint');
-var ConfigCheckpoint = require('../lib/config-checkpoint');
 var M2mProxy = require('../lib/m2m-proxy');
-var RouteWatcher = require('../lib/route-watcher');
-var ModemWatcher = require('../lib/modem-watcher');
-var HeartbeatGenerator = require('../lib/heartbeat-generator');
+var RedisCheckpoint = require('../services/redis-checkpoint');
+var ConfigCheckpoint = require('../services/config-checkpoint');
+var RouteWatcher = require('../services/route-watcher');
+var ModemWatcher = require('../services/modem-watcher');
+var HeartbeatGenerator = require('../services/heartbeat-generator');
 
 var hashkeys = require('../lib/config-hashkeys');
 

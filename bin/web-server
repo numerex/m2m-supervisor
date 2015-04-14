@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-var HttpServer = require('../lib/http-server');
+var HttpServer = require('../services/http-server');
 var SocketServer = require('../sockets/socket-server');
 var ShellBehavior = require('../sockets/shell-behavior');
 

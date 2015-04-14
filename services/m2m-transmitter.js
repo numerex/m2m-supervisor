@@ -3,9 +3,9 @@ var m2m = require('m2m-ota-javascript');
 
 var UdpListener = require('../lib/udp-listener');
 
-var logger = require('./logger')('transmit');
-var schema = require('./redis-schema');
-var settings = require('./m2m-settings');
+var logger = require('./../lib/logger')('transmit');
+var schema = require('./../lib/redis-schema');
+var settings = require('./../lib/m2m-settings');
 
 function M2mTransmitter(gateway,config) {
     var self = this;
@@ -15,7 +15,7 @@ function M2mTransmitter(gateway,config) {
         maxRetries:         5,
         timeoutInterval:    5
     });
-    self.stats = require('./statsd-client')('transmit');    // NOTE - delay require for mockery testing
+    self.stats = require('./../lib/statsd-client')('transmit');    // NOTE - delay require for mockery testing
     self.redis = require('redis').createClient();           // NOTE - delay require for mockery testing
     self.client = new UdpListener('transmit',null,function(buffer) { console.log(buffer); });
 }
