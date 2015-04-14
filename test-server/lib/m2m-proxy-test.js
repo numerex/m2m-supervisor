@@ -82,18 +82,31 @@ describe('M2mProxy',function() {
         ]);
     });
 
-    it('should record route an MT ACK to the command:queue',function(){
+    it('should record route an MT ACK to the command:queue if no matching ignoreAckHint',function(){
         var proxy = new M2mProxy(redis, _.defaults({imei: '123456789012345'},defaults));
         var buffer = new m2m.Message({messageType: m2m.Common.MOBILE_TERMINATED_ACK,timestamp: 0,sequenceNumber: 10}).pushString(0,proxy.gateway.imei).toWire();
         proxy.outside.client.events.message(buffer,{address: 'host',port: 1234});
         mockdgram.deliveries.should.eql([]);
         test.pp.snapshot().should.eql([
             '[outside   ] incoming - size: 34 from: host:1234',
-            '[proxy     ] receive ack'
+            '[proxy     ] relay ack: 10'
         ]);
         test.mockredis.snapshot().should.eql([
             {lpush: ['m2m-ack:queue',10]}
         ]);
+    });
+
+    it('should record route an MT ACK to the command:queue if matching ignoreAckHint',function(){
+        var proxy = new M2mProxy(redis, _.defaults({imei: '123456789012345'},defaults));
+        proxy.ignoreAckHint = 10;
+        var buffer = new m2m.Message({messageType: m2m.Common.MOBILE_TERMINATED_ACK,timestamp: 0,sequenceNumber: 10}).pushString(0,proxy.gateway.imei).toWire();
+        proxy.outside.client.events.message(buffer,{address: 'host',port: 1234});
+        mockdgram.deliveries.should.eql([]);
+        test.pp.snapshot().should.eql([
+            '[outside   ] incoming - size: 34 from: host:1234',
+            '[proxy     ] ignore ack: 10'
+        ]);
+        test.mockredis.snapshot().should.eql([]);
     });
 
     it('should relay a private message',function(){
@@ -137,21 +150,27 @@ describe('M2mProxy',function() {
     });
 
     it('should send a public and then a primvate message using sendPrimary',function(){
+        test.timekeeper.freeze(1428594562570);
+
         var events = [];
         var proxy = new M2mProxy(redis,defaults,function(event){
             events.push(event);
         });
 
-        proxy.sendPrimary('test');
+        proxy.sendPrimary('test',1);
         proxy.gateway.primary = 'private';
-        proxy.sendPrimary('test');
+        proxy.sendPrimary('test',2);
 
         events.should.eql(['ready','public','private']);
         test.pp.snapshot().should.eql([
             '[outside   ] outgoing - size: 4 from: public-host:3011',
             '[outside   ] outgoing - size: 4 from: private-host:3011'
         ]);
-        test.mockredis.snapshot(); // clear snapshot
+        test.mockredis.snapshot().should.eql([
+            {set: ['m2m-transmit:last-timestamp',1428594562570]},
+            {mset: ['m2m-transmit:last-timestamp',1428594562570,'m2m-transmit:last-private-timestamp',1428594562570]}
+        ]);
+        test.timekeeper.reset();
     });
 
 });

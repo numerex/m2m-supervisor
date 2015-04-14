@@ -18,8 +18,8 @@ describe('HeartbeatGenerator',function() {
             gateway: {imei: '123456789012345'},
             messages: []
         };
-        mockProxy.sendPrimary = function(buffer){
-            mockProxy.messages.push(buffer.inspect());
+        mockProxy.sendPrimary = function(buffer,ignoreAckHint){
+            mockProxy.messages.push([buffer.inspect(),ignoreAckHint]);
         };
         mockProxy.snapshot = function(){
             var messages = mockProxy.messages;
@@ -64,7 +64,7 @@ describe('HeartbeatGenerator',function() {
                 test.mockredis.snapshot().should.eql([
                     {incr: 'm2m-transmit:last-sequence-number'},
                     {get: 'm2m-transmit:last-private-timestamp'}]);
-                mockProxy.snapshot().should.eql(['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>']);
+                mockProxy.snapshot().should.eql([['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>',8]]);
                 done();
             }
         });
@@ -100,7 +100,7 @@ describe('HeartbeatGenerator',function() {
                     {get: 'm2m-transmit:last-private-timestamp'},
                     {llen: 'm2m-transmit:queue'}
                 ]);
-                mockProxy.snapshot().should.eql(['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>']);
+                mockProxy.snapshot().should.eql([['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>',8]]);
                 done();
             }
         });
@@ -140,8 +140,8 @@ describe('HeartbeatGenerator',function() {
                     {incr: 'm2m-transmit:last-sequence-number'}
                 ]);
                 mockProxy.snapshot().should.eql([
-                    '<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>',
-                    '<Buffer aa 10 00 00 09 00 00 00 e8 d4 a5 10 14 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 18>'
+                    ['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>',8],
+                    ['<Buffer aa 10 00 00 09 00 00 00 e8 d4 a5 10 14 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 18>',9]
                 ]);
                 done();
             }
@@ -196,7 +196,7 @@ describe('HeartbeatGenerator',function() {
                 test.mockredis.snapshot().should.eql([
                     {incr: 'm2m-transmit:last-sequence-number'},
                     {get: 'm2m-transmit:last-private-timestamp'}]);
-                mockProxy.snapshot().should.eql(['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>']);
+                mockProxy.snapshot().should.eql([['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>',8]]);
                 done();
             }
         });
@@ -219,7 +219,7 @@ describe('HeartbeatGenerator',function() {
         test.mockredis.snapshot().should.eql([
             {incr: 'm2m-transmit:last-sequence-number'}
         ]);
-        mockProxy.snapshot().should.eql(['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>']);
+        mockProxy.snapshot().should.eql([['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>',8]]);
         done();
     });
 
