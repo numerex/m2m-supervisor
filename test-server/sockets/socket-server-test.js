@@ -7,11 +7,13 @@ describe('SocketServer',function() {
         test.mockery.enable();
         test.mockery.registerMock('socket.io',test.mocksocketio);
         test.mockery.warnOnUnregistered(false);
+        test.mocksocketio.reset();
     });
 
     afterEach(function () {
         test.mockery.deregisterMock('socket.io');
         test.pp.snapshot().should.eql([]);
+        test.mocksocketio.snapshot().calls.should.eql([]);
     });
 
     it('should be successfully started and a socket connected with a simple behavior applied',function(){
@@ -42,7 +44,7 @@ describe('SocketServer',function() {
         test.mocksocketio.snapshot().should.eql({
             events: ['connection'],
             sockets: [{id: 0,events: ['behavior','disconnect','close']}],
-            calls: [{emit: {socket: 0,behavior: true}}]
+            calls: [{emit: {socket: 0,behavior: {id: 1,result: true}}}]
         });
         test.pp.snapshot().should.eql([
             '[socket    ] behavior(1): mock',
@@ -83,7 +85,7 @@ describe('SocketServer',function() {
             sockets: [{id: 0,events: ['behavior','disconnect','close','test']}],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: true}}
+                {emit: {socket: 0,behavior: {id: 1,result: true}}}
             ]
         });
         test.pp.snapshot().should.eql([

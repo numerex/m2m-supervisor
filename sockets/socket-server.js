@@ -50,7 +50,7 @@ SocketServer.prototype.applyBehavior = function(type,socket) {
             handler.callback(socket,data);
         });
     });
-    socket.emit('behavior',!!self.behavior);
+    socket.emit('behavior',{id: socket.clientID,result: !!self.behavior});
 };
 
 module.exports = SocketServer;

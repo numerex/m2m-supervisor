@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
-var httpServer = new require('../lib/http-server').start(process.env.PORT || '3000');
-var socketServer = new require('../sockets/socket-server').start(httpServer);
-var shellBehavior = new require('../sockets/shell-behavior').registerSelf(socketServer);
+var HttpServer = require('../lib/http-server');
+var SocketServer = require('../sockets/socket-server');
+var ShellBehavior = require('../sockets/shell-behavior');
+
+var httpServer = new HttpServer().start(process.env.PORT || '3000');
+var socketServer = new SocketServer().start(httpServer);
+var shellBehavior = new ShellBehavior().registerSelf(socketServer);

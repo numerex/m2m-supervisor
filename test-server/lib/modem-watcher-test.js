@@ -1,6 +1,27 @@
 var test = require('../test');
 var ModemWatcher = require(process.cwd() + '/lib/modem-watcher');
 
+var huaweiSerialPorts = [ // NOTE - may come in handy later...
+    {
+        comName:        '/dev/ttyUSB0',
+        manufacturer:   'HUAWEI_Technology',
+        serialNumber:   'HUAWEI_Technology_HUAWEI_Mobile',
+        pnpId:          'gsmmodem',
+        vendorId:       '0x12d1',
+        productId:      '0x1001' },
+    {   comName:        '/dev/ttyUSB1',
+        manufacturer:   'HUAWEI_Technology',
+        serialNumber:   'HUAWEI_Technology_HUAWEI_Mobile',
+        pnpId:          'usb-HUAWEI_Technology_HUAWEI_Mobile-if01-port0',
+        vendorId:       '0x12d1',
+        productId:      '0x1001' },
+    {   comName:        '/dev/ttyUSB2',
+        manufacturer:   'HUAWEI_Technology',
+        serialNumber:   'HUAWEI_Technology_HUAWEI_Mobile',
+        pnpId:          'usb-HUAWEI_Technology_HUAWEI_Mobile-if02-port0',
+        vendorId:       '0x12d1',
+        productId:      '0x1001' } ];
+
 describe('ModemWatcher',function(){
 
     beforeEach(function() {

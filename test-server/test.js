@@ -19,6 +19,14 @@ module.exports.matchArrays = function(actual,expected){
     }
 };
 
+function MockEventHandler(){
+    this.eventHandlers = {};
+}
+
+MockEventHandler.prototype.on = function(event,callback){
+    this.eventHandlers[event] = callback;
+};
+
 // DRAM -----------------------
 
 module.exports.mockdgram = function() {
@@ -78,10 +86,38 @@ module.exports.mocklynx.snapshot = function() {
 
 // SHELLJS ---------------------
 
-module.exports.mockshelljs = {};
+module.exports.mockshelljs = {
+    calls: [],
+    processes: []
+};
 
 module.exports.mockshelljs.reset = function(){
+    module.exports.mockshelljs.processes = [];
     module.exports.mockshelljs.lookup = {};
+};
+
+module.exports.mockshelljs.newMockProcess = function(){
+    var process = new MockEventHandler();
+    process.id = module.exports.mockshelljs.processes.length;
+    process.stdin = new MockEventHandler();
+    process.stdout = new MockEventHandler();
+    process.stderr = new MockEventHandler();
+    process.kill = function(signal){
+        module.exports.mockshelljs.calls.push({id: process.id,kill: signal});
+        process.eventHandlers.exit && process.eventHandlers.exit(null,signal);
+        process.eventHandlers.close && process.eventHandlers.close(null,signal);
+    };
+    process.snapshot = function(){
+        return {
+            id: process.id,
+            events: _.keys(process.eventHandlers),
+            stdin: _.keys(process.stdin.eventHandlers),
+            stdout: _.keys(process.stdout.eventHandlers),
+            stderr: _.keys(process.stderr.eventHandlers)
+        };
+    };
+    module.exports.mockshelljs.processes.push(process);
+    return process;
 };
 
 module.exports.mockshelljs.exec = function() {
@@ -89,15 +125,29 @@ module.exports.mockshelljs.exec = function() {
     var response = module.exports.mockshelljs.lookup[command];
     if (!response) throw(new Error('no response found: ' + command));
 
+    var process = module.exports.mockshelljs.newMockProcess();
+    module.exports.mockshelljs.calls.push({id: process.id,exec: [command,response]});
+
     var lastArgument = arguments[arguments.length - 1];
     switch(typeof lastArgument){
         case 'object':
+            if (lastArgument && lastArgument.async) break;
+
         case 'string':
-            return {output: response};
+            return {code: 0,output: response};
+
         case 'function':
             lastArgument(response[0],response[1]);
     }
+    return process;
 };
+
+module.exports.mockshelljs.snapshot = function(){
+    var result = module.exports.mockshelljs.calls;
+    module.exports.mockshelljs.calls = [];
+    return result;
+};
+
 
 // REDIS ----------------------
 
