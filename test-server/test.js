@@ -194,7 +194,12 @@ mockSocketIO.newMockSocket = function(){
     mockSocket.on = function(event,callback){
         mockSocket.eventHandlers[event] = callback;
     };
-    MockSocketIO.sockets.push(mockSocket);
+    mockSocket.emit = function(event,data){
+        var args = {socket: mockSocket.socketID};
+        args[event] = data;
+        mockSocketIO.calls.push({emit: args});
+    };
+    mockSocketIO.sockets.push(mockSocket);
     return mockSocket;
 };
 

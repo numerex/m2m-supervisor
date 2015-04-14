@@ -21,14 +21,13 @@ SocketServer.prototype.start = function (httpServer) {
         socket.on('behavior',function(behavior){
             self.applyBehavior(behavior,socket);
         });
-        socket.on('disconnect', function (data) {
+        socket.on('disconnect', function () {
             logger.info('disconnect(' + socket.clientID + ')');
-            if (self.behavior) self.behavior.disconnectEvent(socket);
+            if (self.behavior && self.behavior.disconnectEvent) self.behavior.disconnectEvent(socket);
         });
-        socket.on('close', function (data) {
+        socket.on('close', function () {
             logger.info('close(' + socket.clientID + ')');
-            if (self.behavior) self.behavior.closeEvent(socket);
-            socket.close();
+            if (self.behavior && self.behavior.closeEvent) self.behavior.closeEvent(socket);
         });
     });
     return this;
@@ -46,7 +45,7 @@ SocketServer.prototype.applyBehavior = function(type,socket) {
 
     var self = this;
     self.behavior = self.behaviors[type];
-    _.each(self.behavior ? self.behavior.eventHandlers : [],function(handler){
+    _.each(self.behavior && self.behavior.eventHandlers ? self.behavior.eventHandlers : [],function(handler){
         socket.on(handler.event,function(data) {
             handler.callback(socket,data);
         });
