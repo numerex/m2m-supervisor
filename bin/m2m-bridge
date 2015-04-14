@@ -7,6 +7,7 @@ var RouteWatcher = require('../services/route-watcher');
 var ModemWatcher = require('../services/modem-watcher');
 var HeartbeatGenerator = require('../services/heartbeat-generator');
 
+var schema = require('../lib/redis-schema');
 var hashkeys = require('../lib/config-hashkeys');
 
 var redisChk = new RedisCheckpoint().start(function(event,redis) {
@@ -20,7 +21,7 @@ var redisChk = new RedisCheckpoint().start(function(event,redis) {
                 proxy.gateway.imei = imei;
                 gateway.imei = imei;
             }
-            redis.hsetnx(require('../lib/redis-schema').config.key,hashkeys.gateway.imei.key,imei);
+            redis.hsetnx(schema.config.key,hashkeys.gateway.imei.key,imei);
         };
         
         var heartbeat = null;
@@ -31,7 +32,7 @@ var redisChk = new RedisCheckpoint().start(function(event,redis) {
             if (event == 'ready' && !modem) {
                 modem = new ModemWatcher(gateway).start(function(event){
                     if (event == 'ready' && !heartbeat)
-                        heartbeat = new HeartbeatGenerator().start();
+                        heartbeat = new HeartbeatGenerator(proxy).start();
                 });
             }
         });

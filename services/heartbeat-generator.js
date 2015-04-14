@@ -1,15 +1,18 @@
 var _ = require('lodash');
+var m2m = require('m2m-ota-javascript');
+
 var logger = require('./../lib/logger')('heartbeat');
 var schema = require('./../lib/redis-schema');
 var settings = require('./../lib/m2m-settings');
 
-function HeartbeatGenerator(config) {
+function HeartbeatGenerator(proxy,config) {
     var self = this;
+    self.proxy = proxy;
     self.config = _.defaults(config || {},{
         heartbeatInterval:  60*60*1000
     });
-    self.stats = require('./../lib/statsd-client')('heartbeat');   // NOTE - delay require for mockery testing
-    self.redis = require('redis').createClient();           // NOTE - delay require for mockery testing
+    self.stats = require('./../lib/statsd-client')('heartbeat');    // NOTE - delay require for mockery testing
+    self.redis = require('redis').createClient();                   // NOTE - delay require for mockery testing
 }
 
 HeartbeatGenerator.prototype.started = function(){
@@ -61,8 +64,11 @@ HeartbeatGenerator.prototype.skipHeatbeat = function(){
 
 HeartbeatGenerator.prototype.sendHeartbeat = function(eventCode){
     var self = this;
-    self.redis.lpush(schema.transmit.queue.key,JSON.stringify({eventCode: eventCode}),_.bind(self.redisResult,self,_,_,function(value){
+    self.redis.incr(schema.transmit.lastSequenceNumber.key,_.bind(self.redisResult,self,_,_,function(sequenceNumber){
         logger.info('send heartbeat: ' + eventCode);
+        var message = new m2m.Message({messageType: m2m.Common.MOBILE_ORIGINATED_EVENT,eventCode: eventCode,sequenceNumber: sequenceNumber})
+            .pushString(0,self.proxy.gateway.imei);
+        self.proxy.sendPrimary(message.toWire());
         self.stats.increment('sent');
         self.noteEvent('heartbeat');
     }));
