@@ -6,7 +6,7 @@ app.controller('ShellController',['$rootScope','$scope','$http','$location',func
             console.log('indentified: ' + data);
         });
         socket.on('behavior',function(data){
-            console.log('behavior: ' + data);
+            console.log('behavior: ' + JSON.stringify(data));
         });
         socket.on('started',function(data){
             console.log('started: ' + JSON.stringify(data));
