@@ -41,4 +41,13 @@ describe('FileDevice',function() {
         });
     });
 
+    it('should detect a read failure',function(done){
+        var device = new FileDevice({inFile: '/dev/null'});
+        device.noteEvent = function(event,value){
+            [event,value].should.eql(['error','not ready']);
+            done();
+        };
+        device.dataEvent();
+    });
+
 });

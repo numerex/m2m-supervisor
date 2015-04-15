@@ -28,7 +28,6 @@ describe('ModemWatcher',function(){
         test.mockery.enable();
         test.mockery.registerMock('lynx',test.mocklynx);
         test.mockery.warnOnUnregistered(false);
-        //test.mockery.registerAllowables([process.cwd() + '/node_modules/mocha/lib/utils','./statsd-client']);
     });
 
     afterEach(function() {
@@ -68,7 +67,7 @@ describe('ModemWatcher',function(){
     it('should capture an IMEI',function(done){
         var watcher = new ModemWatcher({reportFile: 'test-server/data/modem-imei.txt',commandFile: '/dev/null'});
         watcher.start(function(event){
-            if (event == 'report') {
+            if (event == 'data') {
                 watcher.imeiCandidates.should.eql(['352214046337094','OK','352214046337094','OK']);
                 watcher.imei.should.eql('352214046337094');
                 watcher.stop();
@@ -113,20 +112,23 @@ describe('ModemWatcher',function(){
         });
     });
 
-    it('should trigger interval',function(done){
+    it('should trigger interval (and HACK for code coverage, trap a read error)',function(done){
         var count = 0;
         var watcher = new ModemWatcher({reportFile: '/dev/null',commandFile: '/dev/null',rssiInterval: 10});
         watcher.start(function(event){
             if (event == 'rssi' && count++ > 0) {
+                watcher.device.noteEvent('error','test error');
                 watcher.stop();
                 test.pp.snapshot().should.eql([
                     '[modem     ] start watcher',
+                    '[modem     ] read error: test error',
                     '[modem     ] stop watcher']);
                 test.mocklynx.snapshot().should.eql([
                     {increment: 'started'},
                     {increment: 'imei-request'},
                     {increment: 'rssi-request'},
                     {increment: 'rssi-request'},
+                    {increment: 'error'},
                     {increment: 'stopped'}]);
                 done();
             }
@@ -137,7 +139,7 @@ describe('ModemWatcher',function(){
         var events = {};
         var watcher = new ModemWatcher({reportFile: 'test-server/data/modem-test.txt',commandFile: '/dev/null',rssiInterval: 10}).start(function(event){
             events[event] = (events[event] || 0) + 1;
-            if (events.report && events.rssi && events.rssi > 1) {
+            if (events.data && events.rssi && events.rssi > 1) {
                 watcher.stop();
                 test.pp.snapshot().should.eql([
                     '[modem     ] start watcher',
@@ -163,7 +165,7 @@ describe('ModemWatcher',function(){
         var count = 0;
         var watcher = new ModemWatcher({reportFile: 'test-server/data/modem-errors.txt',commandFile: '/dev/null'});
         watcher.start(function(event){
-            if (event == 'report' && count++ > 1) {
+            if (event == 'data') {
                 watcher.stop();
                 test.pp.snapshot().should.eql([
                     '[modem     ] start watcher',

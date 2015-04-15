@@ -15,7 +15,6 @@ function ModemWatcher(config) {
     self.device = new FileDevice({inFile: self.config.reportFile,outFile: self.config.commandFile,retryInterval: self.config.retryInterval});
     self.imeiFound = self.config.imeiFound || function(){};
     self.stats = require('./../lib/statsd-client')('modem'); // NOTE - delay require for mockery testing
-    self.readEventsCallback = function(){ self.readEvents(); };
     self.requestIMEICallback = function(){ self.requestIMEI(); };
     self.requestRSSICallback = function(){ self.requestRSSI(); };
 }
@@ -42,23 +41,32 @@ ModemWatcher.prototype.start = function(note) {
     self.imei = null;
     self.imeiCandidates = [];
     self.noteEvent = note || function(){};
-    self.device.open(function(event,reason){
-       switch(event){
-           case 'ready':
-               self.buffer = new Buffer(64 * 1024);
-               setTimeout(self.requestIMEICallback,1);
-               setTimeout(self.readEventsCallback,1);
-               setTimeout(self.requestRSSICallback,1);
-               self.interval = setInterval(self.requestRSSICallback,self.config.rssiInterval);
-               self.stats.increment('started');
-               self.noteEvent('ready');
-               break;
-           case 'retry':
-               logger.error('start error: ' + reason);
-               self.stats.increment('retry');
-               self.noteEvent('retry');
-               break;
-       }
+    self.device.open(function(event,value){
+        switch(event){
+            case 'ready':
+                setTimeout(self.requestIMEICallback,1);
+                setTimeout(self.requestRSSICallback,1);
+                self.interval = setInterval(self.requestRSSICallback,self.config.rssiInterval);
+                self.stats.increment('started');
+                break;
+            case 'retry':
+                logger.error('start error: ' + value);
+                self.stats.increment('retry');
+                break;
+            case 'error':
+                logger.error('read error: ' + value);
+                self.stats.increment('error');
+                break;
+            case 'data':
+                _.each(self.device.buffer.toString(null,0,value).split('\n'),function(line){
+                   if (line.length == 0) return;
+                   if (self.considerLine(ModemWatcher.Reports.FLOW,line,function(data) { return self.noteFlow(data); })) return;
+                   if (self.considerLine(ModemWatcher.Reports.RSSI,line,function(data) { return self.noteRSSI(data); })) return;
+                   self.considerIMEI(line);
+                });
+                break;
+        }
+        self.noteEvent(event);
     });
     return self;
 };
@@ -67,32 +75,12 @@ ModemWatcher.prototype.stop = function() {
     if (!this.started()) throw(new Error('not started'));
 
     logger.info('stop watcher');
+
+    if (this.interval) clearInterval(this.interval);
+    this.interval = null;
+
     this.stats.increment('stopped');
     this.device.close();
-};
-
-ModemWatcher.prototype.readEvents = function() {
-    if (!this.ready()) return;
-
-    var self = this;
-    self.device.readBuffer(self.buffer,function(err,length,position){
-        // istanbul ignore if - too difficult to test read failure after opening with mocking
-        if (err) {
-            logger.error('read error: ' + err);
-            self.stats.increment('error');
-        } else if (self.ready()) {
-            _.each(self.buffer.toString(null,0,length).split('\n'),function(line){
-                if (line.length == 0) return;
-                if (self.considerLine(ModemWatcher.Reports.FLOW,line,function(data) { return self.noteFlow(data); })) return;
-                if (self.considerLine(ModemWatcher.Reports.RSSI,line,function(data) { return self.noteRSSI(data); })) return;
-                self.considerIMEI(line);
-            });
-        } else {
-            return;
-        }
-        setTimeout(self.readEventsCallback,1); // TODO - is there a better way to do this?
-        self.noteEvent('report');
-    });
 };
 
 ModemWatcher.prototype.considerLine = function(prefix,line,callback){
@@ -162,13 +150,14 @@ ModemWatcher.prototype.requestInfo = function(command,event,stat){
 
     var self = this;
     self.stats.increment(stat);
-    self.device.writeBuffer(command,function(err,written,string) {
-        if (err) {
+    self.device.writeBuffer(command,function(err) {
+        if (!err)
+            self.noteEvent(event);
+        else {
             logger.error('request error: ' + err);
             self.stats.increment('error');
-            event = 'error';
+            self.noteEvent('error');
         }
-        self.noteEvent(event);
     });
 };
 

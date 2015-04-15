@@ -10,18 +10,16 @@ function DataReader(device,config) {
         commandPrefix: '\x01',
         commandSuffix: '\x03',
         responsePrefix: '\x01',
-        responseSuffix: '\x03',
-        retryInterval:  15*1000
+        responseSuffix: '\x03'
     });
-    self.attemptStartCallback = function(){ self.attemptStart(); };
 }
 
-DataReader.prototype.started = function(){
-    return !!this.startCalled;
+ModemWatcher.prototype.started = function(){
+    return this.device.opened();
 };
 
-DataReader.prototype.ready = function(){
-    return false; // TODO
+ModemWatcher.prototype.ready = function(){
+    return this.device.ready();
 };
 
 DataReader.prototype.start = function(note) {
@@ -30,31 +28,29 @@ DataReader.prototype.start = function(note) {
     logger.info('start reader');
 
     var self = this;
-    self.startCalled = true;
     self.noteEvent = note || function(){};
-    self.attemptStart();
+    self.device.open(function(event,reason){
+        switch(event){
+            case 'ready':
+                self.buffer = new Buffer(64 * 1024);
+                self.noteEvent('ready');
+                break;
+            case 'retry':
+                logger.error('start error: ' + reason);
+                self.noteEvent('retry');
+                break;
+        }
+    });
     return self;
 };
 
 DataReader.prototype.stop = function() {
     if (!this.started()) throw(new Error('not started'));
 
-    logger.info('stop watcher');
+    logger.info('stop reader');
 
-    this.startCalled = false;
-};
-
-DataReader.prototype.attemptStart = function(){
-    if (!this.started()) return; // NOTE - abort when stopped after failed start
-
-    var self = this;
-    try {
-        self.noteEvent('ready');
-    } catch(e) {
-        logger.error('start error: ' + e);
-        setTimeout(self.attemptStartCallback,self.config.retryInterval);
-        self.noteEvent('retry');
-    }
+    this.stats.increment('stopped');
+    this.device.close();
 };
 
 module.exports = DataReader;
