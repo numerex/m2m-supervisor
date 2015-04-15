@@ -1,6 +1,9 @@
 var _ = require('lodash');
 var fs = require('fs');
-var logger = require('./../lib/logger')('modem');
+
+var FileDevice = require('../lib/file-device');
+
+var logger = require('../lib/logger')('modem');
 
 function ModemWatcher(config) {
     var self = this;
@@ -9,9 +12,9 @@ function ModemWatcher(config) {
         commandFile:    '/dev/ttyUSB2',
         rssiInterval:   60*1000
     });
+    self.device = new FileDevice({inFile: self.config.reportFile,outFile: self.config.commandFile,retryInterval: self.config.retryInterval});
     self.imeiFound = self.config.imeiFound || function(){};
     self.stats = require('./../lib/statsd-client')('modem'); // NOTE - delay require for mockery testing
-    self.attemptStartCallback = function(){ self.attemptStart(); };
     self.readEventsCallback = function(){ self.readEvents(); };
     self.requestIMEICallback = function(){ self.requestIMEI(); };
     self.requestRSSICallback = function(){ self.requestRSSI(); };
@@ -23,11 +26,11 @@ ModemWatcher.Reports = Object.freeze({
 });
 
 ModemWatcher.prototype.started = function(){
-    return !!this.startCalled;
+    return this.device.opened();
 };
 
 ModemWatcher.prototype.ready = function(){
-    return !!this.fdin;
+    return this.device.ready();
 };
 
 ModemWatcher.prototype.start = function(note) {
@@ -36,11 +39,27 @@ ModemWatcher.prototype.start = function(note) {
     logger.info('start watcher');
 
     var self = this;
-    self.startCalled = true;
     self.imei = null;
     self.imeiCandidates = [];
     self.noteEvent = note || function(){};
-    self.attemptStart();
+    self.device.open(function(event,reason){
+       switch(event){
+           case 'ready':
+               self.buffer = new Buffer(64 * 1024);
+               setTimeout(self.requestIMEICallback,1);
+               setTimeout(self.readEventsCallback,1);
+               setTimeout(self.requestRSSICallback,1);
+               self.interval = setInterval(self.requestRSSICallback,self.config.rssiInterval);
+               self.stats.increment('started');
+               self.noteEvent('ready');
+               break;
+           case 'retry':
+               logger.error('start error: ' + reason);
+               self.stats.increment('retry');
+               self.noteEvent('retry');
+               break;
+       }
+    });
     return self;
 };
 
@@ -49,46 +68,19 @@ ModemWatcher.prototype.stop = function() {
 
     logger.info('stop watcher');
     this.stats.increment('stopped');
-
-    if (this.interval) clearInterval(this.interval);
-    if (this.fdin) fs.close(this.fdin);
-    this.fdin = null;
-
-    this.startCalled = false;
-};
-
-ModemWatcher.prototype.attemptStart = function(){
-    if (!this.started()) return; // NOTE - abort when stopped after failed start
-
-    var self = this;
-    try {
-        self.fdin = fs.openSync(self.config.reportFile,'r');
-        self.buffer = new Buffer(64 * 1024);
-        setTimeout(self.requestIMEICallback,1);
-        setTimeout(self.readEventsCallback,1);
-        setTimeout(self.requestRSSICallback,1);
-        self.interval = setInterval(self.requestRSSICallback,self.config.rssiInterval);
-        self.stats.increment('started');
-        self.noteEvent('ready');
-    } catch(e) {
-        logger.error('start error: ' + e);
-        self.stats.increment('retry');
-        setTimeout(self.attemptStartCallback,self.config.rssiInterval);
-        self.noteEvent('retry');
-    }
+    this.device.close();
 };
 
 ModemWatcher.prototype.readEvents = function() {
-    if (!this.started()) return;
+    if (!this.ready()) return;
 
     var self = this;
-    fs.read(self.fdin,self.buffer,0,self.buffer.length,null,function(err,length,position){
-        // istanbul ignore if -- too difficult to make read fail after successful open
+    self.device.readBuffer(self.buffer,function(err,length,position){
+        // istanbul ignore if - too difficult to test read failure after opening with mocking
         if (err) {
             logger.error('read error: ' + err);
             self.stats.increment('error');
-        }
-        else if (self.started()) {
+        } else if (self.ready()) {
             _.each(self.buffer.toString(null,0,length).split('\n'),function(line){
                 if (line.length == 0) return;
                 if (self.considerLine(ModemWatcher.Reports.FLOW,line,function(data) { return self.noteFlow(data); })) return;
@@ -161,6 +153,7 @@ ModemWatcher.prototype.requestIMEI = function(){
 };
 
 ModemWatcher.prototype.requestRSSI = function(){
+    // NOTE - send AT+CSQ commands instead of relying on ^RSSI events because BER is sent sometimes(?) and BER=0 is ambiguous
     this.requestInfo('AT+CSQ\n','rssi','rssi-request');
 };
 
@@ -168,26 +161,15 @@ ModemWatcher.prototype.requestInfo = function(command,event,stat){
     if (!this.ready()) return;
 
     var self = this;
-    try {
-        self.stats.increment(stat);
-
-        // NOTE - send AT+CSQ commands instead of relying on ^RSSI events because BER is sent sometimes(?) and BER=0 is ambiguous
-        var fdout = fs.openSync(self.config.commandFile,'w');
-        fs.write(fdout,command,null,null,function(err,written,string) {
-            // istanbul ignore if -- too difficult to make write fail after successful open
-            if (err) {
-                logger.error('write error: ' + err);
-                self.stats.increment('error');
-            }
-
-            fs.close(fdout);
-            self.noteEvent(event);
-        });
-    } catch (e) {
-        logger.error('request error: ' + e);
-        self.stats.increment('error');
-        self.noteEvent('error');
-    }
+    self.stats.increment(stat);
+    self.device.writeBuffer(command,function(err,written,string) {
+        if (err) {
+            logger.error('request error: ' + err);
+            self.stats.increment('error');
+            event = 'error';
+        }
+        self.noteEvent(event);
+    });
 };
 
 function validParseInt(string,base){

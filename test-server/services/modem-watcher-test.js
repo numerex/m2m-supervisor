@@ -186,7 +186,7 @@ describe('ModemWatcher',function(){
 
     it('should catch an error opening the report file',function(done){
         var count = 0;
-        var watcher = new ModemWatcher({reportFile: 'unknown.file',commandFile: null,rssiInterval: 10});
+        var watcher = new ModemWatcher({reportFile: 'unknown.file',commandFile: null,rssiInterval: 10,retryInterval: 1});
         watcher.start(function(event){
             if (event == 'retry' && count++ > 0) {
                 watcher.stop();
