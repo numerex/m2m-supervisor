@@ -2,7 +2,7 @@
 
 var RedisCheckpoint = require('../services/redis-checkpoint');
 var ConfigCheckpoint = require('../services/config-checkpoint');
-var M2mTransmitter = require('../services/m2m-transmitter');
+var QueueRouter = require('../services/queue-router');
 
 var hashkeys = require('../lib/config-hashkeys');
 
@@ -12,7 +12,7 @@ var redisChk = new RedisCheckpoint().start(function(event,redis) {
     var configChk = new ConfigCheckpoint(redis,hashkeys.gateway,[hashkeys.gateway.imei.key]).start(function(event,gateway) {
         if (event !== 'ready') return;
 
-        var transmitter = new M2mTransmitter(redis,gateway).start();
+        var router = new QueueRouter(redis,null,gateway).start();
     });
 });
 

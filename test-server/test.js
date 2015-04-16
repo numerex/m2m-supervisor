@@ -7,7 +7,7 @@ module.exports.pp = require(process.cwd() + '/lib/bunyan-prettyprinter');
 module.exports.mockery = require('mockery');
 module.exports.timekeeper = require('timekeeper');
 
-require(process.cwd() + '/lib/logger')('test      ').info('test environment loaded');
+require(process.cwd() + '/lib/logger')('test      ').info('test environment loaded: ' + process.cwd());
 
 module.exports.matchArrays = function(actual,expected){
     actual.length.should.equal(expected.length);
@@ -162,14 +162,12 @@ var MockRedis = {calls: [],RedisClient: MockRedisClient};
 MockRedis.reset = function(){
     MockRedis.clientException = null;
     MockRedis.lookup = {
+        brpop: [],
         get: {},
         hgetall: {},
         hmset: {},
-        incr: {},
         llen: {},
-        lpush: {},
-        mset: {},
-        set: {}
+        lpush: {}
     };
     MockRedis.errors = {};
 };
@@ -183,6 +181,17 @@ MockRedis.snapshot = function(){
 MockRedis.createClient = function () {
     if (MockRedis.clientException) throw(new Error(MockRedis.clientException));
     return {
+        brpop: function(args,callback) {
+            MockRedis.calls.push({brpop: args});
+            callback && callback(null,MockRedis.lookup.brpop.pop() || null);
+        },
+        del: function(args,callback){
+            MockRedis.calls.push({del: args});
+            _.each(args,function(key){
+                MockRedis.lookup.get[key] = null;
+            });
+            callback && callback(null,true);
+        },
         get: function(key,callback) {
             MockRedis.calls.push({get: key});
             callback && callback(MockRedis.errors[key] || null,MockRedis.lookup.get[key] || '0');
@@ -197,7 +206,9 @@ MockRedis.createClient = function () {
         },
         incr: function(key,callback) {
             MockRedis.calls.push({incr: key});
-            callback && callback(MockRedis.errors[key] || null,MockRedis.lookup.incr[key] || '0');
+            var value = +(MockRedis.lookup.get[key] || '0') + 1;
+            MockRedis.lookup.get[key] = value.toString();
+            callback && callback(MockRedis.errors[key] || null,MockRedis.lookup.get[key]);
         },
         llen: function(key,callback) {
             MockRedis.calls.push({llen: key});
@@ -209,14 +220,31 @@ MockRedis.createClient = function () {
             list.unshift(value);
             callback && callback(MockRedis.errors[key] || null,list.length);
         },
+        mget: function(args,callback){
+            MockRedis.calls.push({mget: args});
+            callback && callback(null, _.map(args,function(key){ return MockRedis.lookup.get[key] || null; }));
+        },
         mset: function(){
-            var arglength = Math.floor(arguments.length / 2) * 2;
-            var callback = arguments.length > arglength && arguments[arglength];
-            MockRedis.calls.push({mset: _.take(_.toArray(arguments),arglength)});
-            callback && callback(MockRedis.errors[key] || null,arglength / 2);
+            var callback = null;
+            var args = _.toArray(arguments);
+            if (args.length > 0 && typeof args[args.length - 1] === 'function') callback = args.pop();
+            if (args.length == 1 && _.isArray(args[0])) args = args[0];
+
+            var key = null;
+            _.each(args,function(element){
+                if (!key)
+                    key = element;
+                else {
+                    MockRedis.lookup.get[key] = element;
+                    key = null;
+                }
+            });
+            MockRedis.calls.push({mset: args});
+            callback && callback(null,args.length / 2);
         },
         set: function(key,value,callback){
             MockRedis.calls.push({set: [key,value]});
+            MockRedis.lookup.get[key] = value;
             callback && callback(MockRedis.errors[key] || null,true);
         },
         quit: function(){
