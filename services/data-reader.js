@@ -1,12 +1,10 @@
 var _ = require('lodash');
-var fs = require('fs');
 var logger = require('./../lib/logger')('data-rdr');
 
 function DataReader(device,config) {
     var self = this;
     self.device = device;
     self.config = _.defaults(config || {},{
-        queueKey: 'm2m-device:queue',
         commandPrefix: '\x01',
         commandSuffix: '\x03',
         responsePrefix: '\x01',
@@ -14,11 +12,11 @@ function DataReader(device,config) {
     });
 }
 
-ModemWatcher.prototype.started = function(){
+DataReader.prototype.started = function(){
     return this.device.opened();
 };
 
-ModemWatcher.prototype.ready = function(){
+DataReader.prototype.ready = function(){
     return this.device.ready();
 };
 
@@ -28,18 +26,42 @@ DataReader.prototype.start = function(note) {
     logger.info('start reader');
 
     var self = this;
+    var lastData = null;
     self.noteEvent = note || function(){};
-    self.device.open(function(event,reason){
+    self.device.open(function(event,value){
         switch(event){
             case 'ready':
-                self.buffer = new Buffer(64 * 1024);
                 self.noteEvent('ready');
                 break;
             case 'retry':
-                logger.error('start error: ' + reason);
+                logger.error('start error: ' + value);
                 self.noteEvent('retry');
                 break;
+            case 'error':
+                logger.error('read error: ' + value);
+                break;
+            case 'data':
+                if (lastData === null && value[0] === self.config.responsePrefix) {
+                    lastData = value;
+                    event = 'begin';
+                } else if (lastData === null) {
+                    logger.info('data skipped: ' + value);
+                    event = 'skip';
+                } else {
+                    lastData += value;
+                    event = 'middle';
+                }
+                if (lastData && lastData[lastData.length - 1] === self.config.responseSuffix) {
+                    logger.info('response: ' + JSON.stringify(lastData));
+                    self.responseCallback && self.responseCallback(null,self.lastCommand,lastData);
+                    lastData = null;
+                    self.lastCommand = null;
+                    self.responseCallback = null;
+                    event = 'response';
+                }
+                break;
         }
+        self.noteEvent(event);
     });
     return self;
 };
@@ -49,8 +71,25 @@ DataReader.prototype.stop = function() {
 
     logger.info('stop reader');
 
-    this.stats.increment('stopped');
     this.device.close();
+};
+
+DataReader.prototype.submit = function(command,callback){
+    var self = this;
+    self.lastCommand = null;
+    self.responseCallback = null;
+    if (!self.ready())
+        callback && callback('error','not ready');
+    else
+        logger.info('command: ' + JSON.stringify(command));
+        self.device.writeBuffer(self.config.commandPrefix + command + self.config.commandSuffix,function(error) {
+            if (error)
+                callback && callback('error',error);
+            else {
+                self.lastCommand = command;
+                self.responseCallback = callback;
+            }
+        });
 };
 
 module.exports = DataReader;

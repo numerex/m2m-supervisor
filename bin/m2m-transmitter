@@ -12,7 +12,7 @@ var redisChk = new RedisCheckpoint().start(function(event,redis) {
     var configChk = new ConfigCheckpoint(redis,hashkeys.gateway,[hashkeys.gateway.imei.key]).start(function(event,gateway) {
         if (event !== 'ready') return;
 
-        var transmitter = new M2mTransmitter(gateway).start();
+        var transmitter = new M2mTransmitter(redis,gateway).start();
     });
 });
 

@@ -87,7 +87,6 @@ describe('ConfigCheckpoint',function() {
     it('should return ready if no configuration exists but also not requirements',function(done){
         test.mockredis.lookup.hgetall['m2m-config'] = null;
 
-        var count = 0;
         var checkpoint = new ConfigCheckpoint(redis,{test: {key: 'test-key',type: 'number',default: 1}},null);
         checkpoint.start(function(event,config){
             checkpoint.stop();
@@ -134,7 +133,6 @@ describe('ConfigCheckpoint',function() {
             'gateway:public-host': 'public-host',
             'gateway:public-port': '5678'};
 
-        var count = 0;
         var checkpoint = new ConfigCheckpoint(redis,hashkeys.gateway,[hashkeys.gateway.imei.key]);
         checkpoint.start(function(event,config){
             checkpoint.stop();
@@ -161,7 +159,7 @@ describe('ConfigCheckpoint',function() {
 
     it('should throw an error if start called twice',function(done){
         var checkpoint = new ConfigCheckpoint(redis);
-        checkpoint.start(function(){});
+        checkpoint.start();
         test.expect(function(){ checkpoint.start(); }).to.throw('already started');
         checkpoint.stop();
         test.pp.snapshot().should.eql([

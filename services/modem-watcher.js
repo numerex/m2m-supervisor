@@ -1,5 +1,4 @@
 var _ = require('lodash');
-var fs = require('fs');
 
 var FileDevice = require('../lib/file-device');
 
@@ -15,7 +14,6 @@ function ModemWatcher(config) {
     self.device = new FileDevice({inFile: self.config.reportFile,outFile: self.config.commandFile,retryInterval: self.config.retryInterval});
     self.imeiFound = self.config.imeiFound || function(){};
     self.stats = require('./../lib/statsd-client')('modem'); // NOTE - delay require for mockery testing
-    self.requestIMEICallback = function(){ self.requestIMEI(); };
     self.requestRSSICallback = function(){ self.requestRSSI(); };
 }
 
@@ -44,10 +42,13 @@ ModemWatcher.prototype.start = function(note) {
     self.device.open(function(event,value){
         switch(event){
             case 'ready':
-                setTimeout(self.requestIMEICallback,1);
-                setTimeout(self.requestRSSICallback,1);
                 self.interval = setInterval(self.requestRSSICallback,self.config.rssiInterval);
                 self.stats.increment('started');
+                self.timeout = setTimeout(function(){
+                    self.timeout = null;
+                    self.requestIMEI();
+                    self.requestRSSI();
+                },1);
                 break;
             case 'retry':
                 logger.error('start error: ' + value);
@@ -58,7 +59,7 @@ ModemWatcher.prototype.start = function(note) {
                 self.stats.increment('error');
                 break;
             case 'data':
-                _.each(self.device.buffer.toString(null,0,value).split('\n'),function(line){
+                _.each(value.split('\n'),function(line){
                    if (line.length == 0) return;
                    if (self.considerLine(ModemWatcher.Reports.FLOW,line,function(data) { return self.noteFlow(data); })) return;
                    if (self.considerLine(ModemWatcher.Reports.RSSI,line,function(data) { return self.noteRSSI(data); })) return;
@@ -75,6 +76,9 @@ ModemWatcher.prototype.stop = function() {
     if (!this.started()) throw(new Error('not started'));
 
     logger.info('stop watcher');
+
+    if (this.timeout) clearTimeout(this.timeout);
+    this.timeout = null;
 
     if (this.interval) clearInterval(this.interval);
     this.interval = null;

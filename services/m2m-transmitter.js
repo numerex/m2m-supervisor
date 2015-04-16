@@ -7,8 +7,9 @@ var logger = require('./../lib/logger')('transmit');
 var schema = require('./../lib/redis-schema');
 var settings = require('./../lib/m2m-settings');
 
-function M2mTransmitter(gateway,config) {
+function M2mTransmitter(redis,gateway,config) {
     var self = this;
+    self.redis = redis;
     self.gateway = gateway;
     self.config = _.defaults(config || {},{
         idleReport:         60 / 5,
@@ -16,7 +17,6 @@ function M2mTransmitter(gateway,config) {
         timeoutInterval:    5
     });
     self.stats = require('./../lib/statsd-client')('transmit');    // NOTE - delay require for mockery testing
-    self.redis = require('redis').createClient();           // NOTE - delay require for mockery testing
     self.client = new UdpListener('transmit',null,function(buffer) { console.log(buffer); });
 }
 
@@ -34,8 +34,9 @@ M2mTransmitter.prototype.start = function(note) {
     logger.info('start transmitter');
 
     var self = this;
-    self.idleCount = 0;
     self.startCalled = true;
+    self.idleCount = 0;
+    self.checkDepth = 0;
     self.noteEvent = note || function(){};
     self.redisLogErrorCallback = function(err,value){ self.redisLogError(err,value) };
     self.checkQueueCallback = function(){ self.checkQueue(); };
@@ -79,7 +80,6 @@ M2mTransmitter.prototype.checkQueue = function(){
                     self.redis.incr(schema.ack.retries.key,self.redisLogErrorCallback);
                     self.transmitMessage(new m2m.Message({json: message}));
                 }
-                self.asyncCheckQueue();
             }));
         else
             self.redis.brpop(schema.ack.queue.key,schema.transmit.queue.key,self.config.timeoutInterval,_.bind(self.redisCheckResult,self,_,_,function(result){
@@ -91,12 +91,9 @@ M2mTransmitter.prototype.checkQueue = function(){
                     var attributes = self.safeParseJSON(result[1]);
                     if (!attributes)
                         self.noteEvent('error');
-                    else {
+                    else
                         self.generateMessage(attributes);
-                        return; // NOTE - prevent drop-through to "asyncCheckQueue" call
-                    }
                 }
-                self.asyncCheckQueue();
             }));
     }));
 };
@@ -108,22 +105,29 @@ M2mTransmitter.prototype.generateMessage = function(attributes) {
     var timestamp = attributes.timestamp;
     delete attributes.timestamp;
 
-    var sequenceNumber = attributes.sequenceNumber;
+    var sequenceNumber = +attributes.sequenceNumber;
     delete attributes.sequenceNumber;
     
     var self = this;
-    self.redis.incr(schema.transmit.lastSequenceNumber.key,_.bind(self.redisCheckResult,self,_,_,function(newSequenceNumber){
-        var message = new m2m.Message({messageType: m2m.Common.MOBILE_ORIGINATED_EVENT,eventCode: eventCode,sequenceNumber: sequenceNumber || newSequenceNumber,timestamp: timestamp})
-            .pushString(0,self.gateway.imei);
-        for (var key in attributes) {
-            var code = +key;
-            if (code > 0)
-                message.pushInt(code,+attributes[key]); // TODO expand...
-        }
+    if (sequenceNumber)
+        self.assembleMessage(eventCode,timestamp,sequenceNumber,attributes);
+    else
+        self.redis.incr(schema.transmit.lastSequenceNumber.key,_.bind(self.redisCheckResult,self,_,_,function(newSequenceNumber){
+            self.assembleMessage(eventCode,timestamp,newSequenceNumber,attributes);
+        }));
+};
 
-        self.redis.mset([schema.ack.message.key,JSON.stringify(message),message.sequenceNumber,schema.ack.retries.key,0,schema.ack.sequenceNumber.key],self.redisLogError);
-        self.transmitMessage(message.toWire());
-    }));
+M2mTransmitter.prototype.assembleMessage = function(eventCode,timestamp,sequenceNumber,attributes){
+    var message = new m2m.Message({messageType: m2m.Common.MOBILE_ORIGINATED_EVENT,eventCode: eventCode,sequenceNumber: sequenceNumber,timestamp: timestamp})
+        .pushString(0,self.gateway.imei);
+    for (var key in attributes) {
+        var code = +key;
+        if (code > 0)
+            message.pushInt(code,+attributes[key]); // TODO expand...
+    }
+
+    self.redis.mset([schema.ack.message.key,JSON.stringify(message),message.sequenceNumber,schema.ack.retries.key,0,schema.ack.sequenceNumber.key],self.redisLogError);
+    self.transmitMessage(message.toWire());
 };
 
 M2mTransmitter.prototype.transmitMessage = function(message){
@@ -137,14 +141,20 @@ M2mTransmitter.prototype.asyncCheckQueue = function(){
 };
 
 M2mTransmitter.prototype.redisCheckResult = function(err,value,callback) {
-    if (!err)
+    if (!err) {
+        this.checkDepth++;
         callback(value);
-    else {
+        this.checkDepth--;
+    } else {
         logger.error('redis error: ' + err);
         this.stats.increment('error');
         this.noteEvent('error');
         this.asyncCheckQueue();
     }
+    if (this.checkDepth < 0)
+        logger.error('check depth underflow: ' + this.checkDepth);
+    else if (this.checkDepth == 0)
+        this.asyncCheckQueue();
 };
 
 M2mTransmitter.prototype.redisLogError = function(err,value,callback) {

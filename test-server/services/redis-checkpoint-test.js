@@ -39,7 +39,7 @@ describe('RedisCheckpoint',function() {
 
         var count = 0;
         var checkpoint = new RedisCheckpoint({retryInterval: 10});
-        checkpoint.start(function(event,config){
+        checkpoint.start(function(event){
             event.should.eql('retry');
             if (count++ > 0) {
                 checkpoint.stop();
@@ -57,7 +57,7 @@ describe('RedisCheckpoint',function() {
 
     it('should return ready if redis client successfully created',function(done){
         var checkpoint = new RedisCheckpoint();
-        checkpoint.start(function(event,config){
+        checkpoint.start(function(event){
             checkpoint.stop();
             event.should.eql('ready');
             test.pp.snapshot().should.eql([
@@ -71,7 +71,7 @@ describe('RedisCheckpoint',function() {
 
     it('should throw an error if start called twice',function(done){
         var checkpoint = new RedisCheckpoint();
-        checkpoint.start(function(){});
+        checkpoint.start();
         test.expect(function(){ checkpoint.start(); }).to.throw('already started');
         checkpoint.stop();
         test.pp.snapshot().should.eql([
