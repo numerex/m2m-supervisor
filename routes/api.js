@@ -37,15 +37,21 @@ function commonRedisResult(res,err,result,callback){
     }
 }
 
-function requestConfig(res){
+function requestHash(res,key,hashkeys){
     if (!redisChk.ready())
         res.send({error: 'Redis not ready'});
     else
         commonRedisCall(res,function(){
-            redisChk.client.hgetall(schema.config.key,_.bind(commonRedisResult,this,res,_,_,function(hash){
-                res.send({config: helpers.hash2tuples(hash || {},configHashkeys)});
+            redisChk.client.hgetall(key,_.bind(commonRedisResult,this,res,_,_,function(hash){
+                res.send({config: helpers.hash2tuples(hash || {},hashkeys)});
             }));
         });
+}
+
+// CONFIG ----------------
+
+function requestConfig(res){
+    requestHash(res,schema.config.key,configHashkeys);
 }
 
 router.get('/config',function(req,res,next){
@@ -74,6 +80,8 @@ router.post('/config',function(req,res,next){
     });
 });
 
+// DEVICE ----------------
+
 router.get('/devices',function(req,res,next){
     checkRedis(function(){
         commonRedisCall(res,function(){
@@ -84,15 +92,17 @@ router.get('/devices',function(req,res,next){
     });
 });
 
+function requestDevice(res,id){
+    requestHash(res,schema.device.settings.useParam(req.params.id),deviceHashkeys);
+}
+
 router.get('/device/:id',function(req,res,next){
     checkRedis(function(){
-        commonRedisCall(res,function(){
-            redisChk.client.hgetall(schema.device.settings.useParam(req.params.id),_.bind(commonRedisResult,this,res,_,_,function(hash){
-                res.send({config: helpers.hash2tuples(hash || {},deviceHashkeys)});
-            }));
-        });
+        requestDevice(res,req.params.id);
     });
 });
+
+// STATUS ----------------
 
 router.get('/status',function(req,res,next){
     checkRedis(function(){
