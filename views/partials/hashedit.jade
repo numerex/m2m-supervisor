@@ -1,0 +1,18 @@
+alert-message(messages='messages')
+form.form-horizontal.well(ng-cloak,ng-if='hash')
+  fieldset
+    .row
+      .col-lg-4(ng-repeat="name in hashKeys")
+        legend {{ name }}
+        .form-group(ng-repeat='entry in hash[name]')
+          label.col-lg-4.control-label(for='{{ entry.key }}') {{ entry.label }}:
+          .col-lg-8
+            input.form-control(ng-disabled="entry.status === 'locked'",ng-model='hashValues[entry.key]',type='text')
+      .form-group
+        .col-lg-12
+          legend
+        .col-lg-8.col-lg-offset-4
+          //- TODO figure out how to disable buttons unless dirty
+          button.btn.btn-primary(type='submit',ng-click='submitChanges()') Save Changes
+          | &nbsp;
+          button.btn.btn-default(ng-click='resetValues()') Discard Changes

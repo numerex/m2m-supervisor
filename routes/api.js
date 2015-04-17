@@ -5,8 +5,8 @@ var RedisCheckpoint = require('../services/redis-checkpoint');
 var logger = require('../lib/logger')('api');
 var schema = require('../lib/redis-schema');
 var helpers = require('../lib/config-helpers');
-var configHashkeys = require('../lib/config-hashkeys');
-var deviceHashkeys = require('../lib/device-hashkeys');
+var configTemplate = require('../lib/config-hashkeys');
+var deviceTemplate = require('../lib/device-hashkeys');
 
 var redisChk = new RedisCheckpoint();
 var router = express.Router();
@@ -37,13 +37,32 @@ function commonRedisResult(res,err,result,callback){
     }
 }
 
-function requestHash(res,key,hashkeys){
+function requestHash(res,hashKey,resultKey,template){
     if (!redisChk.ready())
         res.send({error: 'Redis not ready'});
     else
         commonRedisCall(res,function(){
-            redisChk.client.hgetall(key,_.bind(commonRedisResult,this,res,_,_,function(hash){
-                res.send({config: helpers.hash2tuples(hash || {},hashkeys)});
+            redisChk.client.hgetall(hashKey,_.bind(commonRedisResult,this,res,_,_,function(hash){
+                var result = {};
+                result[resultKey] = helpers.hash2groups(hash || {},template);
+                res.send(result);
+            }));
+        });
+}
+
+function updateHash(req,res,hashKey,callback){
+    // TODO 1) delete keys that match defaults?
+    var args = [hashKey];
+    _.each(req.body,function(value,key){
+        args.push(key);
+        args.push(value);
+    });
+    if (args.length <= 1)
+        res.send({error: 'No changes requested'});
+    else
+        commonRedisCall(res,function(){
+            redisChk.client.hmset(args,_.bind(commonRedisResult,this,res,_,_,function(){
+                callback();
             }));
         });
 }
@@ -51,7 +70,7 @@ function requestHash(res,key,hashkeys){
 // CONFIG ----------------
 
 function requestConfig(res){
-    requestHash(res,schema.config.key,configHashkeys);
+    requestHash(res,schema.config.key,'config',configTemplate);
 }
 
 router.get('/config',function(req,res,next){
@@ -62,43 +81,74 @@ router.get('/config',function(req,res,next){
 
 router.post('/config',function(req,res,next){
     checkRedis(function(){
-        // TODO 1) delete keys that match defaults?
         logger.info('config changes: ' + JSON.stringify(req.body));
-        var args = [schema.config.key];
-        _.each(req.body,function(value,key){
-            args.push(key);
-            args.push(value);
+        updateHash(req,res,schema.config.key,function(){
+            requestConfig(res);
         });
-        if (args.length <= 1)
-            res.send({error: 'No changes requested'});
-        else
-            commonRedisCall(res,function(){
-                redisChk.client.hmset(args,_.bind(commonRedisResult,this,res,_,_,function(){
-                    requestConfig(res);
-                }));
-            });
     });
 });
 
 // DEVICE ----------------
 
+function findDeviceIDs(res,callback){
+    commonRedisCall(res,function(){
+        redisChk.client.keys(schema.device.settings.keysPattern(),_.bind(commonRedisResult,this,res,_,_,function(keys){
+            callback()
+            res.send(_.map(keys,function(key){ return schema.device.settings.getParam(key); }));
+        }));
+    });
+}
+
 router.get('/devices',function(req,res,next){
     checkRedis(function(){
-        commonRedisCall(res,function(){
-            redisChk.client.keys(schema.device.settings.keysPattern(),_.bind(commonRedisResult,this,res,_,_,function(keys){
-                res.send(_.map(keys,function(key){ return schema.device.settings.getParam(key); }));
-            }));
-        });
+        findDeviceIDs(res,function(keys){
+            res.send(_.map(keys,function(key){ return schema.device.settings.getParam(key); }));
+        })
     });
 });
 
 function requestDevice(res,id){
-    requestHash(res,schema.device.settings.useParam(req.params.id),deviceHashkeys);
+    requestHash(res,schema.device.settings.useParam(id),'device:' + (id || 'new'),deviceTemplate);
 }
+
+router.get('/device',function(req,res,next){
+    var defaults = _.defaults(helpers.hash2groups({},deviceTemplate));
+    defaults['New'] = [{key: 'id',label: 'Device ID',type: 'string',required: true}];
+    res.send({'device:new': defaults});
+});
 
 router.get('/device/:id',function(req,res,next){
     checkRedis(function(){
         requestDevice(res,req.params.id);
+    });
+});
+
+router.post('/device/:id',function(req,res,next){
+    checkRedis(function(){
+        logger.info('device changes(' + req.params.id + '): ' + JSON.stringify(req.body));
+        updateHash(req,res,schema.device.settings.useParam(req.params.id),function(){
+            requestDevice(res,req.params.id);
+        });
+    });
+});
+
+router.post('/device',function(req,res,next){
+    checkRedis(function(){
+        var id = req.body.id;
+        delete req.body.id;
+        if (!id)
+            res.send({error: 'Device ID not provided'});
+        else
+            findDeviceIDs(res,function(keys){
+                if (keys.include(id))
+                    res.send({error: 'Device ID already used'});
+                else {
+                    logger.info('device creation(' + id + '): ' + JSON.stringify(req.body));
+                    updateHash(req,res,schema.device.settings.useParam(id),function(){
+                        requestDevice(res,id);
+                    });
+                }
+            });
     });
 });
 

@@ -9,16 +9,16 @@ block content
       ul.nav.navbar-nav
         li(ng-class = "{active: $state.includes('home')}")
           a(ui-sref = 'home') Home
-        li(ng-class = "{active: $state.includes('jobs')}")
-          a(ui-sref = 'jobs') Job History
         li(ng-class = "{active: $state.includes('metrics')}")
           a(ui-sref = 'metrics') Metrics
         li(ng-class = "{active: $state.includes('diagnostics')}")
           a(ui-sref = 'diagnostics') Diagnostics
         li(ng-class = "{active: $state.includes('logs')}")
           a(ui-sref = 'logs') Process Logs
+        li(ng-class = "{active: $state.includes('devices')}")
+          a(ui-sref = 'devices') Device Setup
         li(ng-class = "{active: $state.includes('config')}")
-          a(ui-sref = 'config') Configuration
+          a(ui-sref = 'config') General Setup
         li(ng-class = "{active: $state.includes('shell')}")
           a(ui-sref = 'shell') Shell
       .btn-toolbar.pull-right

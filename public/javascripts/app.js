@@ -23,6 +23,12 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
                 controller: 'ConfigController',
                 redirectTo: 'config'
             })
+            .state('devices',{
+                url: '#devices',
+                templateUrl: 'partials/devices',
+                controller: 'DevicesController',
+                redirectTo: 'devices'
+            })
             .state('status',{
                 url: '#status',
                 templateUrl: 'partials/status',
@@ -37,6 +43,7 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
             });
     }])
     .run(['$rootScope','$http','$interval',function($rootScope,$http,$interval) {
+        $rootScope.globalValues = {};
         $rootScope.globalStatus = {label: 'Status: Pending...',css: 'label-default'};
         $rootScope.checkStatus = function(){
             $http.get('/api/status')
