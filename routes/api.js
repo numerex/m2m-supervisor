@@ -5,7 +5,8 @@ var RedisCheckpoint = require('../services/redis-checkpoint');
 var logger = require('../lib/logger')('api');
 var schema = require('../lib/redis-schema');
 var helpers = require('../lib/config-helpers');
-var hashkeys = require('../lib/config-hashkeys');
+var configHashkeys = require('../lib/config-hashkeys');
+var deviceHashkeys = require('../lib/device-hashkeys');
 
 var redisChk = new RedisCheckpoint();
 var router = express.Router();
@@ -42,7 +43,7 @@ function requestConfig(res){
     else
         commonRedisCall(res,function(){
             redisChk.client.hgetall(schema.config.key,_.bind(commonRedisResult,this,res,_,_,function(hash){
-                res.send({config: helpers.hash2tuples(hash || {},hashkeys)});
+                res.send({config: helpers.hash2tuples(hash || {},configHashkeys)});
             }));
         });
 }
@@ -70,6 +71,26 @@ router.post('/config',function(req,res,next){
                     requestConfig(res);
                 }));
             });
+    });
+});
+
+router.get('/devices',function(req,res,next){
+    checkRedis(function(){
+        commonRedisCall(res,function(){
+            redisChk.client.keys(schema.device.settings.keysPattern(),_.bind(commonRedisResult,this,res,_,_,function(keys){
+                res.send(_.map(keys,function(key){ return schema.device.settings.getParam(key); }));
+            }));
+        });
+    });
+});
+
+router.get('/device/:id',function(req,res,next){
+    checkRedis(function(){
+        commonRedisCall(res,function(){
+            redisChk.client.hgetall(schema.device.settings.useParam(req.params.id),_.bind(commonRedisResult,this,res,_,_,function(hash){
+                res.send({config: helpers.hash2tuples(hash || {},deviceHashkeys)});
+            }));
+        });
     });
 });
 

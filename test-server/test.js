@@ -151,13 +151,7 @@ module.exports.mockshelljs.snapshot = function(){
 
 // REDIS ----------------------
 
-function MockRedisClient(){
-
-}
-
-MockRedisClient.prototype.on_error = function (){};
-
-var MockRedis = {events: {},calls: [],RedisClient: MockRedisClient};
+var MockRedis = {events: {},calls: []};
 
 MockRedis.reset = function(){
     MockRedis.clientException = null;

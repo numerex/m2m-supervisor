@@ -15,8 +15,8 @@
       "script":         "bin/m2m-bridge"
     },
     {
-      "name":           "m2m-transmitter",
-      "script":         "bin/m2m-transmitter"
+      "name":           "m2m-transceiver",
+      "script":         "bin/m2m-transceiver"
     },
     {
       "name":           "web-server",
