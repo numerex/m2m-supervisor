@@ -5,8 +5,7 @@ describe('QueueRouter',function() {
     
     var redis = null;
     var mockdgram = null;
-    var mockRoutePath = process.cwd() + '/test-server/mocks/route-test';
-    var mockRoute = require(mockRoutePath);
+    var mockRoute = require(process.cwd() + '/test-server/mocks/route-test');
     var helpers = require(process.cwd() + '/lib/config-helpers');
     var hashkeys = require(process.cwd() + '/lib/config-hashkeys');
     var testGateway = Object.freeze(helpers.hash2config({'gateway:imei': '123456789012345'},hashkeys.gateway));
@@ -44,7 +43,7 @@ describe('QueueRouter',function() {
     });
 
     it('should properly initialize data with all arguments',function(){
-        var router = new QueueRouter(redis,{test: mockRoutePath},testGateway,{idleReport: 10,maxRetries: 2,timeoutInterval: 1});
+        var router = new QueueRouter(redis,{test: mockRoute},testGateway,{idleReport: 10,maxRetries: 2,timeoutInterval: 1});
         router.config.should.eql({idleReport: 10,maxRetries: 2,timeoutInterval: 1});
         router.gateway.should.eql(testGateway);
         router.routes.should.eql({test: mockRoute});
@@ -305,7 +304,7 @@ describe('QueueRouter',function() {
         test.mockredis.lookup.get['m2m-transmit:retries'] = '0';
 
         var events = [];
-        var router = new QueueRouter(redis,{test: mockRoutePath},testGateway).start(function(event){
+        var router = new QueueRouter(redis,{test: mockRoute},testGateway).start(function(event){
             events.push(event);
             if (event === 'ack') {
                 router.stop();
@@ -331,7 +330,7 @@ describe('QueueRouter',function() {
     it('should handle an routed command',function(done){
         test.mockredis.lookup.brpop = [['test','test command']];
 
-        var router = new QueueRouter(redis,{test: mockRoutePath},testGateway).start(function(event){
+        var router = new QueueRouter(redis,{test: mockRoute},testGateway).start(function(event){
             if (event === 'ready') return;
             router.stop();
             mockRoute.snapshot().should.eql(['test command']);

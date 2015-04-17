@@ -1,0 +1,44 @@
+#!/usr/bin/env node
+
+var RedisCheckpoint = require('../services/redis-checkpoint');
+var ConfigCheckpoint = require('../services/config-checkpoint');
+var QueueRouter = require('../services/queue-router');
+var TelnetDevice = require('../lib/telnet-device');
+var DataReader = require('../services/data-reader');
+
+var hashkeys = require('../lib/config-hashkeys');
+
+var dataReader = null;
+var testRoute = {
+    noteAck: function(ack){ console.log('ack:' + ack); },
+    processQueueEntry: function(command){
+        console.log('command:' + command);
+        dataReader.submit(command,function(error,command,response){
+            console.log('error:' + error);
+            console.log('response:' + response);
+        });
+    }
+};
+
+var redisChk = new RedisCheckpoint().start(function(redisEvent,redis) {
+    console.log('redis event:' + redisEvent);
+    if (redisEvent !== 'ready') return;
+
+    var configChk = new ConfigCheckpoint(redis,hashkeys.gateway,[hashkeys.gateway.imei.key]).start(function(configEvent,gateway) {
+        console.log('config event:' + configEvent);
+        if (configEvent !== 'ready') return;
+
+        var router = new QueueRouter(redis,{test: testRoute},gateway).start(function(routerEvent){
+            console.log('router event:' + routerEvent);
+            if (routerEvent !== 'ready') return;
+
+            dataReader = new DataReader(new TelnetDevice({host: 'localhost',port: 10001})).start(function(dataEvent) {
+                console.log('data event: ' + dataEvent);
+            });
+        });
+    });
+});
+
+
+
+

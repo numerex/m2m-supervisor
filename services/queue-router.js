@@ -47,7 +47,7 @@ function QueueRouter(redis,routes,gateway,config) {
         timeoutInterval:    5
     });
     self.redis = redis;
-    self.routes = _.mapValues(routes || {},function(requirement) { return require(requirement); });
+    self.routes = routes || {};
     self.routeKeys = _.keys(self.routes);
     self.queueArgs = COMMON_QUEUE_KEYS.concat(self.routeKeys).concat([self.config.timeoutInterval]);
     self.gateway = gateway;
@@ -170,11 +170,11 @@ QueueRouter.prototype.generateMessage = function(attributes) {
 QueueRouter.prototype.assembleMessage = function(eventCode,timestamp,sequenceNumber,attributes){
     var message = new m2m.Message({messageType: m2m.Common.MOBILE_ORIGINATED_EVENT,eventCode: eventCode,sequenceNumber: +sequenceNumber,timestamp: timestamp})
         .pushString(0,this.gateway.imei);
-    for (var key in attributes) {
+    _.each(_.keys(attributes),function(key){
         var code = +key;
         if (code > 0)
             message.pushInt(code,+attributes[key]); // TODO expand...
-    }
+    });
 
     this.redis.mset(ackStatePairs(message,null),this.redisLogError);
     this.stats.increment('transmit');
@@ -217,7 +217,7 @@ QueueRouter.prototype.redisCheckResult = function(err,value,callback) {
     }
 };
 
-QueueRouter.prototype.redisLogError = function(err,value,callback) {
+QueueRouter.prototype.redisLogError = function(err) {
     if (err) {
         logger.error('redis error: ' + err);
         this.stats.increment('error');

@@ -31,11 +31,9 @@ DataReader.prototype.start = function(note) {
     self.device.open(function(event,value){
         switch(event){
             case 'ready':
-                self.noteEvent('ready');
                 break;
             case 'retry':
                 logger.error('start error: ' + value);
-                self.noteEvent('retry');
                 break;
             case 'error':
                 logger.error('read error: ' + value);
