@@ -12,10 +12,8 @@ var router = express.Router();
 
 function checkRedis(callback){
     if (!redisChk) redisChk = new RedisCheckpoint();
-    if (redisChk.started())
-        callback();
-    else
-        redisChk.start(function() { callback(); });
+    if (!redisChk.started()) redisChk.start();
+    callback();
 }
 
 function commonRedisCall(res,callback){
@@ -23,19 +21,23 @@ function commonRedisCall(res,callback){
         callback();
     } catch(e) {
         // istanbul ignore next - not sure how to generate this error in mocking
+        logger.error('redis exception: ' + e);
+        // istanbul ignore next - not sure how to generate this error in mocking
         res.send({error: 'redis exception: ' + e});
     }
 }
 
 function commonRedisResult(res,err,result,callback){
-    if (err)
-        res.send({error: 'redis error: ' + err});
-    else
+    if (!err)
         callback(result);
+    else {
+        logger.error('redis error: ' + err);
+        res.send({error: 'redis error: ' + err});
+    }
 }
 
 function requestConfig(res){
-    if (!redisChk.client)
+    if (!redisChk.ready())
         res.send({error: 'Redis not ready'});
     else
         commonRedisCall(res,function(){
@@ -64,7 +66,7 @@ router.post('/config',function(req,res,next){
             res.send({error: 'No changes requested'});
         else
             commonRedisCall(res,function(){
-                redisChk.client.hmset(args,_.bind(commonRedisResult,this,res,_,_,function(result){
+                redisChk.client.hmset(args,_.bind(commonRedisResult,this,res,_,_,function(){
                     requestConfig(res);
                 }));
             });

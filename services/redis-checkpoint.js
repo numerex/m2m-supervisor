@@ -12,6 +12,10 @@ RedisCheckpoint.prototype.started = function(){
     return !!this.startCalled;
 };
 
+RedisCheckpoint.prototype.ready = function(){
+    return !!this.client;
+};
+
 RedisCheckpoint.prototype.start = function(callback) {
     if (this.started()) throw(new Error('already started'));
 
@@ -20,20 +24,9 @@ RedisCheckpoint.prototype.start = function(callback) {
     var self = this;
     self.redis = require('redis'); // NOTE - delay require for mockery testing
 
-    // istanbul ignore next -- TODO review for correctness... is this the right way to trap these errors???
-    self.redis.RedisClient.prototype.on_error = function(err){
-        logger.error('redis not ready: ' + err);
-        if (self.client) self.client.end();
-        self.client = null;
-        if (self.started()) {
-            self.attemptCheckCallback = function(){ self.attemptCheck(null); };
-            self.timeout = setTimeout(self.attemptCheckCallback,self.config.retryInterval);
-        }
-    };
-
     self.startCalled = true;
     self.attemptCheckCallback = function(){ self.attemptCheck(callback); };
-    self.timeout = setTimeout(self.attemptCheckCallback,1);
+    self.attemptCheckCallback();
     return self;
 };
 
@@ -52,17 +45,17 @@ RedisCheckpoint.prototype.stop = function(){
 };
 
 RedisCheckpoint.prototype.attemptCheck = function(callback){
-    this.timeout = null;
-    try {
-        this.client = this.redis.createClient();
-    } catch(e) {
-        this.timeout = setTimeout(this.attemptCheckCallback,this.config.retryInterval);
-        logger.info('not ready: ' + e);
+    var self = this;
+    self.timeout = null;
+    self.client = self.redis.createClient();
+    self.client.on('error',function(error){
+        logger.error('redis client error: ' + error);
+        self.client.end();
+        self.client = null;
+        self.timeout = setTimeout(self.attemptCheckCallback,self.config.retryInterval);
         callback && callback('retry');
-        return;
-    }
-
-    callback && callback('ready',this.client);
+    });
+    self.client && callback && callback('ready',self.client);
 };
 
 module.exports = RedisCheckpoint;

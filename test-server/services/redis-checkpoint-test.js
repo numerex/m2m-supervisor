@@ -42,11 +42,14 @@ describe('RedisCheckpoint',function() {
                 checkpoint.stop();
                 test.pp.snapshot().should.eql([
                     '[redis-chk ] start checkpoint',
-                    '[redis-chk ] not ready: Error: test error',
-                    '[redis-chk ] not ready: Error: test error',
+                    '[redis-chk ] redis client error: test error',
+                    '[redis-chk ] redis client error: test error',
                     '[redis-chk ] stop checkpoint'
                 ]);
-                test.mockredis.snapshot().should.eql([]);
+                test.mockredis.snapshot().should.eql([
+                    {end: null},
+                    {end: null}
+                ]);
                 done();
             }
         });
@@ -75,7 +78,9 @@ describe('RedisCheckpoint',function() {
             '[redis-chk ] start checkpoint',
             '[redis-chk ] stop checkpoint'
         ]);
-        test.mockredis.snapshot().should.eql([]);
+        test.mockredis.snapshot().should.eql([
+            {quit: null}
+        ]);
         done();
     });
 

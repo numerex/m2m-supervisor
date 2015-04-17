@@ -157,10 +157,12 @@ function MockRedisClient(){
 
 MockRedisClient.prototype.on_error = function (){};
 
-var MockRedis = {calls: [],RedisClient: MockRedisClient};
+var MockRedis = {events: {},calls: [],RedisClient: MockRedisClient};
 
 MockRedis.reset = function(){
     MockRedis.clientException = null;
+    MockRedis.events = {};
+    MockRedis.errors = {};
     MockRedis.lookup = {
         brpop: [],
         get: {},
@@ -169,7 +171,6 @@ MockRedis.reset = function(){
         llen: {},
         lpush: {}
     };
-    MockRedis.errors = {};
 };
 
 MockRedis.snapshot = function(){
@@ -179,8 +180,14 @@ MockRedis.snapshot = function(){
 };
 
 MockRedis.createClient = function () {
-    if (MockRedis.clientException) throw(new Error(MockRedis.clientException));
     return {
+        end: function(){
+            MockRedis.calls.push({end: null});
+        },
+        on: function(event,callback) {
+            MockRedis.events[event] = callback;
+            if (event === 'error' && MockRedis.clientException) callback(MockRedis.clientException);
+        },
         brpop: function(args,callback) {
             MockRedis.calls.push({brpop: args});
             callback && callback(null,MockRedis.lookup.brpop.pop() || null);

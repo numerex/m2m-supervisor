@@ -24,23 +24,23 @@ describe('API router',function() {
         test.pp.snapshot().should.eql([]);
     });
 
-    it('GET /config should detect a redis error',function(done) {
-        test.mockredis.errors['m2m-config'] = 'test error';
+    it('GET /config should detect a redis not ready',function(done) {
+        test.mockredis.clientException = 'test error';
         var request = require('supertest');
         request(app).get('/api/config')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.eql('{"error":"redis error: test error"}');
+                res.text.should.eql('{"error":"Redis not ready"}');
                 require(process.cwd() + '/routes/api').resetRedisChk();
                 test.mockredis.snapshot().should.eql([
-                    {hgetall: 'm2m-config'},
-                    {quit: null}
+                    {end: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
                     /^\[express   \] \S+ --> GET \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis-chk ] start checkpoint',
+                    '[redis-chk ] redis client error: test error',
                     /^\[express   \] \S+ <-- GET \/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
                     '[redis-chk ] stop checkpoint'
                 ]);
@@ -133,20 +133,23 @@ describe('API router',function() {
     });
 
     it('GET /config should detect that redis is not ready',function(done) {
-        test.mockredis.clientException = 'test error';
+        test.mockredis.errors['m2m-config'] = 'test error';
         var request = require('supertest');
         request(app).get('/api/config')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.eql('{"error":"Redis not ready"}');
+                res.text.should.eql('{"error":"redis error: test error"}');
                 require(process.cwd() + '/routes/api').resetRedisChk();
-                test.mockredis.snapshot().should.eql([]);
+                test.mockredis.snapshot().should.eql([
+                    {hgetall: 'm2m-config'},
+                    {quit: null}
+                ]);
                 test.matchArrays(test.pp.snapshot(),[
                     /^\[express   \] \S+ --> GET \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis-chk ] start checkpoint',
-                    '[redis-chk ] not ready: Error: test error',
+                    '[api       ] redis error: test error',
                     /^\[express   \] \S+ <-- GET \/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
                     '[redis-chk ] stop checkpoint'
                 ]);
