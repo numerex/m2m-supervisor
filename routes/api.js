@@ -4,7 +4,7 @@ var express = require('express');
 var RedisCheckpoint = require('../services/redis-checkpoint');
 var logger = require('../lib/logger')('api');
 var schema = require('../lib/redis-schema');
-var helpers = require('../lib/config-helpers');
+var helpers = require('../lib/hash-helpers');
 var configTemplate = require('../lib/config-hashkeys');
 var deviceTemplate = require('../lib/device-hashkeys');
 
@@ -93,8 +93,7 @@ router.post('/config',function(req,res,next){
 function findDeviceIDs(res,callback){
     commonRedisCall(res,function(){
         redisChk.client.keys(schema.device.settings.keysPattern(),_.bind(commonRedisResult,this,res,_,_,function(keys){
-            callback()
-            res.send(_.map(keys,function(key){ return schema.device.settings.getParam(key); }));
+            callback(keys);
         }));
     });
 }

@@ -1,13 +1,9 @@
-alert-message(messages='messages')
 form.form-horizontal.well(ng-cloak,ng-if='hash')
+  alert-message(messages='messages')
   fieldset
+    div(ng-transclude)
     .row
-      .col-lg-4(ng-repeat="name in hashKeys")
-        legend {{ name }}
-        .form-group(ng-repeat='entry in hash[name]')
-          label.col-lg-4.control-label(for='{{ entry.key }}') {{ entry.label }}:
-          .col-lg-8
-            input.form-control(ng-disabled="entry.status === 'locked'",ng-model='hashValues[entry.key]',type='text')
+      hash-group(ng-repeat="name in hashKeys",name='name',group='hash[name]',hash-values='hashValues')
       .form-group
         .col-lg-12
           legend

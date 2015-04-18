@@ -6,3 +6,4 @@ h1 Device Setup
         a(data-toggle='tab',ng-click='makeActive(device)') {{ device.label }}
     .tab-content
       hash-editor(ng-repeat='device in devices',values-key='device.valuesKey',api='device.api',ng-show='device.id == currentID')
+        | TEST

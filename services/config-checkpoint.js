@@ -1,6 +1,6 @@
 var _ = require('lodash');
 
-var helpers = require('./../lib/config-helpers');
+var helpers = require('./../lib/hash-helpers');
 var schema = require('./../lib/redis-schema');
 var logger = require('./../lib/logger')('cfg-chk');
 

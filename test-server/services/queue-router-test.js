@@ -6,7 +6,7 @@ describe('QueueRouter',function() {
     var redis = null;
     var mockdgram = null;
     var mockRoute = require(process.cwd() + '/test-server/mocks/route-test');
-    var helpers = require(process.cwd() + '/lib/config-helpers');
+    var helpers = require(process.cwd() + '/lib/hash-helpers');
     var hashkeys = require(process.cwd() + '/lib/config-hashkeys');
     var testGateway = Object.freeze(helpers.hash2config({'gateway:imei': '123456789012345'},hashkeys.gateway));
 

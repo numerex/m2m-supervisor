@@ -8,7 +8,7 @@ var DataReader = require('../services/data-reader');
 
 var hashkeys = require('../lib/config-hashkeys');
 
-var dataReader = null;
+var dataReaders = [];
 var testRoute = {
     noteAck: function(ack){ console.log('ack:' + ack); },
     processQueueEntry: function(command){
@@ -32,8 +32,13 @@ var redisChk = new RedisCheckpoint().start(function(redisEvent,redis) {
             console.log('router event:' + routerEvent);
             if (routerEvent !== 'ready') return;
 
-            dataReader = new DataReader(new TelnetDevice({host: 'localhost',port: 10001})).start(function(dataEvent) {
-                console.log('data event: ' + dataEvent);
+            redis.keys('m2m-device:*:settings',function(keys){
+                _.each(keys,function(key){
+                    var device = new TelnetDevice();
+                    dataReaders.push(new DataReader()).start(function(dataEvent) {
+                        console.log('data event: ' + dataEvent);
+                    });
+                });
             });
         });
     });
