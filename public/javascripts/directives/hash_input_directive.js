@@ -16,17 +16,12 @@ app.directive('hashInput',function(){
                 scope.hashValues[scope.model.key] = scope.model.default;
             else if (scope.isText && !scope.isDisabled) {
                 scope.placeholder = scope.model.default || ('Enter ' + scope.model.label);
-                scope.showAction = true;
-                if (scope.model.exists) {
+                if (scope.model.exists && !scope.model.required) {
+                    scope.showAction = true;
                     scope.actionName = 'Del';
                     scope.executeAction = function(){
-
-                    }
-                } else {
-                    delete scope.model.value;
-                    scope.actionName = 'Add';
-                    scope.executeAction = function(){
-
+                        delete scope.hashValues[scope.model.key];
+                        scope.showAction = false;
                     }
                 }
             }

@@ -1,9 +1,14 @@
 h1 Device Setup
+alert-message(messages='globalMessages')
 .row(ng-if='devices')
   .col-lg-12
     ul.nav.nav-tabs
       li(ng-repeat='device in devices',ng-class='{active: device.id == currentID}')
-        a(data-toggle='tab',ng-click='makeActive(device)') {{ device.label }}
+        a(data-toggle='tab',ng-click='makeActive(device)') {{ device.id }}
+      li(ng-class='{active: newDevice.id == currentID}')
+        a(data-toggle='tab',ng-click='makeActive(newDevice)') New Device
     .tab-content
       hash-editor(ng-repeat='device in devices',values-key='device.valuesKey',api='device.api',ng-show='device.id == currentID')
-        | TEST
+      hash-editor(values-key='newDevice.valuesKey',api='newDevice.api',extra='newDeviceID',ng-show='currentID == null')
+        .row
+          hash-input.col-lg-4(model='newDeviceID',hash-values='globalValues[newDevice.valuesKey]')
