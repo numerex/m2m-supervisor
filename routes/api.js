@@ -124,13 +124,8 @@ router.get('/devices',function(req,res,next){
 });
 
 function requestDevice(res,id){
-    requestHash(res,schema.device.settings.useParam(id),'device:' + (id || 'new'),deviceTemplate);
+    requestHash(res,schema.device.settings.useParam(id),'device:' + id,deviceTemplate);
 }
-
-router.get('/device',function(req,res,next){
-    var defaults = _.defaults(helpers.hash2groups({},deviceTemplate));
-    res.send({'new-device': defaults});
-});
 
 router.get('/device/:id',function(req,res,next){
     checkRedis(function(){
@@ -145,6 +140,11 @@ router.post('/device/:id',function(req,res,next){
             requestDevice(res,req.params.id);
         });
     });
+});
+
+router.get('/device',function(req,res,next){
+    var defaults = _.defaults(helpers.hash2groups({},deviceTemplate));
+    res.send({'new-device': defaults});
 });
 
 router.post('/device',function(req,res,next){

@@ -159,6 +159,7 @@ MockRedis.reset = function(){
     MockRedis.errors = {};
     MockRedis.lookup = {
         brpop: [],
+        keys: {},
         get: {},
         hgetall: {},
         hmset: {},
@@ -197,6 +198,10 @@ MockRedis.createClient = function () {
             MockRedis.calls.push({get: key});
             callback && callback(MockRedis.errors[key] || null,MockRedis.lookup.get[key] || '0');
         },
+        hdel: function(args,callback){
+            MockRedis.calls.push({hdel: args});
+            callback && callback(MockRedis.errors[args[0]] || null,0); // TODO what should the return be??
+        },
         hgetall: function(key,callback){
             MockRedis.calls.push({hgetall: key});
             callback && callback(MockRedis.errors[key] || null,MockRedis.lookup.hgetall[key]);
@@ -210,6 +215,10 @@ MockRedis.createClient = function () {
             var value = +(MockRedis.lookup.get[key] || '0') + 1;
             MockRedis.lookup.get[key] = value.toString();
             callback && callback(MockRedis.errors[key] || null,MockRedis.lookup.get[key]);
+        },
+        keys: function(pattern,callback) {
+            MockRedis.calls.push({keys: pattern});
+            callback && callback(MockRedis.errors[pattern] || null,MockRedis.lookup.keys[pattern] || []);
         },
         llen: function(key,callback) {
             MockRedis.calls.push({llen: key});
