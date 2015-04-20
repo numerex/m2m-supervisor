@@ -254,4 +254,12 @@ describe('ModemWatcher',function(){
         done();
     });
 
+    it('should detect a device read error',function(done){
+        var watcher = new ModemWatcher({reportFile: '/dev/null',commandFile: '/dev/null'});
+        watcher.device.emit('error','test error')
+        test.pp.snapshot().should.eql(['[modem     ] read error: test error']);
+        //test.mocklynx.snapshot().should.eql([]);
+        done();
+    });
+
 });
