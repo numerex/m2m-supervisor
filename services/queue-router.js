@@ -53,7 +53,6 @@ function QueueRouter(redis,routes,gateway,config) {
     self.routeKeys = _.keys(self.routes);
     self.queueArgs = COMMON_QUEUE_KEYS.concat(self.routeKeys).concat([self.config.timeoutInterval]);
     self.gateway = gateway;
-    self.stats = require('../lib/statsd-client')('router');    // NOTE - delay require for mockery testing
     self.client = new UdpListener('router',null,function(buffer) { logger.info('unexpected response: ' + JSON.stringify(buffer)); });
 }
 
@@ -81,7 +80,6 @@ QueueRouter.prototype.start = function() {
     self.redisLogErrorCallback = function(err,value){ self.redisLogError(err,value) };
     self.checkQueueCallback = function(){ self.checkQueue(); };
     self.asyncCheckQueue();
-    self.stats.increment('started');
     return self;
 };
 
@@ -89,7 +87,7 @@ QueueRouter.prototype.stop = function() {
     if (!this.started()) throw(new Error('not started'));
 
     logger.info('stop router');
-    this.stats.increment('stopped');
+
     this.startCalled = false;
 };
 
@@ -105,7 +103,6 @@ QueueRouter.prototype.checkQueue = function(){
                 if (result && result[0] == schema.ack.queue.key && +result[1] === +ackState.sequenceNumber) {
                     logger.info('acked: ' + ackState.sequenceNumber);
                     self.redis.del(ACK_STATE_KEYS,self.redisLogErrorCallback);
-                    self.stats.increment('ack');
 
                     var route = self.routes[ackState.routeKey];
                     route && route.noteAck(+ackState.sequenceNumber);
@@ -114,11 +111,9 @@ QueueRouter.prototype.checkQueue = function(){
                 } else if (+ackState.retries >= self.config.maxRetries) {
                     logger.error('too many retries: ' + ackState.message);
                     self.redis.del(ACK_STATE_KEYS,self.redisLogErrorCallback);
-                    self.stats.increment('error');
                     self.emit('note','error');
                 } else {
                     logger.info('retry: ' + ackState.sequenceNumber);
-                    self.stats.increment('retries');
                     self.redis.incr(schema.ack.retries.key,self.redisLogErrorCallback);
                     self.transmitMessage(new m2m.Message({json: ackState.message}));
                     self.emit('note','retry');
@@ -179,7 +174,6 @@ QueueRouter.prototype.assembleMessage = function(eventCode,timestamp,sequenceNum
     });
 
     this.redis.mset(ackStatePairs(message,null),this.redisLogError);
-    this.stats.increment('transmit');
     this.transmitMessage(message);
     this.emit('note','transmit')
 };
@@ -201,19 +195,19 @@ QueueRouter.prototype.redisCheckResult = function(err,value,callback) {
             callback(value);
         } catch(e) {
             logger.error('check callback failure: ' + e);
-            this.stats.increment('error');
+            this.emit('note','error');
             // istanbul ignore else - NOTE re-throw what is likely an assert failuring during testing
             if (process.env.testing) throw(e);
         }
         this.checkDepth--;
     } else {
         logger.error('redis check error: ' + err);
-        this.stats.increment('error');
+        this.emit('note','error');
         this.asyncCheckQueue();
     }
     if (this.checkDepth < 0) {
         logger.error('check depth underflow: ' + this.checkDepth);
-        this.stats.increment('error');
+        this.emit('note','error');
     } else if (this.checkDepth == 0 && this.ready()) {
         this.asyncCheckQueue();
     }
@@ -222,7 +216,7 @@ QueueRouter.prototype.redisCheckResult = function(err,value,callback) {
 QueueRouter.prototype.redisLogError = function(err) {
     if (err) {
         logger.error('redis error: ' + err);
-        this.stats.increment('error');
+        this.emit('note','error');
     }
 };
 
@@ -231,7 +225,7 @@ QueueRouter.prototype.safeParseJSON = function(contents) {
         return JSON.parse(contents);
     } catch(e) {
         logger.error('json error: ' + e);
-        this.stats.increment('error');
+        this.emit('note','error');
         return null;
     }
 };

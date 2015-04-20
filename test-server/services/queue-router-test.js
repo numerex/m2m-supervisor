@@ -12,7 +12,6 @@ describe('QueueRouter',function() {
 
     beforeEach(function () {
         test.mockery.enable();
-        test.mockery.registerMock('lynx',test.mocklynx);
         test.mockery.registerMock('dgram',mockdgram = new test.mockdgram());
         test.mockery.registerMock('redis', test.mockredis);
         test.mockery.warnOnUnregistered(false);
@@ -21,11 +20,9 @@ describe('QueueRouter',function() {
     });
 
     afterEach(function () {
-        test.mockery.deregisterMock('lynx');
         test.mockery.deregisterMock('redis');
         test.mockery.deregisterMock('dgram');
         test.mockery.disable();
-        test.mocklynx.snapshot().should.eql([]);
         test.mockredis.snapshot().should.eql([]);
         test.pp.snapshot().should.eql([]);
         mockRoute.snapshot().should.eql([]);
@@ -38,7 +35,6 @@ describe('QueueRouter',function() {
         router.routeKeys.should.eql([]);
         router.queueArgs.should.eql(['m2m-ack:queue','m2m-transmit:queue',5]);
         test.mockredis.snapshot().should.eql([]);
-        test.mocklynx.snapshot().should.eql([]);
         test.pp.snapshot().should.eql([]);
     });
 
@@ -50,7 +46,6 @@ describe('QueueRouter',function() {
         router.routeKeys.should.eql(['test']);
         router.queueArgs.should.eql(['m2m-ack:queue','m2m-transmit:queue','test',1]);
         test.mockredis.snapshot().should.eql([]);
-        test.mocklynx.snapshot().should.eql([]);
         test.pp.snapshot().should.eql([]);
     });
 
@@ -58,7 +53,6 @@ describe('QueueRouter',function() {
         var router = new QueueRouter(redis);
         router.client.client.events.message('test',{address: 'localhost',port:1234});
         test.mockredis.snapshot().should.eql([]);
-        test.mocklynx.snapshot().should.eql([]);
         test.pp.snapshot().should.eql([
             '[router    ] incoming - size: 4 from: localhost:1234',
             '[router    ] unexpected response: "test"'
@@ -75,10 +69,6 @@ describe('QueueRouter',function() {
             '[router    ] stop router'
         ]);
         test.mockredis.snapshot().should.eql([]);
-        test.mocklynx.snapshot().should.eql([
-            {increment: 'started'},
-            {increment: 'stopped'}
-        ]);
         test.pp.snapshot().should.eql([]);
         done();
     });
@@ -87,7 +77,6 @@ describe('QueueRouter',function() {
         var router = new QueueRouter(redis);
         test.expect(function(){ router.stop(); }).to.throw('not started');
         test.mockredis.snapshot().should.eql([]);
-        test.mocklynx.snapshot().should.eql([]);
         test.pp.snapshot().should.eql([]);
         done();
     });
@@ -113,10 +102,6 @@ describe('QueueRouter',function() {
                     {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs},
                     {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs}
                 ]);
-                test.mocklynx.snapshot().should.eql([
-                    {increment: 'started'},
-                    {increment: 'stopped'}
-                ]);
                 test.pp.snapshot().should.eql([
                     '[router    ] start router',
                     '[router    ] idle: 12',
@@ -137,10 +122,6 @@ describe('QueueRouter',function() {
                 {mget: QueueRouter.ACK_STATE_KEYS},
                 {brpop: router.queueArgs}
             ]);
-            test.mocklynx.snapshot().should.eql([
-                {increment: 'started'},
-                {increment: 'stopped'}
-            ]);
             test.pp.snapshot().should.eql([
                 '[router    ] start router',
                 '[router    ] ignoring queue entry: 1',
@@ -153,17 +134,15 @@ describe('QueueRouter',function() {
     it('should detect an invalid message',function(done){
         test.mockredis.lookup.brpop = [['m2m-transmit:queue','{...']];
 
+        var count = 0;
         var router = new QueueRouter(redis,null,testGateway).on('note',function(event){
-            router.stop();
             event.should.eql('error');
+            if (count++ <= 0) return;
+
+            router.stop();
             test.mockredis.snapshot().should.eql([
                 {mget: QueueRouter.ACK_STATE_KEYS},
                 {brpop: router.queueArgs}
-            ]);
-            test.mocklynx.snapshot().should.eql([
-                {increment: 'started'},
-                {increment: 'error'},
-                {increment: 'stopped'}
             ]);
             test.pp.snapshot().should.eql([
                 '[router    ] start router',
@@ -190,11 +169,6 @@ describe('QueueRouter',function() {
                     'm2m-ack:retries',0,
                     'm2m-ack:sequence-number',1
                 ]}
-            ]);
-            test.mocklynx.snapshot().should.eql([
-                {increment: 'started'},
-                {increment: 'transmit'},
-                {increment: 'stopped'}
             ]);
             test.pp.snapshot().should.eql([
                 '[router    ] start router',
@@ -224,11 +198,6 @@ describe('QueueRouter',function() {
                     'm2m-ack:sequence-number',2
                 ]}
             ]);
-            test.mocklynx.snapshot().should.eql([
-                {increment: 'started'},
-                {increment: 'transmit'},
-                {increment: 'stopped'}
-            ]);
             test.pp.snapshot().should.eql([
                 '[router    ] start router',
                 '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
@@ -256,16 +225,6 @@ describe('QueueRouter',function() {
                     {mget: QueueRouter.ACK_STATE_KEYS},{brpop: ['m2m-ack:queue',5]},{incr: 'm2m-ack:retries'},
                     {mget: QueueRouter.ACK_STATE_KEYS},{brpop: ['m2m-ack:queue',5]},{incr: 'm2m-ack:retries'},
                     {mget: QueueRouter.ACK_STATE_KEYS},{brpop: ['m2m-ack:queue',5]},{del: QueueRouter.ACK_STATE_KEYS}
-                ]);
-                test.mocklynx.snapshot().should.eql([
-                    {increment: 'started'},
-                    {increment: 'retries'},
-                    {increment: 'retries'},
-                    {increment: 'retries'},
-                    {increment: 'retries'},
-                    {increment: 'retries'},
-                    {increment: 'error'},
-                    {increment: 'stopped'}
                 ]);
                 test.pp.snapshot().should.eql([
                     '[router    ] start router',
@@ -308,11 +267,6 @@ describe('QueueRouter',function() {
                 test.mockredis.snapshot().should.eql([
                     {mget: QueueRouter.ACK_STATE_KEYS},{brpop: ['m2m-ack:queue',5]},{del: QueueRouter.ACK_STATE_KEYS}
                 ]);
-                test.mocklynx.snapshot().should.eql([
-                    {increment: 'started'},
-                    {increment: 'ack'},
-                    {increment: 'stopped'}
-                ]);
                 test.pp.snapshot().should.eql([
                     '[router    ] start router',
                     '[router    ] acked: 2',
@@ -332,10 +286,6 @@ describe('QueueRouter',function() {
             test.mockredis.snapshot().should.eql([
                 {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs}
             ]);
-            test.mocklynx.snapshot().should.eql([
-                {increment: 'started'},
-                {increment: 'stopped'}
-            ]);
             test.pp.snapshot().should.eql([
                 '[router    ] start router',
                 '[router    ] route[test]: test command',
@@ -354,11 +304,6 @@ describe('QueueRouter',function() {
             '[router    ] redis check error: test error',
             '[router    ] stop router'
         ]);
-        test.mocklynx.snapshot().should.eql([
-            {increment: 'started'},
-            {increment: 'error'},
-            {increment: 'stopped'}
-        ]);
         test.mockredis.snapshot().should.eql([]);
     });
 
@@ -370,11 +315,6 @@ describe('QueueRouter',function() {
             '[router    ] start router',
             '[router    ] check callback failure: TypeError: object is not a function',
             '[router    ] stop router'
-        ]);
-        test.mocklynx.snapshot().should.eql([
-            {increment: 'started'},
-            {increment: 'error'},
-            {increment: 'stopped'}
         ]);
         test.mockredis.snapshot().should.eql([]);
     });
@@ -389,11 +329,6 @@ describe('QueueRouter',function() {
             '[router    ] check depth underflow: -1',
             '[router    ] stop router'
         ]);
-        test.mocklynx.snapshot().should.eql([
-            {increment: 'started'},
-            {increment: 'error'},
-            {increment: 'stopped'}
-        ]);
         test.mockredis.snapshot().should.eql([]);
     });
 
@@ -405,11 +340,6 @@ describe('QueueRouter',function() {
             '[router    ] start router',
             '[router    ] redis error: test error',
             '[router    ] stop router'
-        ]);
-        test.mocklynx.snapshot().should.eql([
-            {increment: 'started'},
-            {increment: 'error'},
-            {increment: 'stopped'}
         ]);
         test.mockredis.snapshot().should.eql([]);
     });

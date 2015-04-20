@@ -28,8 +28,6 @@ var redisChk = new RedisCheckpoint().start(function(redisEvent,redis) {
         console.log('config event:' + gatewayEvent);
         if (gatewayEvent !== 'ready') return;
 
-
-
         var router = new QueueRouter(redis,{test: testRoute},gateway).start(function(routerEvent){
             console.log('router event:' + routerEvent);
             if (routerEvent !== 'ready') return;
