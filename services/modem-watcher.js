@@ -14,26 +14,25 @@ function ModemWatcher(config) {
         rssiInterval:   60*1000
     });
 
+    self.on('requestIMEI',function(){ if (self.ready()) self.requestIMEI(); });
+    self.on('requestRSSI',function(){ if (self.ready())  self.requestRSSI(); });
+    self.on('ready',function() {
+        self.emit('requestIMEI');
+        self.emit('requestRSSI');
+    });
+
     self.device = new FileDevice({inFile: self.config.reportFile,outFile: self.config.commandFile,retryInterval: self.config.retryInterval});
     self.device.on('ready',function(){
-        self.interval = setInterval(self.requestRSSICallback,self.config.rssiInterval);
-        self.stats.increment('started');
-        self.timeout = setTimeout(function(){
-            self.timeout = null;
-            self.requestIMEI();
-            self.requestRSSI();
-        },1);
+        self.interval = setInterval(function() { self.emit('requestRSSI'); },self.config.rssiInterval);
         self.emit('note','ready');
         self.emit('ready');
     });
     self.device.on('retry',function(reason){
         logger.error('start error: ' + reason);
-        self.stats.increment('retry');
         self.emit('note','retry');
     });
     self.device.on('error',function(error){
         logger.error('read error: ' + error);
-        self.stats.increment('error');
         self.emit('note','error');
     });
     self.device.on('data',function(data){
@@ -43,12 +42,7 @@ function ModemWatcher(config) {
             if (self.considerLine(ModemWatcher.Reports.RSSI,line,function(data) { return self.noteRSSI(data); })) return;
             self.considerIMEI(line);
         });
-        self.emit('note','data');
     });
-
-    self.imeiFound = self.config.imeiFound || function(){};
-    self.stats = require('./../lib/statsd-client')('modem'); // NOTE - delay require for mockery testing
-    self.requestRSSICallback = function(){ self.requestRSSI(); };
 }
 
 util.inherits(ModemWatcher,events.EventEmitter);
@@ -83,13 +77,9 @@ ModemWatcher.prototype.stop = function() {
 
     logger.info('stop watcher');
 
-    if (this.timeout) clearTimeout(this.timeout);
-    this.timeout = null;
-
     if (this.interval) clearInterval(this.interval);
     this.interval = null;
 
-    this.stats.increment('stopped');
     this.device.close();
 };
 
@@ -102,7 +92,7 @@ ModemWatcher.prototype.noteFlow = function(data){
 
     try {
         var parts = data.split(',');
-        this.stats.send({
+        this.emit('flow',{
             txrate: validParseInt(parts[1],16) + '|g',
             rxrate: validParseInt(parts[2],16) + '|g',
             txflow: validParseInt(parts[3],16) + '|g',
@@ -112,7 +102,7 @@ ModemWatcher.prototype.noteFlow = function(data){
         });
     } catch (e) {
         logger.error('flow error: ' + e);
-        this.stats.increment('error');
+        this.emit('note','error')
     }
     return true;
 };
@@ -122,10 +112,10 @@ ModemWatcher.prototype.noteRSSI = function(data){
 
     try {
         var parts = data.split(',');
-        this.stats.gauge('rssi',Math.max(validParseInt(parts[0],10),0));
+        this.emit('rssi',Math.max(validParseInt(parts[0],10),0));
     } catch (e) {
         logger.error('rssi error: ' + e);
-        this.stats.increment('error');
+        this.emit('note','error');
     }
     return true;
 };
@@ -139,33 +129,29 @@ ModemWatcher.prototype.considerIMEI = function(line){
             this.imeiCandidates[1] === 'OK' && this.imeiCandidates[3] === 'OK') {
             this.imei = this.imeiCandidates[0];
             logger.info('IMEI: ' + this.imei);
-            this.imeiFound(this.imei);
+            this.emit('imei',this.imei);
         } else {
             this.imei = 'unknown';
-            this.imeiFound(null);
+            this.emit('note','error');
         }
 };
 
 ModemWatcher.prototype.requestIMEI = function(){
-    this.requestInfo('AT+CGSN\nAT+CGSN\n','imei','imei-request');
+    this.requestInfo('AT+CGSN\nAT+CGSN\n','requestIMEI');
 };
 
 ModemWatcher.prototype.requestRSSI = function(){
     // NOTE - send AT+CSQ commands instead of relying on ^RSSI events because BER is sent sometimes(?) and BER=0 is ambiguous
-    this.requestInfo('AT+CSQ\n','rssi','rssi-request');
+    this.requestInfo('AT+CSQ\n','requestRSSI');
 };
 
-ModemWatcher.prototype.requestInfo = function(command,event,stat){
-    if (!this.ready()) return;
-
+ModemWatcher.prototype.requestInfo = function(command,event){
     var self = this;
-    self.stats.increment(stat);
     self.device.writeBuffer(command,function(err) {
         if (!err)
             self.emit('note',event);
         else {
             logger.error('request error: ' + err);
-            self.stats.increment('error');
             self.emit('note','error');
         }
     });
