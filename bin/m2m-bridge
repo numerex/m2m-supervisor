@@ -27,15 +27,12 @@ var redisChk = new RedisCheckpoint().start(function(event,redis) {
         var heartbeat = null;
         var modem = null;
         var proxy = new M2mProxy(redis,gateway);
-        var route = new RouteWatcher(gateway).start(function(event){
-            // TODO detect failure and stop the dependent objects... then restart on ready
-            if (event == 'ready' && !modem) {
-                modem = new ModemWatcher(gateway).start(function(event){
-                    if (event == 'ready' && !heartbeat)
-                        heartbeat = new HeartbeatGenerator(proxy).start();
-                });
-            }
-        });
+        var route = new RouteWatcher(gateway)  // TODO detect failure and stop the dependent objects... then restart on ready
+            .on('ready',function(){ if (!modem) {
+                    modem = new ModemWatcher(gateway)
+                        .on('ready',function(){  if (!heartbeat) heartbeat = new HeartbeatGenerator(redis,proxy).start(); })
+                        .start();
+                }})
+            .start();
     });
-    
 });

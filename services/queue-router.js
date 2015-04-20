@@ -1,5 +1,7 @@
 var _ = require('lodash');
 var m2m = require('m2m-ota-javascript');
+var util = require('util');
+var events = require('events');
 
 var UdpListener = require('../lib/udp-listener');
 
@@ -55,6 +57,8 @@ function QueueRouter(redis,routes,gateway,config) {
     self.client = new UdpListener('router',null,function(buffer) { logger.info('unexpected response: ' + JSON.stringify(buffer)); });
 }
 
+util.inherits(QueueRouter,events.EventEmitter);
+
 QueueRouter.COMMON_QUEUE_KEYS = COMMON_QUEUE_KEYS;
 
 QueueRouter.prototype.started = function(){
@@ -65,7 +69,7 @@ QueueRouter.prototype.ready = function(){
     return this.started() && !!this.gateway;
 };
 
-QueueRouter.prototype.start = function(note) {
+QueueRouter.prototype.start = function() {
     if (this.started()) throw(new Error('already started'));
 
     logger.info('start router');
@@ -74,12 +78,10 @@ QueueRouter.prototype.start = function(note) {
     self.startCalled = true;
     self.idleCount = 0;
     self.checkDepth = 0;
-    self.noteEvent = note || function(){};
     self.redisLogErrorCallback = function(err,value){ self.redisLogError(err,value) };
     self.checkQueueCallback = function(){ self.checkQueue(); };
     self.asyncCheckQueue();
     self.stats.increment('started');
-    self.noteEvent('ready');
     return self;
 };
 
@@ -108,41 +110,41 @@ QueueRouter.prototype.checkQueue = function(){
                     var route = self.routes[ackState.routeKey];
                     route && route.noteAck(+ackState.sequenceNumber);
 
-                    self.noteEvent('ack');
+                    self.emit('note','ack');
                 } else if (+ackState.retries >= self.config.maxRetries) {
                     logger.error('too many retries: ' + ackState.message);
                     self.redis.del(ACK_STATE_KEYS,self.redisLogErrorCallback);
                     self.stats.increment('error');
-                    self.noteEvent('error');
+                    self.emit('note','error');
                 } else {
                     logger.info('retry: ' + ackState.sequenceNumber);
                     self.stats.increment('retries');
                     self.redis.incr(schema.ack.retries.key,self.redisLogErrorCallback);
                     self.transmitMessage(new m2m.Message({json: ackState.message}));
-                    self.noteEvent('retry');
+                    self.emit('note','retry');
                 }
             }));
         else
             self.redis.brpop(self.queueArgs,_.bind(self.redisCheckResult,self,_,_,function(result){
                 if (!result) {
                     (++self.idleCount % self.config.idleReport == 0) && logger.info('idle: ' + self.idleCount);
-                    self.noteEvent('idle');
+                    self.emit('note','idle');
                 } else if (result[0] === schema.ack.queue.key) {
                     logger.warn('ignoring queue entry: ' + result[1]);
-                    self.noteEvent('ignore');
+                    self.emit('note','ignore');
                 } else if (result[0] === schema.transmit.queue.key) {
                     var attributes = self.safeParseJSON(result[1]);
                     if (attributes)
                         self.generateMessage(attributes);
                     else {
                         logger.error('invalid message received: ' + result[1]);
-                        self.noteEvent('error');
+                        self.emit('note','error');
                     }
                 } else {
                     logger.info('route[' + result[0] + ']: ' + result[1]);
                     var route = self.routes[result[0]];
                     route && route.processQueueEntry(result[1]);
-                    self.noteEvent('command');
+                    self.emit('note','command');
                 }
             }));
     }));
@@ -179,7 +181,7 @@ QueueRouter.prototype.assembleMessage = function(eventCode,timestamp,sequenceNum
     this.redis.mset(ackStatePairs(message,null),this.redisLogError);
     this.stats.increment('transmit');
     this.transmitMessage(message);
-    this.noteEvent('transmit')
+    this.emit('note','transmit')
 };
 
 QueueRouter.prototype.transmitMessage = function(message){

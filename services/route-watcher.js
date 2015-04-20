@@ -1,33 +1,36 @@
 var _ = require('lodash');
-var logger = require('./../lib/logger')('route');
+var util = require('util');
+var events = require('events');
 
-function RouteWatcher(config,note) {
+var logger = require('../lib/logger')('route');
+
+function RouteWatcher(config) {
     this.config = _.defaults(config || {},{
         pppInterface:   'ppp0',
         pppSubnet:      '172.29.12.0',
         pppMask:        '255.255.255.0',
         routeInterval:  15*1000
     });
-    this.stats = require('./../lib/statsd-client')('ppp'); // NOTE - delay 'require' for mocking
-    this.shell = require('shelljs');                // NOTE - delay 'require' for mocking
+    this.stats = require('../lib/statsd-client')('ppp');    // NOTE - delay 'require' for mocking
+    this.shell = require('shelljs');                        // NOTE - delay 'require' for mocking
     this.outputs = {};
 }
+
+util.inherits(RouteWatcher,events.EventEmitter);
 
 RouteWatcher.prototype.started = function(){
     return !!this.interval;
 };
 
-RouteWatcher.prototype.start = function(note) {
+RouteWatcher.prototype.start = function() {
     if (this.started()) throw(new Error('already started'));
 
     logger.info('start watcher');
     this.stats.increment('started');
 
-    if (!note) note = function(){};
-
     var self = this;
-    self.checkRoutes(note);
-    self.interval = setInterval(function(){ self.checkRoutes(note); },self.config.routeInterval);
+    self.checkRoutes();
+    self.interval = setInterval(function(){ self.checkRoutes(); },self.config.routeInterval);
     return self;
 };
 
@@ -40,7 +43,7 @@ RouteWatcher.prototype.stop = function() {
     clearInterval(this.interval);
 };
 
-RouteWatcher.prototype.checkRoutes = function(note){
+RouteWatcher.prototype.checkRoutes = function(){
     var self = this;
     self.pppstatsOutput(true,function(err,pppstatsOutput){
         if (err) {
@@ -48,28 +51,29 @@ RouteWatcher.prototype.checkRoutes = function(note){
                 logger.info('starting pppd');
                 self.shell.exec('pppd');
                 self.stats.increment('start-pppd');
-                note('pppd');
+                self.emit('note','pppd');
             } else {
                 logger.error('pppstats error: ' + err);
                 self.stats.increment('error');
-                note('error');
+                self.emit('note','error');
             }
         } else if (pppstatsOutput.indexOf('PACK VJCOMP  VJUNC') < 0){   // EXAMPLE: IN   PACK VJCOMP  VJUNC  VJERR  |      OUT   PACK VJCOMP  VJUNC NON-VJ
             logger.error('unexpected pppstats output: ' + pppstatsOutput);
             self.stats.increment('error');
-            note('error');
+            self.emit('note','error');
         } else {
             self.routeOutput(true,function(err,routeOutput){
                 if (err) {
                     self.stats.increment('error');
-                    note('error');
+                    self.emit('note','error');
                 } else if (routeOutput.indexOf(self.config.pppSubnet) >= 0) {
-                    note('ready');
+                    self.emit('note','ready');
+                    self.emit('ready');
                 } else {
                     logger.info('add ppp route to GWaaS');
                     self.shell.exec('route add -net ' + self.config.pppSubnet + ' netmask ' + self.config.pppMask + ' dev ' + self.config.pppInterface);
                     self.stats.increment('add-route');
-                    note('route');
+                    self.emit('note','route');
                 }
             });
         }

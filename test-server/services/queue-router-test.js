@@ -94,11 +94,11 @@ describe('QueueRouter',function() {
 
     it('should log an idle message if nothing in the queues',function(done){
         var events = [];
-        var router = new QueueRouter(redis,null,testGateway).start(function(event){
+        var router = new QueueRouter(redis,null,testGateway).on('note',function(event){
             events.push(event);
-            if (events.length > 12) {
+            if (events.length >= 12) {
                 router.stop();
-                events.should.eql(['ready','idle','idle','idle','idle','idle','idle','idle','idle','idle','idle','idle','idle']);
+                events.should.eql(['idle','idle','idle','idle','idle','idle','idle','idle','idle','idle','idle','idle']);
                 test.mockredis.snapshot().should.eql([
                     {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs},
                     {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs},
@@ -124,14 +124,13 @@ describe('QueueRouter',function() {
                 ]);
                 done();
             }
-        });
+        }).start();
     });
 
     it('should ignore an unexpected ack',function(done){
         test.mockredis.lookup.brpop = [['m2m-ack:queue','1']];
 
-        var router = new QueueRouter(redis,null,testGateway).start(function(event){
-            if (event === 'ready') return;
+        var router = new QueueRouter(redis,null,testGateway).on('note',function(event){
             router.stop();
             event.should.eql('ignore');
             test.mockredis.snapshot().should.eql([
@@ -148,14 +147,13 @@ describe('QueueRouter',function() {
                 '[router    ] stop router'
             ]);
             done();
-        });
+        }).start();
     });
 
     it('should detect an invalid message',function(done){
         test.mockredis.lookup.brpop = [['m2m-transmit:queue','{...']];
 
-        var router = new QueueRouter(redis,null,testGateway).start(function(event){
-            if (event === 'ready') return;
+        var router = new QueueRouter(redis,null,testGateway).on('note',function(event){
             router.stop();
             event.should.eql('error');
             test.mockredis.snapshot().should.eql([
@@ -174,14 +172,13 @@ describe('QueueRouter',function() {
                 '[router    ] stop router'
             ]);
             done();
-        });
+        }).start();
     });
 
     it('should transmit a basic message providing sequenceNumber',function(done){
         test.mockredis.lookup.brpop = [['m2m-transmit:queue','{"eventCode":10,"timestamp":0,"sequenceNumber":1,"11":12}']];
 
-        var router = new QueueRouter(redis,null,testGateway).start(function(event){
-            if (event === 'ready') return;
+        var router = new QueueRouter(redis,null,testGateway).on('note',function(event){
             router.stop();
             event.should.eql('transmit');
             test.mockredis.snapshot().should.eql([
@@ -206,15 +203,14 @@ describe('QueueRouter',function() {
                 '[router    ] stop router'
             ]);
             done();
-        });
+        }).start();
     });
 
     it('should transmit a basic message without a sequenceNumber (and HACK an undefined attribute for code coverage)',function(done){
         test.mockredis.lookup.brpop = [['m2m-transmit:queue','{"timestamp":0,"hack":1}']];
         test.mockredis.lookup.get['m2m-transmit:last-sequence-number'] = 1;
 
-        var router = new QueueRouter(redis,null,testGateway).start(function(event){
-            if (event === 'ready') return;
+        var router = new QueueRouter(redis,null,testGateway).on('note',function(event){
             router.stop();
             event.should.eql('transmit');
             test.mockredis.snapshot().should.eql([
@@ -240,7 +236,7 @@ describe('QueueRouter',function() {
                 '[router    ] stop router'
             ]);
             done();
-        });
+        }).start();
     });
 
     it('should retry several times and then discard a message that is not acked',function(done){
@@ -249,7 +245,7 @@ describe('QueueRouter',function() {
         test.mockredis.lookup.get['m2m-transmit:retries'] = '0';
 
         var events = [];
-        var router = new QueueRouter(redis,null,testGateway).start(function(event){
+        var router = new QueueRouter(redis,null,testGateway).on('note',function(event){
             events.push(event);
             if (event === 'error') {
                 router.stop();
@@ -293,7 +289,7 @@ describe('QueueRouter',function() {
                 ]);
                 done();
             }
-        });
+        }).start();
     });
 
     it('should handle an ack of an expected message',function(done){
@@ -304,7 +300,7 @@ describe('QueueRouter',function() {
         test.mockredis.lookup.get['m2m-transmit:retries'] = '0';
 
         var events = [];
-        var router = new QueueRouter(redis,{test: mockRoute},testGateway).start(function(event){
+        var router = new QueueRouter(redis,{test: mockRoute},testGateway).on('note',function(event){
             events.push(event);
             if (event === 'ack') {
                 router.stop();
@@ -324,14 +320,13 @@ describe('QueueRouter',function() {
                 ]);
                 done();
             }
-        });
+        }).start();
     });
 
     it('should handle an routed command',function(done){
         test.mockredis.lookup.brpop = [['test','test command']];
 
-        var router = new QueueRouter(redis,{test: mockRoute},testGateway).start(function(event){
-            if (event === 'ready') return;
+        var router = new QueueRouter(redis,{test: mockRoute},testGateway).on('note',function(){
             router.stop();
             mockRoute.snapshot().should.eql(['test command']);
             test.mockredis.snapshot().should.eql([
@@ -347,7 +342,7 @@ describe('QueueRouter',function() {
                 '[router    ] stop router'
             ]);
             done();
-        });
+        }).start();
     });
 
     it('should detect a redis error when processing redis commands',function(){

@@ -1,4 +1,6 @@
 var _ = require('lodash');
+var util = require('util');
+var events = require('events');
 
 var FileDevice = require('../lib/file-device');
 
@@ -11,11 +13,45 @@ function ModemWatcher(config) {
         commandFile:    '/dev/ttyUSB2',
         rssiInterval:   60*1000
     });
+
     self.device = new FileDevice({inFile: self.config.reportFile,outFile: self.config.commandFile,retryInterval: self.config.retryInterval});
+    self.device.on('ready',function(){
+        self.interval = setInterval(self.requestRSSICallback,self.config.rssiInterval);
+        self.stats.increment('started');
+        self.timeout = setTimeout(function(){
+            self.timeout = null;
+            self.requestIMEI();
+            self.requestRSSI();
+        },1);
+        self.emit('note','ready');
+        self.emit('ready');
+    });
+    self.device.on('retry',function(reason){
+        logger.error('start error: ' + reason);
+        self.stats.increment('retry');
+        self.emit('note','retry');
+    });
+    self.device.on('error',function(error){
+        logger.error('read error: ' + error);
+        self.stats.increment('error');
+        self.emit('note','error');
+    });
+    self.device.on('data',function(data){
+        _.each(data.split('\n'),function(line){
+            if (line.length == 0) return;
+            if (self.considerLine(ModemWatcher.Reports.FLOW,line,function(data) { return self.noteFlow(data); })) return;
+            if (self.considerLine(ModemWatcher.Reports.RSSI,line,function(data) { return self.noteRSSI(data); })) return;
+            self.considerIMEI(line);
+        });
+        self.emit('note','data');
+    });
+
     self.imeiFound = self.config.imeiFound || function(){};
     self.stats = require('./../lib/statsd-client')('modem'); // NOTE - delay require for mockery testing
     self.requestRSSICallback = function(){ self.requestRSSI(); };
 }
+
+util.inherits(ModemWatcher,events.EventEmitter);
 
 ModemWatcher.Reports = Object.freeze({
     FLOW: '^DSFLOWRPT:',    // Huawei format: ^DSFLOWRPT:<curr_ds_time>,<tx_rate>,<rx_rate>,<cu rr_tx_flow>,<curr_rx_flow>,<qos_tx_rate>,<qos_rx_rate>
@@ -30,7 +66,7 @@ ModemWatcher.prototype.ready = function(){
     return this.device.ready();
 };
 
-ModemWatcher.prototype.start = function(note) {
+ModemWatcher.prototype.start = function() {
     if (this.started()) throw(new Error('already started'));
 
     logger.info('start watcher');
@@ -38,37 +74,7 @@ ModemWatcher.prototype.start = function(note) {
     var self = this;
     self.imei = null;
     self.imeiCandidates = [];
-    self.noteEvent = note || function(){};
-    self.device.open(function(event,value){
-        switch(event){
-            case 'ready':
-                self.interval = setInterval(self.requestRSSICallback,self.config.rssiInterval);
-                self.stats.increment('started');
-                self.timeout = setTimeout(function(){
-                    self.timeout = null;
-                    self.requestIMEI();
-                    self.requestRSSI();
-                },1);
-                break;
-            case 'retry':
-                logger.error('start error: ' + value);
-                self.stats.increment('retry');
-                break;
-            case 'error':
-                logger.error('read error: ' + value);
-                self.stats.increment('error');
-                break;
-            case 'data':
-                _.each(value.split('\n'),function(line){
-                   if (line.length == 0) return;
-                   if (self.considerLine(ModemWatcher.Reports.FLOW,line,function(data) { return self.noteFlow(data); })) return;
-                   if (self.considerLine(ModemWatcher.Reports.RSSI,line,function(data) { return self.noteRSSI(data); })) return;
-                   self.considerIMEI(line);
-                });
-                break;
-        }
-        self.noteEvent(event);
-    });
+    self.device.open();
     return self;
 };
 
@@ -156,11 +162,11 @@ ModemWatcher.prototype.requestInfo = function(command,event,stat){
     self.stats.increment(stat);
     self.device.writeBuffer(command,function(err) {
         if (!err)
-            self.noteEvent(event);
+            self.emit('note',event);
         else {
             logger.error('request error: ' + err);
             self.stats.increment('error');
-            self.noteEvent('error');
+            self.emit('note','error');
         }
     });
 };

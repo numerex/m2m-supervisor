@@ -14,6 +14,7 @@ describe('FileDevice',function() {
     it('should throw an error opening the device twice',function(){
         var device = new FileDevice({inFile: '/dev/null'}).open();
         test.expect(function(){ device.open(); }).to.throw('already open');
+        device.close();
     });
 
     it('should throw an error closing a device that is already close or not yet open',function(){
@@ -25,29 +26,12 @@ describe('FileDevice',function() {
         test.expect(function(){ device.close(); }).to.throw('not open');
     });
 
-    it('should note that a device is not ready for reading',function(done){
-        var device = new FileDevice({inFile: '/dev/null'});
-        device.readBuffer(null,function(err){
-            err.should.eql('not ready');
-            done();
-        });
-    });
-
     it('should note that a device is not ready for writing',function(done){
         var device = new FileDevice({inFile: '/dev/null'});
         device.writeBuffer(null,function(err){
             err.should.eql('not ready');
             done();
         });
-    });
-
-    it('should detect a read failure',function(done){
-        var device = new FileDevice({inFile: '/dev/null'});
-        device.noteEvent = function(event,value){
-            [event,value].should.eql(['error','not ready']);
-            done();
-        };
-        device.dataEvent();
     });
 
 });

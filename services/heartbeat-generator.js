@@ -1,32 +1,35 @@
 var _ = require('lodash');
 var m2m = require('m2m-ota-javascript');
+var util = require('util');
+var events = require('events');
 
-var logger = require('./../lib/logger')('heartbeat');
-var schema = require('./../lib/redis-schema');
-var settings = require('./../lib/m2m-settings');
+var logger = require('../lib/logger')('heartbeat');
+var schema = require('../lib/redis-schema');
+var settings = require('../lib/m2m-settings');
 
-function HeartbeatGenerator(proxy,config) {
+function HeartbeatGenerator(redis,proxy,config) {
     var self = this;
+    self.redis = redis;
     self.proxy = proxy;
     self.config = _.defaults(config || {},{
         heartbeatInterval:  60*60*1000
     });
-    self.stats = require('./../lib/statsd-client')('heartbeat');    // NOTE - delay require for mockery testing
-    self.redis = require('redis').createClient();                   // NOTE - delay require for mockery testing
+    self.stats = require('../lib/statsd-client')('heartbeat');    // NOTE - delay require for mockery testing
 }
+
+util.inherits(HeartbeatGenerator,events.EventEmitter);
 
 HeartbeatGenerator.prototype.started = function(){
     return !!this.interval;
 };
 
-HeartbeatGenerator.prototype.start = function(note) {
+HeartbeatGenerator.prototype.start = function() {
     if (this.started()) throw(new Error('already started'));
 
     logger.info('start heartbeat');
     this.stats.increment('started');
 
     var self = this;
-    self.noteEvent = note || function(){};
     self.sendHeartbeat(settings.EventCodes.startup);
     self.interval = setInterval(function(){ self.considerHeartbeat(); },self.config.heartbeatInterval);
     return self;
@@ -59,7 +62,7 @@ HeartbeatGenerator.prototype.considerHeartbeat = function(){
 
 HeartbeatGenerator.prototype.skipHeatbeat = function(){
     this.stats.increment('skipped');
-    this.noteEvent('skip');
+    this.emit('note','skip');
 };
 
 HeartbeatGenerator.prototype.sendHeartbeat = function(eventCode){
@@ -70,7 +73,7 @@ HeartbeatGenerator.prototype.sendHeartbeat = function(eventCode){
             .pushString(0,self.proxy.gateway.imei);
         self.proxy.sendPrimary(message.toWire(),message.sequenceNumber);
         self.stats.increment('sent');
-        self.noteEvent('heartbeat');
+        self.emit('note','heartbeat');
     }));
 };
 
@@ -80,7 +83,7 @@ HeartbeatGenerator.prototype.redisResult = function(err,value,callback) {
     else {
         logger.error('redis error: ' + err);
         this.stats.increment('error');
-        this.noteEvent('error');
+        this.emit('note','error');
     }
 };
 

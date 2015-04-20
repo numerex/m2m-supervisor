@@ -111,13 +111,14 @@ describe('M2mProxy',function() {
 
     it('should relay a private message',function(){
         var events = [];
-        var proxy = new M2mProxy(redis,defaults,function(event){
-            events.push(event);
+        var proxy = new M2mProxy(redis,defaults);
+        proxy.on('send',function(type){
+            events.push(type);
         });
 
         test.timekeeper.freeze(1428594562570);
         proxy.private.client.events.message('test',{address: 'localhost',port: 1234});
-        events.should.eql(['ready','private']);
+        events.should.eql(['private']);
         mockdgram.deliveries.should.eql([['test',0,4,3011,'private-host']]);
         test.pp.snapshot().should.eql([
             '[private   ] incoming - size: 4 from: localhost:1234',
@@ -131,13 +132,14 @@ describe('M2mProxy',function() {
 
     it('should relay a public message',function(){
         var events = [];
-        var proxy = new M2mProxy(redis,defaults,function(event){
-            events.push(event);
+        var proxy = new M2mProxy(redis,defaults);
+        proxy.on('send',function(type){
+            events.push(type);
         });
 
         test.timekeeper.freeze(1428594562570);
         proxy.public.client.events.message('test',{address: 'localhost',port: 1234});
-        events.should.eql(['ready','public']);
+        events.should.eql(['public']);
         mockdgram.deliveries.should.eql([['test',0,4,3011,'public-host']]);
         test.pp.snapshot().should.eql([
             '[public    ] incoming - size: 4 from: localhost:1234',
@@ -153,15 +155,16 @@ describe('M2mProxy',function() {
         test.timekeeper.freeze(1428594562570);
 
         var events = [];
-        var proxy = new M2mProxy(redis,defaults,function(event){
-            events.push(event);
+        var proxy = new M2mProxy(redis,defaults);
+        proxy.on('send',function(type){
+            events.push(type);
         });
 
         proxy.sendPrimary('test',1);
         proxy.gateway.primary = 'private';
         proxy.sendPrimary('test',2);
 
-        events.should.eql(['ready','public','private']);
+        events.should.eql(['public','private']);
         test.pp.snapshot().should.eql([
             '[outside   ] outgoing - size: 4 from: public-host:3011',
             '[outside   ] outgoing - size: 4 from: private-host:3011'
