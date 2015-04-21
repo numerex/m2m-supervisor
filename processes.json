@@ -1,22 +1,12 @@
 {
   "apps":[
     {
-      "name":           "redis-server",
-      "script":         "/usr/local/bin/redis-server",
-      "log_date_format":"YYYY-MM-DD HH:mm:ss.SSS"
-    },
-    {
-      "name":           "stats-server",
-      "script":         "bin/stats-server.sh",
-      "log_date_format":"YYYY-MM-DD HH:mm:ss.SSS"
-    },
-    {
       "name":           "m2m-bridge",
       "script":         "bin/m2m-bridge"
     },
     {
-      "name":           "m2m-transmitter",
-      "script":         "bin/m2m-transmitter"
+      "name":           "m2m-transceiver",
+      "script":         "bin/m2m-transceiver"
     },
     {
       "name":           "web-server",

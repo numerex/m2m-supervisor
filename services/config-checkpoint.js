@@ -1,11 +1,11 @@
 var _ = require('lodash');
 
-var helpers = require('./../lib/config-helpers');
-var schema = require('./../lib/redis-schema');
-var logger = require('./../lib/logger')('cfg-chk');
+var helpers = require('../lib/hash-helpers');
+var logger = require('../lib/logger')('cfg-chk');
 
-function ConfigCheckpoint(redis,hashkeys,required,config) {
+function ConfigCheckpoint(redis,rootKey,hashkeys,required,config) {
     this.redis = redis;
+    this.rootKey = rootKey;
     this.hashkeys = hashkeys || {};
     this.required = required || [];
     this.config = _.defaults(config || {},{
@@ -40,16 +40,13 @@ ConfigCheckpoint.prototype.attemptCheck = function(callback){
     if (!this.started()) return;
 
     var self = this;
-    self.redis.hgetall(schema.config.key,function(err,hash){
+    self.redis.hgetall(self.rootKey).then(function(hash){
         hash = hash || {};
-        if (!err && _.difference(self.required,_.intersection(self.required,Object.keys(hash))).length == 0)
+        if (_.difference(self.required,_.intersection(self.required,Object.keys(hash))).length == 0)
             callback('ready',helpers.hash2config(hash,self.hashkeys));
         else {
+            logger.info('not ready');
             setTimeout(self.attemptCheckCallback,self.config.retryInterval);
-            if (err)
-                logger.error('redis error: ' + err);
-            else
-                logger.info('not ready');
             callback('retry');
         }
     });

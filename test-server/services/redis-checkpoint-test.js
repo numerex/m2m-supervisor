@@ -8,8 +8,6 @@ describe('RedisCheckpoint',function() {
         test.mockery.registerMock('redis', test.mockredis);
         test.mockery.warnOnUnregistered(false);
         test.mockredis.reset();
-        //test.mockery.registerAllowables(['./logger', './statsd-client']);
-        //test.pp.snapshot();
     });
 
     afterEach(function () {
@@ -20,7 +18,6 @@ describe('RedisCheckpoint',function() {
     });
 
     it('should properly initialize data with minimal arguments',function(){
-        console.log('time:' + new Date().valueOf());
         var checkpoint = new RedisCheckpoint();
         checkpoint.config.should.eql({retryInterval: 5000});
         test.pp.snapshot().should.eql([]);
@@ -39,17 +36,20 @@ describe('RedisCheckpoint',function() {
 
         var count = 0;
         var checkpoint = new RedisCheckpoint({retryInterval: 10});
-        checkpoint.start(function(event,config){
+        checkpoint.start(function(event){
             event.should.eql('retry');
             if (count++ > 0) {
                 checkpoint.stop();
                 test.pp.snapshot().should.eql([
                     '[redis-chk ] start checkpoint',
-                    '[redis-chk ] not ready: Error: test error',
-                    '[redis-chk ] not ready: Error: test error',
+                    '[redis-chk ] redis client error: test error',
+                    '[redis-chk ] redis client error: test error',
                     '[redis-chk ] stop checkpoint'
                 ]);
-                test.mockredis.snapshot().should.eql([]);
+                test.mockredis.snapshot().should.eql([
+                    {end: null},
+                    {end: null}
+                ]);
                 done();
             }
         });
@@ -57,28 +57,34 @@ describe('RedisCheckpoint',function() {
 
     it('should return ready if redis client successfully created',function(done){
         var checkpoint = new RedisCheckpoint();
-        checkpoint.start(function(event,config){
+        checkpoint.start(function(event){
             checkpoint.stop();
             event.should.eql('ready');
             test.pp.snapshot().should.eql([
                 '[redis-chk ] start checkpoint',
                 '[redis-chk ] stop checkpoint'
             ]);
-            test.mockredis.snapshot().should.eql([{quit: null}]);
+            test.mockredis.snapshot().should.eql([
+                {keys: '*'},
+                {quit: null}
+            ]);
             done();
         });
     });
 
     it('should throw an error if start called twice',function(done){
         var checkpoint = new RedisCheckpoint();
-        checkpoint.start(function(){});
+        checkpoint.start();
         test.expect(function(){ checkpoint.start(); }).to.throw('already started');
         checkpoint.stop();
         test.pp.snapshot().should.eql([
             '[redis-chk ] start checkpoint',
             '[redis-chk ] stop checkpoint'
         ]);
-        test.mockredis.snapshot().should.eql([]);
+        test.mockredis.snapshot().should.eql([
+            {keys: '*'},
+            {quit: null}
+        ]);
         done();
     });
 

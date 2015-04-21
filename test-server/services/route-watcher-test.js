@@ -40,7 +40,9 @@ describe('RouteWatcher',function(){
 
     it('should throw an error if start called twice',function(done){
         var count = 0;
-        var watcher = new RouteWatcher().start(function(event){ count++; });
+        var watcher = new RouteWatcher()
+            .on('note',function(){ count++; })
+            .start();
         count.should.equal(1);
         test.expect(function(){ watcher.start(); }).to.throw('already started');
         watcher.stop();
@@ -90,9 +92,9 @@ describe('RouteWatcher',function(){
         test.mockshelljs.lookup['route -n'] = [0,fs.readFileSync('test-server/data/route-no-ppp.txt').toString()];
         test.mockshelljs.lookup['route add -net 172.29.12.0 netmask 255.255.255.0 dev ppp0'] = [0,''];
 
-        var watcher = new RouteWatcher().start(function(event){
-            event.should.equal('route');
-        });
+        var watcher = new RouteWatcher()
+            .on('note',function(event){ event.should.equal('route'); })
+            .start();
         watcher.stop();
         test.pp.snapshot().should.eql([
             '[route     ] start watcher',
@@ -110,9 +112,9 @@ describe('RouteWatcher',function(){
         test.mockshelljs.lookup['pppstats'] = [0,'IN   PACK VJCOMP  VJUNC  VJERR  |      OUT   PACK VJCOMP  VJUNC NON-VJ'];
         test.mockshelljs.lookup['route -n'] = [0,fs.readFileSync('test-server/data/route-includes-ppp.txt').toString()];
 
-        var watcher = new RouteWatcher().start(function(event){
-            event.should.equal('ready');
-        });
+        var watcher = new RouteWatcher()
+            .on('note',function(event){ event.should.equal('ready'); })
+            .start();
         watcher.stop();
         test.pp.snapshot().should.eql([
             '[route     ] start watcher',
@@ -129,18 +131,19 @@ describe('RouteWatcher',function(){
         test.mockshelljs.lookup['route -n'] = [1,null];
 
         var watcher = new RouteWatcher();
-        watcher.checkRoutes(function(event){
+        watcher.on('note',function(event){
             event.should.eql('error');
             test.pp.snapshot().should.eql([]);
             test.mocklynx.snapshot().should.eql([{ increment: 'error' }]);
             test.mockshelljs.snapshot(); // clear snapshot
             done();
         });
+        watcher.checkRoutes();
     });
 
     it('should check routes at intervals',function(done){
         var count = 0;
-        var watcher = new RouteWatcher({routeInterval: 1}).start(function(event){
+        var watcher = new RouteWatcher({routeInterval: 1}).on('note',function(){
             if (count++ > 0) {
                 watcher.stop();
                 test.pp.snapshot().should.eql([
@@ -156,7 +159,7 @@ describe('RouteWatcher',function(){
                 test.mockshelljs.snapshot().should.eql([]);
                 done();
             }
-        });
+        }).start();
     });
 
     it('should allow caching of shell responses',function() {
@@ -190,13 +193,14 @@ describe('RouteWatcher',function(){
         var watcher = new RouteWatcher();
 
         test.mockshelljs.lookup['pppstats'] = [0,'unexpected'];
-        watcher.checkRoutes(function(event){
+        watcher.on('note',function(event){
             event.should.eql('error');
             test.mocklynx.snapshot().should.eql([{increment: 'error'}]);
             test.pp.snapshot().should.eql(['[route     ] unexpected pppstats output: unexpected']);
             test.mockshelljs.snapshot(); // clear snapshot
             done();
         });
+        watcher.checkRoutes();
     });
 
     it('should detect failed shell responses',function(done){

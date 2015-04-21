@@ -1,0 +1,13 @@
+form.form-horizontal.well(ng-cloak,ng-if='hash')
+  fieldset
+    div(ng-transclude)
+    .row
+      hash-group(ng-repeat="name in hashKeys",name='name',group='hash[name]',hash-values='hashValues')
+      .form-group
+        .col-lg-12
+          legend
+        .col-lg-8.col-lg-offset-4
+          //- TODO figure out how to disable buttons unless dirty
+          button.btn.btn-primary(type='submit',ng-click='submitChanges()') Save Changes
+          | &nbsp;
+          button.btn.btn-default(ng-click='resetValues()') Discard Changes

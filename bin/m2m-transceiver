@@ -1,0 +1,48 @@
+#!/usr/bin/env node
+
+var _ = require('lodash');
+
+var RedisCheckpoint = require('../services/redis-checkpoint');
+var ConfigCheckpoint = require('../services/config-checkpoint');
+var QueueRouter = require('../services/queue-router');
+var DeviceRouter = require('../services/device-router');
+
+var schema = require('../lib/redis-schema');
+var helpers = require('../lib/hash-helpers');
+var configHashkeys = require('../lib/config-hashkeys');
+
+var redisChk = new RedisCheckpoint().start(function(redisEvent,redis) {
+    if (redisEvent !== 'ready') return;
+
+    var gatewayChk = new ConfigCheckpoint(redis,schema.config.key,configHashkeys.gateway,helpers.requirements(configHashkeys.gateway)).start(function(gatewayEvent,gateway) {
+        if (gatewayEvent !== 'ready') return;
+
+        var queueRouter = new QueueRouter(redis,gateway);
+
+        var deviceCount = 0;
+        var readyCount = 0;
+        _.each(redisChk.keys,function(key){
+            var deviceKey = schema.device.settings.getParam(key);
+            if (!deviceKey) return;
+
+            deviceCount++;
+            var deviceRouter = new DeviceRouter(redis,deviceKey,function(status){
+                console.log('device status(' + deviceKey + '):' + status);
+                switch(status){
+                    case 'ready':
+                        queueRouter.addRoute(deviceRouter);
+                        break;
+                    case 'off':
+                        break;
+                    default:
+                        return;
+                }
+                if (deviceCount == ++readyCount) queueRouter.start();
+            });
+        });
+        if (deviceCount == 0) queueRouter.start();
+
+    });
+});
+
+

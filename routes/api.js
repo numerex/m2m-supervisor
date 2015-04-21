@@ -4,45 +4,64 @@ var express = require('express');
 var RedisCheckpoint = require('../services/redis-checkpoint');
 var logger = require('../lib/logger')('api');
 var schema = require('../lib/redis-schema');
-var helpers = require('../lib/config-helpers');
-var hashkeys = require('../lib/config-hashkeys');
+var helpers = require('../lib/hash-helpers');
+var configTemplate = require('../lib/config-hashkeys');
+var deviceTemplate = require('../lib/device-hashkeys');
 
 var redisChk = new RedisCheckpoint();
 var router = express.Router();
 
 function checkRedis(callback){
     if (!redisChk) redisChk = new RedisCheckpoint();
-    if (redisChk.started())
-        callback();
-    else
-        redisChk.start(function() { callback(); });
+    if (!redisChk.started()) redisChk.start();
+    callback();
 }
 
-function commonRedisCall(res,callback){
-    try {
-        callback();
-    } catch(e) {
-        // istanbul ignore next - not sure how to generate this error in mocking
-        res.send({error: 'redis exception: ' + e});
-    }
-}
-
-function commonRedisResult(res,err,result,callback){
-    if (err)
-        res.send({error: 'redis error: ' + err});
-    else
-        callback(result);
-}
-
-function requestConfig(res){
-    if (!redisChk.client)
+function requestHash(res,hashKey,resultKey,template){
+    if (!redisChk.ready())
         res.send({error: 'Redis not ready'});
     else
-        commonRedisCall(res,function(){
-            redisChk.client.hgetall(schema.config.key,_.bind(commonRedisResult,this,res,_,_,function(hash){
-                res.send({config: helpers.hash2tuples(hash || {},hashkeys)});
-            }));
+        redisChk.client.hgetall(hashKey).then(function(hash){
+            var result = {};
+            result[resultKey] = helpers.hash2groups(hash || {},template);
+            res.send(result);
         });
+}
+
+function updateHash(updates,callback){
+    redisChk.client.send('hmset',updates).then(function () {
+        callback();
+    });
+}
+
+function changeHash(req,res,hashKey,callback){
+    var deletes = [hashKey];
+    var updates = [hashKey];
+    _.each(req.body,function(value,key){
+        if (value === null)
+            deletes.push(key);
+        else {
+            updates.push(key);
+            updates.push(value);
+        }
+    });
+    if (updates.length <= 1 && deletes.length <= 1)
+        res.send({error: 'No changes requested'});
+    else if (deletes.length <= 1)
+        updateHash(updates,callback);
+    else
+        redisChk.client.send('hdel',deletes).then(function(){
+            if (updates.length <= 1)
+                callback();
+            else
+                updateHash(updates,callback);
+        });
+}
+
+// CONFIG ----------------
+
+function requestConfig(res){
+    requestHash(res,schema.config.key,'config',configTemplate);
 }
 
 router.get('/config',function(req,res,next){
@@ -53,23 +72,75 @@ router.get('/config',function(req,res,next){
 
 router.post('/config',function(req,res,next){
     checkRedis(function(){
-        // TODO 1) delete keys that match defaults?
         logger.info('config changes: ' + JSON.stringify(req.body));
-        var args = [schema.config.key];
-        _.each(req.body,function(value,key){
-            args.push(key);
-            args.push(value);
+        changeHash(req,res,schema.config.key,function(){
+            requestConfig(res);
         });
-        if (args.length <= 1)
-            res.send({error: 'No changes requested'});
+    });
+});
+
+// DEVICE ----------------
+
+function findDeviceIDs(res,callback){
+    redisChk.client.keys(schema.device.settings.keysPattern()).then(function(keys){
+        callback(keys);
+    });
+}
+
+router.get('/devices',function(req,res,next){
+    checkRedis(function(){
+        findDeviceIDs(res,function(keys){
+            res.send(_.map(keys,function(key){ return schema.device.settings.getParam(key); }));
+        })
+    });
+});
+
+function requestDevice(res,id){
+    requestHash(res,schema.device.settings.useParam(id),'device:' + id,deviceTemplate);
+}
+
+router.get('/device/:id',function(req,res,next){
+    checkRedis(function(){
+        requestDevice(res,req.params.id);
+    });
+});
+
+router.post('/device/:id',function(req,res,next){
+    checkRedis(function(){
+        logger.info('device changes(' + req.params.id + '): ' + JSON.stringify(req.body));
+        changeHash(req,res,schema.device.settings.useParam(req.params.id),function(){
+            requestDevice(res,req.params.id);
+        });
+    });
+});
+
+router.get('/device',function(req,res,next){
+    var defaults = _.defaults(helpers.hash2groups({},deviceTemplate));
+    res.send({'new-device': defaults});
+});
+
+router.post('/device',function(req,res,next){
+    checkRedis(function(){
+        var id = req.body.id;
+        delete req.body.id;
+        if (!id)
+            res.send({error: 'Device ID not provided'});
         else
-            commonRedisCall(res,function(){
-                redisChk.client.hmset(args,_.bind(commonRedisResult,this,res,_,_,function(result){
-                    requestConfig(res);
-                }));
+            findDeviceIDs(res,function(keys){
+                var newKey = schema.device.settings.useParam(id);
+                if (_.indexOf(keys,newKey) >= 0)
+                    res.send({error: 'Device ID already used'});
+                else {
+                    logger.info('device creation(' + id + '): ' + JSON.stringify(req.body));
+                    changeHash(req,res,newKey,function(){
+                        requestDevice(res,id);
+                    });
+                }
             });
     });
 });
+
+// STATUS ----------------
 
 router.get('/status',function(req,res,next){
     checkRedis(function(){
