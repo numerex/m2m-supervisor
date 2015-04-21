@@ -156,7 +156,7 @@ describe('QueueRouter',function() {
     });
 
     it('should transmit a basic message providing sequenceNumber',function(done){
-        test.mockredis.lookup.brpop = [['m2m-transmit:queue','{"eventCode":10,"timestamp":0,"sequenceNumber":1,"11":12}']];
+        test.mockredis.lookup.brpop = [['m2m-transmit:queue','{"eventCode":10,"timestamp":0,"sequenceNumber":1,"11":12,"13":"string"}']];
 
         var router = new QueueRouter(redis,testGateway).on('note',function(event){
             router.stop();
@@ -165,7 +165,7 @@ describe('QueueRouter',function() {
                 {mget: QueueRouter.ACK_STATE_KEYS},
                 {brpop: router.queueArgs},
                 {mset: [
-                    'm2m-ack:message','{"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":10,"sequenceNumber":1,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":1,"id":11,"value":12}]}',
+                    'm2m-ack:message','{"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":10,"sequenceNumber":1,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":1,"id":11,"value":12},{"type":2,"id":13,"value":"string"}]}',
                     'm2m-ack:route-key','none',
                     'm2m-ack:retries',0,
                     'm2m-ack:sequence-number',1
@@ -173,8 +173,8 @@ describe('QueueRouter',function() {
             ]);
             test.pp.snapshot().should.eql([
                 '[router    ] start router',
-                '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":10,"sequenceNumber":1,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":1,"id":11,"value":12}]}',
-                "[router    ] outgoing - size: 39 from: localhost:4001",
+                '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":10,"sequenceNumber":1,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":1,"id":11,"value":12},{"type":2,"id":13,"value":"string"}]}',
+                "[router    ] outgoing - size: 49 from: localhost:4001",
                 '[router    ] stop router'
             ]);
             done();

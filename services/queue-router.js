@@ -91,8 +91,6 @@ QueueRouter.prototype.stop = function() {
 };
 
 QueueRouter.prototype.addRoute = function(router){
-    if (!router.queueKey) throw(new Error('no queueKey given'));
-
     logger.info('add route: ' + router.queueKey);
     this.routes[router.queueKey] = router;
     this.queueArgs = COMMON_QUEUE_KEYS.concat(_.keys(this.routes)).concat([this.config.timeoutInterval]);
@@ -185,6 +183,7 @@ QueueRouter.prototype.assembleMessage = function(eventCode,timestamp,sequenceNum
                 case 'string':
                     message.pushString(code,value);
                     break;
+                // istanbul ignore next - TODO improve this...
                 default:
                     logger.error('unexpected key/value: ' + key + '=' + value);
 

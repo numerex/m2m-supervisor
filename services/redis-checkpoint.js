@@ -56,9 +56,8 @@ RedisCheckpoint.prototype.attemptCheck = function(callback){
         callback && callback('retry');
     });
     self.client && self.client.keys('*',function(err,keys){
-        if (err)
-            logger.error('redis keys error: ' + err);
-        else {
+        // istanbul ignore else - SHOULD be captured by the event handler above
+        if (!err) {
             self.keys = keys;
             callback && callback('ready',self.client);
         }
