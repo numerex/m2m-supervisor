@@ -1,18 +1,40 @@
 #!/usr/bin/env node
 
+var _ = require('lodash');
+
 var RedisCheckpoint = require('../services/redis-checkpoint');
 var ConfigCheckpoint = require('../services/config-checkpoint');
 var QueueRouter = require('../services/queue-router');
+var DeviceRouter = require('../services/device-router');
 
-var hashkeys = require('../lib/config-hashkeys');
+var schema = require('../lib/redis-schema');
+var helpers = require('../lib/hash-helpers');
+var configHashkeys = require('../lib/config-hashkeys');
 
-var redisChk = new RedisCheckpoint().start(function(event,redis) {
-    if (event !== 'ready') return;
+var redisChk = new RedisCheckpoint().start(function(redisEvent,redis) {
+    if (redisEvent !== 'ready') return;
 
-    var configChk = new ConfigCheckpoint(redis,hashkeys.gateway,[hashkeys.gateway.imei.key]).start(function(event,gateway) {
-        if (event !== 'ready') return;
+    var gatewayChk = new ConfigCheckpoint(redis,schema.config.key,configHashkeys.gateway,helpers.requirements(configHashkeys.gateway)).start(function(gatewayEvent,gateway) {
+        if (gatewayEvent !== 'ready') return;
 
-        var router = new QueueRouter(redis,null,gateway).start();
+        var queueRouter = new QueueRouter(redis,{},gateway);
+
+        var deviceCount = 0;
+        var readyCount = 0;
+        _.each(redisChk.keys,function(key){
+            var deviceKey = schema.device.settings.getParam(key);
+            if (!deviceKey) return;
+
+            deviceCount++;
+            var deviceRouter = new DeviceRouter(redis,deviceKey,function(status){
+                console.log('device status:' + status);
+                if (status !== 'ready') return;
+
+                queueRouter.addRoute(deviceRouter);
+                if (deviceCount == ++readyCount) queueRouter.start();
+            });
+        });
+
     });
 });
 

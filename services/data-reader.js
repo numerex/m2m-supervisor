@@ -2,7 +2,7 @@ var _ = require('lodash');
 var util = require('util');
 var events = require('events');
 
-var logger = require('./../lib/logger')('data-rdr');
+var logger = require('../lib/logger')('reader');
 
 function DataReader(device,config) {
     var self = this;
@@ -17,25 +17,26 @@ function DataReader(device,config) {
     self.device = device;
     self.device.on('retry',function(reason) {
         logger.error('start error: ' + reason);
-        self.emit('retry');
+        self.emit('note','retry');
     });
     self.device.on('ready',function(){
+        self.emit('note','ready');
         self.emit('ready');
     });
-    self.device.on('retry',function(error) {
+    self.device.on('error',function(error) {
         logger.error('read error: ' + error);
-        self.emit('error');
+        self.emit('note','error');
     });
     self.device.on('data',function(data){
         var event = 'unknown';
-        if (lastData === null && value[0] === self.config.responsePrefix) {
-            lastData = value;
+        if (lastData === null && data[0] === self.config.responsePrefix) {
+            lastData = data;
             event = 'begin';
         } else if (lastData === null) {
-            logger.info('data skipped: ' + value);
+            logger.info('data skipped: ' + data);
             event = 'skip';
         } else {
-            lastData += value;
+            lastData += data;
             event = 'middle';
         }
         if (lastData && lastData[lastData.length - 1] === self.config.responseSuffix) {
@@ -46,7 +47,7 @@ function DataReader(device,config) {
             self.responseCallback = null;
             event = 'response';
         }
-        self.emit(event);
+        self.emit('note',event);
     });
 }
 

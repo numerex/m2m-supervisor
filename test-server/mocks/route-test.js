@@ -1,3 +1,7 @@
+
+module.exports.deviceKey = 'testDevice';
+module.exports.queueKey = 'testQueue';
+
 module.exports.events = [];
 
 module.exports.noteAck = function(sequenceNumber){

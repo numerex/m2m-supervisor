@@ -55,9 +55,12 @@ describe('API router',function() {
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.eql('{"config":{"Gateway":[{"key":"gateway:imei","label":"IMEI","type":"string","default":null,"status":"locked"},{"key":"gateway:private-host","label":"Private Host","type":"string","default":"172.29.12.253"},{"key":"gateway:private-port","label":"Private Port","type":"number","default":3011},{"key":"gateway:public-host","label":"Public Host","type":"string","default":"192.119.183.253"},{"key":"gateway:public-port","label":"Public Port","type":"number","default":3011},{"key":"gateway:private-relay","label":"Private Relay Port","type":"number","default":4000},{"key":"gateway:public-relay","label":"Public Relay Port","type":"number","default":4001},{"key":"gateway:primary","label":"Primary Route","options":["public","private"],"type":"string","default":"public"}],"Custom":[{"key":"custom:web-route","label":"Web Routes","type":"string"},{"key":"custom:command-module","label":"Command Module","type":"string"},{"key":"custom:extension-module","label":"Extension Module","type":"string"}]}}');
+                res.text.should.eql('{"config":{"Gateway":[{"key":"gateway:imei","label":"IMEI","type":"string","default":null,"required":true,"status":"locked"},{"key":"gateway:private-host","label":"Private Host","type":"string","default":"172.29.12.253"},{"key":"gateway:private-port","label":"Private Port","type":"number","default":3011},{"key":"gateway:public-host","label":"Public Host","type":"string","default":"192.119.183.253"},{"key":"gateway:public-port","label":"Public Port","type":"number","default":3011},{"key":"gateway:private-relay","label":"Private Relay Port","type":"number","default":4000},{"key":"gateway:public-relay","label":"Public Relay Port","type":"number","default":4001},{"key":"gateway:primary","label":"Primary Route","options":["public","private"],"type":"string","default":"public"}],"Custom":[{"key":"custom:web-route","label":"Web Routes","type":"string"},{"key":"custom:command-module","label":"Command Module","type":"string"},{"key":"custom:extension-module","label":"Extension Module","type":"string"}]}}');
                 // NOTE - drop through to next test to allow existing redisCheck to be used... facilitates test coverage
-                test.mockredis.snapshot().should.eql([{hgetall: 'm2m-config'}]);
+                test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
+                    {hgetall: 'm2m-config'}
+                ]);
                 test.matchArrays(test.pp.snapshot(),[
                     /^\[express   \] \S+ --> GET \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis-chk ] start checkpoint',
@@ -76,7 +79,9 @@ describe('API router',function() {
                 test.should.not.exist(err);
                 res.text.should.eql('{"error":"No changes requested"}');
                 require(process.cwd() + '/routes/api').resetRedisChk();
-                test.mockredis.snapshot().should.eql([{quit: null}]);
+                test.mockredis.snapshot().should.eql([
+                    {quit: null}
+                ]);
                 test.matchArrays(test.pp.snapshot(),[
                     /^\[express   \] \S+ --> POST \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[api       ] config changes: {}',
@@ -94,9 +99,10 @@ describe('API router',function() {
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.eql('{"config":{"Gateway":[{"key":"gateway:imei","label":"IMEI","type":"string","default":null,"status":"locked"},{"key":"gateway:private-host","label":"Private Host","type":"string","default":"172.29.12.253"},{"key":"gateway:private-port","label":"Private Port","type":"number","default":3011},{"key":"gateway:public-host","label":"Public Host","type":"string","default":"192.119.183.253"},{"key":"gateway:public-port","label":"Public Port","type":"number","default":3011},{"key":"gateway:private-relay","label":"Private Relay Port","type":"number","default":4000},{"key":"gateway:public-relay","label":"Public Relay Port","type":"number","default":4001},{"key":"gateway:primary","label":"Primary Route","options":["public","private"],"type":"string","default":"public"}],"Custom":[{"key":"custom:web-route","label":"Web Routes","type":"string"},{"key":"custom:command-module","label":"Command Module","type":"string"},{"key":"custom:extension-module","label":"Extension Module","type":"string"}]}}');
+                res.text.should.eql('{"config":{"Gateway":[{"key":"gateway:imei","label":"IMEI","type":"string","default":null,"required":true,"status":"locked"},{"key":"gateway:private-host","label":"Private Host","type":"string","default":"172.29.12.253"},{"key":"gateway:private-port","label":"Private Port","type":"number","default":3011},{"key":"gateway:public-host","label":"Public Host","type":"string","default":"192.119.183.253"},{"key":"gateway:public-port","label":"Public Port","type":"number","default":3011},{"key":"gateway:private-relay","label":"Private Relay Port","type":"number","default":4000},{"key":"gateway:public-relay","label":"Public Relay Port","type":"number","default":4001},{"key":"gateway:primary","label":"Primary Route","options":["public","private"],"type":"string","default":"public"}],"Custom":[{"key":"custom:web-route","label":"Web Routes","type":"string"},{"key":"custom:command-module","label":"Command Module","type":"string"},{"key":"custom:extension-module","label":"Extension Module","type":"string"}]}}');
                 require(process.cwd() + '/routes/api').resetRedisChk();
                 test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
                     {hmset: ['m2m-config','gateway:primary','private']},
                     {hgetall: 'm2m-config'},
                     {quit: null}
@@ -123,6 +129,7 @@ describe('API router',function() {
                 res.text.should.eql('{"error":"redis error: test error"}');
                 require(process.cwd() + '/routes/api').resetRedisChk();
                 test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
                     {hgetall: 'm2m-config'},
                     {quit: null}
                 ]);
@@ -148,6 +155,7 @@ describe('API router',function() {
                 test.should.not.exist(err);
                 require(process.cwd() + '/routes/api').resetRedisChk();
                 test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
                     {keys: 'm2m-device:*:settings'},
                     {quit: null}
                 ]);
@@ -188,7 +196,10 @@ describe('API router',function() {
                 test.should.not.exist(err);
                 res.text.should.eql('{"error":"Device ID not provided"}');
                 require(process.cwd() + '/routes/api').resetRedisChk();
-                test.mockredis.snapshot().should.eql([{quit: null}]);
+                test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
+                    {quit: null}
+                ]);
                 test.matchArrays(test.pp.snapshot(),[
                     /^\[express   \] \S+ --> POST \/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis-chk ] start checkpoint',
@@ -211,6 +222,7 @@ describe('API router',function() {
                 res.text.should.eql('{"error":"Device ID already used"}');
                 require(process.cwd() + '/routes/api').resetRedisChk();
                 test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
                     {keys: 'm2m-device:*:settings'},
                     {quit: null}
                 ]);
@@ -237,6 +249,7 @@ describe('API router',function() {
                 res.text.should.eql('{"device:test":{"Connection":[{"key":"connection:type","label":"Type","options":["telnet","serial"],"type":"string","default":"telnet","required":true},{"key":"connection:telnet:address","label":"Telnet Address","type":"string","default":null,"required":true,"value":"localhost","exists":true},{"key":"connection:telnet:port","label":"Telnet Port","type":"number","default":10001,"required":true,"value":10002,"exists":true},{"key":"connection:serial:port","label":"Serial Port","type":"string","default":"/dev/tty0","required":true},{"key":"connection:serial:baud-rate","label":"Serial Baud Rate","type":"number","default":9600,"required":true}],"Route":[{"key":"route:type","label":"Type","options":["none","ad-hoc","scheduled"],"type":"string","default":"none"},{"key":"route:schedule","label":"Schedule","type":"string","default":null}]}}');
                 require(process.cwd() + '/routes/api').resetRedisChk();
                 test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
                     {keys: 'm2m-device:*:settings'},
                     {hmset: ['m2m-device:test:settings','connection:telnet:address','localhost','connection:telnet:port',10002]},
                     {hgetall: 'm2m-device:test:settings'},
@@ -266,6 +279,7 @@ describe('API router',function() {
                 res.text.should.eql('{"device:test":{"Connection":[{"key":"connection:type","label":"Type","options":["telnet","serial"],"type":"string","default":"telnet","required":true},{"key":"connection:telnet:address","label":"Telnet Address","type":"string","default":null,"required":true,"value":"localhost","exists":true},{"key":"connection:telnet:port","label":"Telnet Port","type":"number","default":10001,"required":true},{"key":"connection:serial:port","label":"Serial Port","type":"string","default":"/dev/tty0","required":true},{"key":"connection:serial:baud-rate","label":"Serial Baud Rate","type":"number","default":9600,"required":true}],"Route":[{"key":"route:type","label":"Type","options":["none","ad-hoc","scheduled"],"type":"string","default":"none"},{"key":"route:schedule","label":"Schedule","type":"string","default":null}]}}');
                 require(process.cwd() + '/routes/api').resetRedisChk();
                 test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
                     {hgetall: 'm2m-device:test:settings'},
                     {quit: null}
                 ]);
@@ -292,6 +306,7 @@ describe('API router',function() {
                 res.text.should.eql('{"device:test":{"Connection":[{"key":"connection:type","label":"Type","options":["telnet","serial"],"type":"string","default":"telnet","required":true},{"key":"connection:telnet:address","label":"Telnet Address","type":"string","default":null,"required":true,"value":"localhost","exists":true},{"key":"connection:telnet:port","label":"Telnet Port","type":"number","default":10001,"required":true},{"key":"connection:serial:port","label":"Serial Port","type":"string","default":"/dev/tty0","required":true},{"key":"connection:serial:baud-rate","label":"Serial Baud Rate","type":"number","default":9600,"required":true}],"Route":[{"key":"route:type","label":"Type","options":["none","ad-hoc","scheduled"],"type":"string","default":"none"},{"key":"route:schedule","label":"Schedule","type":"string","default":null}]}}');
                 require(process.cwd() + '/routes/api').resetRedisChk();
                 test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
                     {hgetall: 'm2m-device:test:settings'},
                     {quit: null}
                 ]);
@@ -318,6 +333,7 @@ describe('API router',function() {
                 res.text.should.eql('{"error":"No changes requested"}');
                 require(process.cwd() + '/routes/api').resetRedisChk();
                 test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
@@ -344,6 +360,7 @@ describe('API router',function() {
                 res.text.should.eql('{"device:test":{"Connection":[{"key":"connection:type","label":"Type","options":["telnet","serial"],"type":"string","default":"telnet","required":true},{"key":"connection:telnet:address","label":"Telnet Address","type":"string","default":null,"required":true,"value":"localhost","exists":true},{"key":"connection:telnet:port","label":"Telnet Port","type":"number","default":10001,"required":true},{"key":"connection:serial:port","label":"Serial Port","type":"string","default":"/dev/tty0","required":true},{"key":"connection:serial:baud-rate","label":"Serial Baud Rate","type":"number","default":9600,"required":true}],"Route":[{"key":"route:type","label":"Type","options":["none","ad-hoc","scheduled"],"type":"string","default":"none"},{"key":"route:schedule","label":"Schedule","type":"string","default":null}]}}');
                 require(process.cwd() + '/routes/api').resetRedisChk();
                 test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
                     {hmset: ['m2m-device:test:settings','connection:telnet:address','localhost']},
                     {hgetall: 'm2m-device:test:settings'},
                     {quit: null}
@@ -372,6 +389,7 @@ describe('API router',function() {
                 res.text.should.eql('{"device:test":{"Connection":[{"key":"connection:type","label":"Type","options":["telnet","serial"],"type":"string","default":"telnet","required":true},{"key":"connection:telnet:address","label":"Telnet Address","type":"string","default":null,"required":true},{"key":"connection:telnet:port","label":"Telnet Port","type":"number","default":10001,"required":true},{"key":"connection:serial:port","label":"Serial Port","type":"string","default":"/dev/tty0","required":true},{"key":"connection:serial:baud-rate","label":"Serial Baud Rate","type":"number","default":9600,"required":true}],"Route":[{"key":"route:type","label":"Type","options":["none","ad-hoc","scheduled"],"type":"string","default":"none"},{"key":"route:schedule","label":"Schedule","type":"string","default":null}]}}');
                 require(process.cwd() + '/routes/api').resetRedisChk();
                 test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
                     {hdel: ['m2m-device:test:settings','connection:telnet:port']},
                     {hgetall: 'm2m-device:test:settings'},
                     {quit: null}
@@ -400,6 +418,7 @@ describe('API router',function() {
                 res.text.should.eql('{"device:test":{"Connection":[{"key":"connection:type","label":"Type","options":["telnet","serial"],"type":"string","default":"telnet","required":true},{"key":"connection:telnet:address","label":"Telnet Address","type":"string","default":null,"required":true,"value":"localhost","exists":true},{"key":"connection:telnet:port","label":"Telnet Port","type":"number","default":10001,"required":true},{"key":"connection:serial:port","label":"Serial Port","type":"string","default":"/dev/tty0","required":true},{"key":"connection:serial:baud-rate","label":"Serial Baud Rate","type":"number","default":9600,"required":true}],"Route":[{"key":"route:type","label":"Type","options":["none","ad-hoc","scheduled"],"type":"string","default":"none"},{"key":"route:schedule","label":"Schedule","type":"string","default":null}]}}');
                 require(process.cwd() + '/routes/api').resetRedisChk();
                 test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
                     {hdel: ['m2m-device:test:settings','connection:telnet:port']},
                     {hmset: ['m2m-device:test:settings','connection:telnet:address','localhost']},
                     {hgetall: 'm2m-device:test:settings'},
@@ -425,7 +444,10 @@ describe('API router',function() {
                 test.should.not.exist(err);
                 res.text.should.eql('{"redis":true,"ethernet":true,"ppp":true,"cpu":true,"memory":true,"disk":true,"logic":true}');
                 require(process.cwd() + '/routes/api').resetRedisChk();
-                test.mockredis.snapshot().should.eql([{quit: null}]);
+                test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
+                    {quit: null}
+                ]);
                 test.matchArrays(test.pp.snapshot(),[
                     /^\[express   \] \S+ --> GET \/api\/status HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis-chk ] start checkpoint',

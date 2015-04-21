@@ -55,7 +55,14 @@ RedisCheckpoint.prototype.attemptCheck = function(callback){
         self.timeout = setTimeout(self.attemptCheckCallback,self.config.retryInterval);
         callback && callback('retry');
     });
-    self.client && callback && callback('ready',self.client);
+    self.client && self.client.keys('*',function(err,keys){
+        if (err)
+            logger.error('redis keys error: ' + err);
+        else {
+            self.keys = keys;
+            callback && callback('ready',self.client);
+        }
+    });
 };
 
 module.exports = RedisCheckpoint;
