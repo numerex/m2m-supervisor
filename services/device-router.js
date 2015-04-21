@@ -83,7 +83,7 @@ DeviceRouter.prototype.processQueueEntry = function(entry){
                 logger.error('error(' + self.deviceKey + '): ' + error);
             else
                 logger.info('response(' + self.deviceKey + '): ' + response);
-            self.redis.lpush(schema.transmit.queue.key,JSON.stringify(_.defaults(self.messageBase,{
+            self.redis.lpush(schema.transmit.queue.key,JSON.stringify(_.defaults({},self.messageBase,{
                 10: command,
                 11: response,
                 12: error
