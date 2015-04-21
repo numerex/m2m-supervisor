@@ -164,6 +164,9 @@ QueueRouter.prototype.checkQueue = function(){
 };
 
 QueueRouter.prototype.generateMessage = function(attributes) {
+    var routeKey = attributes.routeKey;
+    delete attributes.routeKey;
+
     var eventCode = attributes.eventCode || settings.EventCodes.heartbeat;
     delete attributes.eventCode;
 
@@ -172,17 +175,17 @@ QueueRouter.prototype.generateMessage = function(attributes) {
 
     var sequenceNumber = +attributes.sequenceNumber;
     delete attributes.sequenceNumber;
-    
+
     var self = this;
     if (sequenceNumber)
-        self.assembleMessage(eventCode,timestamp,sequenceNumber,attributes);
+        self.assembleMessage(routeKey,eventCode,timestamp,sequenceNumber,attributes);
     else
         self.redis.incr(schema.transmit.lastSequenceNumber.key).then(function(newSequenceNumber){
-            self.assembleMessage(eventCode,timestamp,newSequenceNumber,attributes);
+            self.assembleMessage(routeKey,eventCode,timestamp,newSequenceNumber,attributes);
         });
 };
 
-QueueRouter.prototype.assembleMessage = function(eventCode,timestamp,sequenceNumber,attributes){
+QueueRouter.prototype.assembleMessage = function(routeKey,eventCode,timestamp,sequenceNumber,attributes){
     var self = this;
     var message = new m2m.Message({messageType: m2m.Common.MOBILE_ORIGINATED_EVENT,eventCode: eventCode,sequenceNumber: +sequenceNumber,timestamp: timestamp})
         .pushString(0,self.gateway.imei);
@@ -203,7 +206,7 @@ QueueRouter.prototype.assembleMessage = function(eventCode,timestamp,sequenceNum
             }
     });
 
-    self.redis.send('mset',ackStatePairs(message,null)).then(function(){
+    self.redis.send('mset',ackStatePairs(message,routeKey)).then(function(){
         self.transmitMessage(message);
         self.noteQueueResult('transmit');
     });

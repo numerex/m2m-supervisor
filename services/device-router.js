@@ -14,7 +14,7 @@ function DeviceRouter(redis,deviceKey,note){
     self.redis = redis;
     self.deviceKey = deviceKey;
     self.queueKey = schema.device.queue.useParam(deviceKey);
-    self.messageBase = {queueKey: self.queueKey};
+    self.messageBase = {routeKey: self.queueKey};
     self.settingsKey = schema.device.settings.useParam(deviceKey);
     self.noteStatus = note || function(){};
 
