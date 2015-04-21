@@ -1,0 +1,27 @@
+#!/usr/bin/env node
+
+var fs = require('fs');
+var net = require('net');
+
+var lookup = JSON.parse(fs.readFileSync('test-server/data/telnet-simulation-data.json'));
+
+var host = net.createServer(function(socket){
+    console.log('connection started');
+
+    socket.on('data',function(data){
+        try {
+            console.log('request: ' + JSON.stringify(data.toString()));
+            var response = lookup[data] || '\x019999FF1B\x03';
+            console.log('response:' + JSON.stringify(response));
+            socket.write(response);
+        } catch (e) {
+            console.log('error:   ' + e);
+        }
+    });
+
+    socket.on('end',function() {
+        console.log('connection ended');
+    });
+});
+
+host.listen(10001,function(){ console.log('ready!'); });
