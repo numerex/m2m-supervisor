@@ -156,7 +156,7 @@ describe('QueueRouter',function() {
     });
 
     it('should transmit a basic message providing sequenceNumber',function(done){
-        test.mockredis.lookup.brpop = [['m2m-transmit:queue','{"eventCode":10,"timestamp":0,"sequenceNumber":1,"11":12,"13":"string"}']];
+        test.mockredis.lookup.brpop = [['m2m-transmit:queue','{"eventCode":10,"timestamp":0,"sequenceNumber":1,"11":12,"13":"string","14":null}']];
 
         var router = new QueueRouter(redis,testGateway).on('note',function(event){
             router.stop();
@@ -181,8 +181,9 @@ describe('QueueRouter',function() {
         }).start();
     });
 
-    it('should transmit a basic message without a sequenceNumber (and HACK an undefined attribute for code coverage)',function(done){
-        test.mockredis.lookup.brpop = [['m2m-transmit:queue','{"timestamp":0,"hack":1}']];
+    it('should transmit a basic message without a sequenceNumber or timestamp (and HACK an undefined attribute for code coverage)',function(done){
+        test.timekeeper.freeze(1000000000000);
+        test.mockredis.lookup.brpop = [['m2m-transmit:queue','{"hack":1}']];
         test.mockredis.lookup.get['m2m-transmit:last-sequence-number'] = 1;
 
         var router = new QueueRouter(redis,testGateway).on('note',function(event){
@@ -193,7 +194,7 @@ describe('QueueRouter',function() {
                 {brpop: router.queueArgs},
                 {incr: 'm2m-transmit:last-sequence-number'},
                 {mset: [
-                    'm2m-ack:message','{"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                    'm2m-ack:message','{"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":1000000000000,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
                     'm2m-ack:route-key','none',
                     'm2m-ack:retries',0,
                     'm2m-ack:sequence-number',2
@@ -201,10 +202,11 @@ describe('QueueRouter',function() {
             ]);
             test.pp.snapshot().should.eql([
                 '[router    ] start router',
-                '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":1000000000000,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
                 "[router    ] outgoing - size: 34 from: localhost:4001",
                 '[router    ] stop router'
             ]);
+            test.timekeeper.reset();
             done();
         }).start();
     });
@@ -336,18 +338,6 @@ describe('QueueRouter',function() {
         test.pp.snapshot().should.eql([
             '[router    ] start router',
             '[router    ] check depth underflow(test): -1',
-            '[router    ] stop router'
-        ]);
-        test.mockredis.snapshot().should.eql([]);
-    });
-
-    it('should detect a redis error when processing redis commands',function(){
-        var router = new QueueRouter(redis).start();
-        router.redisLogError('test error',null);
-        router.stop();
-        test.pp.snapshot().should.eql([
-            '[router    ] start router',
-            '[router    ] redis error: test error',
             '[router    ] stop router'
         ]);
         test.mockredis.snapshot().should.eql([]);

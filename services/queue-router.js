@@ -76,8 +76,10 @@ QueueRouter.prototype.start = function() {
     self.startCalled = true;
     self.idleCount = 0;
     self.checkDepth = 0;
-    self.redisLogErrorCallback = function(err,value){ self.redisLogError(err,value) };
-    self.checkQueueCallback = function(){ self.checkQueue(); };
+    self.checkQueueCallback = function(){
+console.log('async called:' + self.ready());
+        self.checkQueue();
+    };
     self.asyncCheckQueue();
     return self;
 };
@@ -97,36 +99,44 @@ QueueRouter.prototype.addRoute = function(router){
     return this;
 };
 
+QueueRouter.prototype.nestedCall = function(callback){
+
+};
+
 QueueRouter.prototype.checkQueue = function(){
     this.timeout && clearTimeout(this.timeout);
     this.timeout = null;
 
     var self = this;
     self.redis.mget(ACK_STATE_KEYS,_.bind(self.redisCheckResult,self,'checkQueue-mget',_,_,function(values){
+console.log('mget:' + values);
         var ackState = getAckState(values);
         if (ackState.message)
             self.redis.brpop([schema.ack.queue.key,self.config.timeoutInterval],_.bind(self.redisCheckResult,self,'checkQueue-brpop1',_,_,function(result){
+console.log('brpop1:' + result);
                 if (result && result[0] == schema.ack.queue.key && +result[1] === +ackState.sequenceNumber) {
                     logger.info('acked: ' + ackState.sequenceNumber);
-                    self.redis.del(ACK_STATE_KEYS,self.redisLogErrorCallback);
-
-                    var route = self.routes[ackState.routeKey];
-                    route && route.noteAck(+ackState.sequenceNumber);
-
-                    self.emit('note','ack');
+                    self.redis.del(ACK_STATE_KEYS,_.bind(self.redisCheckResult,self,'checkQueue-del1',_,_,function(){
+                        var route = self.routes[ackState.routeKey];
+                        route && route.noteAck(+ackState.sequenceNumber);
+                        self.emit('note','ack');
+                    }));
                 } else if (+ackState.retries >= self.config.maxRetries) {
                     logger.error('too many retries: ' + ackState.message);
-                    self.redis.del(ACK_STATE_KEYS,self.redisLogErrorCallback);
-                    self.emit('note','error');
+                    self.redis.del(ACK_STATE_KEYS,_.bind(self.redisCheckResult,self,'checkQueue-del2',_,_,function(){
+                        self.emit('note','error');
+                    }));
                 } else {
                     logger.info('retry: ' + ackState.sequenceNumber);
-                    self.redis.incr(schema.ack.retries.key,self.redisLogErrorCallback);
-                    self.transmitMessage(new m2m.Message({json: ackState.message}));
-                    self.emit('note','retry');
+                    self.redis.incr(schema.ack.retries.key,_.bind(self.redisCheckResult,self,'checkQueue-incr',_,_,function(){
+                        self.transmitMessage(new m2m.Message({json: ackState.message}));
+                        self.emit('note','retry');
+                    }));
                 }
             }));
         else
             self.redis.brpop(self.queueArgs,_.bind(self.redisCheckResult,self,'checkQueue-brpop2',_,_,function(result){
+console.log('brpop2:' + result);
                 if (!result) {
                     (++self.idleCount % self.config.idleReport == 0) && logger.info('idle: ' + self.idleCount);
                     self.emit('note','idle');
@@ -171,11 +181,12 @@ QueueRouter.prototype.generateMessage = function(attributes) {
 };
 
 QueueRouter.prototype.assembleMessage = function(eventCode,timestamp,sequenceNumber,attributes){
+    var self = this;
     var message = new m2m.Message({messageType: m2m.Common.MOBILE_ORIGINATED_EVENT,eventCode: eventCode,sequenceNumber: +sequenceNumber,timestamp: timestamp})
-        .pushString(0,this.gateway.imei);
+        .pushString(0,self.gateway.imei);
     _.each(attributes,function(value,key){
         var code = +key;
-        if (code > 0)
+        if (code > 0 && value !== null)
             switch(typeof value){
                 case 'number':
                     message.pushInt(code,value);
@@ -183,16 +194,17 @@ QueueRouter.prototype.assembleMessage = function(eventCode,timestamp,sequenceNum
                 case 'string':
                     message.pushString(code,value);
                     break;
-                // istanbul ignore next - TODO improve this...
+                // istanbul ignore next - TODO improve self...
                 default:
                     logger.error('unexpected key/value: ' + key + '=' + value);
 
             }
     });
 
-    this.redis.mset(ackStatePairs(message,null),this.redisLogError);
-    this.transmitMessage(message);
-    this.emit('note','transmit')
+    self.redis.mset(ackStatePairs(message,null),_.bind(self.redisCheckResult,self,'assembleMessage',_,_,function(){
+        self.transmitMessage(message);
+        self.emit('note','transmit')
+    }));
 };
 
 QueueRouter.prototype.transmitMessage = function(message){
@@ -202,22 +214,26 @@ QueueRouter.prototype.transmitMessage = function(message){
 };
 
 QueueRouter.prototype.asyncCheckQueue = function(){
+console.log('async submit:' + this.ready());
     if (this.ready()) this.timeout = setTimeout(this.checkQueueCallback,1);
 };
 
 QueueRouter.prototype.redisCheckResult = function(caller,err,value,callback) {
     if (!err) {
         try {
+console.log(caller + ' before:' + this.checkDepth);            
             this.checkDepth++;
             callback(value);
         } catch(e) {
             logger.error('check callback failure(' + caller + '): ' + e);
-            this.emit('note','error');
             // istanbul ignore else - NOTE re-throw what is likely an assert failuring during testing
             if (process.env.testing) throw(e);
+            this.emit('note','error');
         }
         this.checkDepth--;
+console.log(caller + ' after:' + this.checkDepth);
     } else {
+console.log(caller + ' error:' + this.checkDepth);
         logger.error('redis check error(' + caller + '): ' + err);
         this.emit('note','error');
         this.asyncCheckQueue();
@@ -227,13 +243,6 @@ QueueRouter.prototype.redisCheckResult = function(caller,err,value,callback) {
         this.emit('note','error');
     } else if (this.checkDepth == 0 && this.ready()) {
         this.asyncCheckQueue();
-    }
-};
-
-QueueRouter.prototype.redisLogError = function(err) {
-    if (err) {
-        logger.error('redis error: ' + err);
-        this.emit('note','error');
     }
 };
 

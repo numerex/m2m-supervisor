@@ -82,11 +82,11 @@ DeviceRouter.prototype.processQueueEntry = function(entry){
             logger.error('error(' + self.deviceKey + '): ' + error);
         else
             logger.info('response(' + self.deviceKey + '): ' + response);
-
-        // TODO improve...
-        var message = {'10': command};
-        if (error) message['11'] = error;
-        
+        self.redis.lpush(schema.transmit.queue.key,JSON.stringify({
+            10: command,
+            11: response,
+            12: error
+        })); // TODO do we need to log errors??
     });
 };
 

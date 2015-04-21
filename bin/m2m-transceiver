@@ -17,7 +17,7 @@ var redisChk = new RedisCheckpoint().start(function(redisEvent,redis) {
     var gatewayChk = new ConfigCheckpoint(redis,schema.config.key,configHashkeys.gateway,helpers.requirements(configHashkeys.gateway)).start(function(gatewayEvent,gateway) {
         if (gatewayEvent !== 'ready') return;
 
-        var queueRouter = new QueueRouter(redis,{},gateway);
+        var queueRouter = new QueueRouter(redis,gateway);
 
         var deviceCount = 0;
         var readyCount = 0;
@@ -27,10 +27,16 @@ var redisChk = new RedisCheckpoint().start(function(redisEvent,redis) {
 
             deviceCount++;
             var deviceRouter = new DeviceRouter(redis,deviceKey,function(status){
-                console.log('device status:' + status);
-                if (status !== 'ready') return;
-
-                queueRouter.addRoute(deviceRouter);
+                console.log('device status(' + deviceKey + '):' + status);
+                switch(status){
+                    case 'ready':
+                        queueRouter.addRoute(deviceRouter);
+                        break;
+                    case 'off':
+                        break;
+                    default:
+                        return;
+                }
                 if (deviceCount == ++readyCount) queueRouter.start();
             });
         });
