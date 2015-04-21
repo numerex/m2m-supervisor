@@ -249,7 +249,7 @@ describe('QueueRouter',function() {
                         '[router    ] retry: 2',
                         '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
                         "[router    ] outgoing - size: 34 from: localhost:4001",
-                        '[router    ] too many retries: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                        '[router    ] too many retries: 2',
                         '[test-route] error: 2',
                         '[router    ] stop router'
                     ]);

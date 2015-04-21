@@ -141,7 +141,7 @@ QueueRouter.prototype.checkQueue = function(){
                 }
             } else if (ackState.message){
                 if (+ackState.retries >= self.config.maxRetries) {
-                    logger.error('too many retries: ' + ackState.message);
+                    logger.error('too many retries: ' + ackState.sequenceNumber);
                     self.redis.send('del',ACK_STATE_KEYS).then(function(){
                         var route = self.routes[ackState.routeKey];
                         route && route.noteError(+ackState.sequenceNumber);
