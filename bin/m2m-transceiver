@@ -40,6 +40,7 @@ var redisChk = new RedisCheckpoint().start(function(redisEvent,redis) {
                 if (deviceCount == ++readyCount) queueRouter.start();
             });
         });
+        if (deviceCount == 0) queueRouter.start();
 
     });
 });
