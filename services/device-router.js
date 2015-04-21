@@ -14,6 +14,7 @@ function DeviceRouter(redis,deviceKey,note){
     self.redis = redis;
     self.deviceKey = deviceKey;
     self.queueKey = schema.device.queue.useParam(deviceKey);
+    self.messageBase = {queueKey: self.queueKey};
     self.settingsKey = schema.device.settings.useParam(deviceKey);
     self.noteStatus = note || function(){};
 
@@ -61,33 +62,33 @@ DeviceRouter.prototype.readerEvent = function(event){
             }
             break;
         default:
-            logger.error(' ingore reader event(' + self.deviceKey + '): ' + event);
+            logger.error('ignore reader event(' + self.deviceKey + '): ' + event);
     }
 };
 
 DeviceRouter.prototype.noteAck = function(sequenceNumber){
-    if (this.status !== 'ready')
-        logger.error('ack(' + self.deviceKey + ') status not ready: ' + self.status);
-    else {
-        logger.info('ack(' + self.deviceKey + ') received: ' + sequenceNumber);
-    }
+    logger.info('ack(' + self.deviceKey + ') received: ' + sequenceNumber);
+};
+
+DeviceRouter.prototype.noteError = function(sequenceNumber){
+    logger.info('error(' + self.deviceKey + ') received: ' + sequenceNumber);
 };
 
 DeviceRouter.prototype.processQueueEntry = function(entry){
     var self = this;
-    logger.info('queue entry(' + self.deviceKey + '): ' + entry);
-    entry = JSON.parse(entry);
-    if (entry.command) self.reader.submit(entry.command,function(error,command,response){
-        if (error)
-            logger.error('error(' + self.deviceKey + '): ' + error);
-        else
-            logger.info('response(' + self.deviceKey + '): ' + response);
-        self.redis.lpush(schema.transmit.queue.key,JSON.stringify({
-            10: command,
-            11: response,
-            12: error
-        })); // TODO do we need to log errors??
-    });
+    logger.info('queue entry(' + self.deviceKey + '): ' + JSON.stringify(entry));
+    if (entry && typeof entry === 'object' && entry.command)
+        self.reader.submit(entry.command,function(error,command,response){
+            if (error)
+                logger.error('error(' + self.deviceKey + '): ' + error);
+            else
+                logger.info('response(' + self.deviceKey + '): ' + response);
+            self.redis.lpush(schema.transmit.queue.key,JSON.stringify(_.defaults(self.messageBase,{
+                10: command,
+                11: response,
+                12: error
+            })));
+        });
 };
 
 module.exports = DeviceRouter;

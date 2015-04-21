@@ -32,7 +32,7 @@ describe('QueueRouter',function() {
         var router = new QueueRouter(redis);
         router.config.should.eql({idleReport: 12,maxRetries: 5,timeoutInterval: 5});
         router.routes.should.eql({});
-        router.queueArgs.should.eql(['m2m-ack:queue','m2m-transmit:queue',5]);
+        router.transmitArgs.should.eql(['m2m-ack:queue','m2m-transmit:queue',5]);
         test.pp.snapshot().should.eql([]);
         test.mockredis.snapshot().should.eql([]);
     });
@@ -43,7 +43,7 @@ describe('QueueRouter',function() {
         router.config.should.eql({idleReport: 10,maxRetries: 2,timeoutInterval: 1});
         router.gateway.should.eql(testGateway);
         router.routes.should.eql({testQueue: mockRoute});
-        router.queueArgs.should.eql(['m2m-ack:queue','m2m-transmit:queue','testQueue',1]);
+        router.transmitArgs.should.eql(['m2m-ack:queue','m2m-transmit:queue','testQueue',1]);
         test.pp.snapshot().should.eql([
             '[router    ] add route: testQueue'
         ]);
@@ -90,18 +90,18 @@ describe('QueueRouter',function() {
                 router.stop();
                 events.should.eql(['idle','idle','idle','idle','idle','idle','idle','idle','idle','idle','idle','idle']);
                 test.mockredis.snapshot().should.eql([
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs},
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs},
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs},
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs},
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs},
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs},
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs},
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs},
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs},
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs},
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs},
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs}
+                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs}
                 ]);
                 test.pp.snapshot().should.eql([
                     '[router    ] start router',
@@ -121,7 +121,7 @@ describe('QueueRouter',function() {
             event.should.eql('ignore');
             test.mockredis.snapshot().should.eql([
                 {mget: QueueRouter.ACK_STATE_KEYS},
-                {brpop: router.queueArgs}
+                {brpop: router.transmitArgs}
             ]);
             test.pp.snapshot().should.eql([
                 '[router    ] start router',
@@ -143,7 +143,7 @@ describe('QueueRouter',function() {
             router.stop();
             test.mockredis.snapshot().should.eql([
                 {mget: QueueRouter.ACK_STATE_KEYS},
-                {brpop: router.queueArgs}
+                {brpop: router.transmitArgs}
             ]);
             test.pp.snapshot().should.eql([
                 '[router    ] start router',
@@ -163,7 +163,7 @@ describe('QueueRouter',function() {
             event.should.eql('transmit');
             test.mockredis.snapshot().should.eql([
                 {mget: QueueRouter.ACK_STATE_KEYS},
-                {brpop: router.queueArgs},
+                {brpop: router.transmitArgs},
                 {mset: [
                     'm2m-ack:message','{"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":10,"sequenceNumber":1,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":1,"id":11,"value":12},{"type":2,"id":13,"value":"string"}]}',
                     'm2m-ack:route-key','none',
@@ -191,7 +191,7 @@ describe('QueueRouter',function() {
             event.should.eql('transmit');
             test.mockredis.snapshot().should.eql([
                 {mget: QueueRouter.ACK_STATE_KEYS},
-                {brpop: router.queueArgs},
+                {brpop: router.transmitArgs},
                 {incr: 'm2m-transmit:last-sequence-number'},
                 {mset: [
                     'm2m-ack:message','{"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":1000000000000,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
@@ -292,7 +292,7 @@ describe('QueueRouter',function() {
                 router.stop();
                 mockRoute.snapshot().should.eql(['test command']);
                 test.mockredis.snapshot().should.eql([
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.queueArgs}
+                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs}
                 ]);
                 test.pp.snapshot().should.eql([
                     '[router    ] add route: testQueue',

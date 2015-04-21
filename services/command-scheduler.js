@@ -35,10 +35,12 @@ CommandScheduler.prototype.stop = function() {
 };
 
 CommandScheduler.prototype.enqueueCommands = function(commands){
+    var self = this;
     var string = JSON.stringify(commands);
     logger.info('enqueue commands: ' + string);
-    self.redis.lpush(self.queueKey,string);
-    self.noteEvent('commands');
+    self.redis.lpush(self.queueKey,string).then(function(){
+        self.noteEvent('commands');
+    });
 };
 
 module.exports = CommandScheduler;

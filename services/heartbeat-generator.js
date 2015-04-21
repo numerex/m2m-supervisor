@@ -14,7 +14,6 @@ function HeartbeatGenerator(redis,proxy,config) {
     self.config = _.defaults(config || {},{
         heartbeatInterval:  60*60*1000
     });
-    self.stats = require('../lib/statsd-client')('heartbeat');    // NOTE - delay require for mockery testing
 }
 
 util.inherits(HeartbeatGenerator,events.EventEmitter);
@@ -27,7 +26,6 @@ HeartbeatGenerator.prototype.start = function() {
     if (this.started()) throw(new Error('already started'));
 
     logger.info('start heartbeat');
-    this.stats.increment('started');
 
     var self = this;
     self.sendHeartbeat(settings.EventCodes.startup);
@@ -39,52 +37,35 @@ HeartbeatGenerator.prototype.stop = function() {
     if (!this.started()) throw(new Error('not started'));
 
     logger.info('stop heartbeat');
-    this.stats.increment('stopped');
 
     clearInterval(this.interval);
 };
 
 HeartbeatGenerator.prototype.considerHeartbeat = function(){
     var self = this;
-    self.redis.get(schema.transmit.lastPrivateTimestamp.key,_.bind(self.redisResult,self,_,_,function(value){
-        if (new Date().valueOf() < +value + self.config.heartbeatInterval)
-            self.skipHeatbeat();
+    self.redis.get(schema.transmit.lastPrivateTimestamp.key).then(function(lastPrivateTimestamp){
+        if (new Date().valueOf() < +lastPrivateTimestamp + self.config.heartbeatInterval)
+            self.emit('note','skip');
         else {
-            self.redis.llen(schema.transmit.queue.key, _.bind(self.redisResult,self,_,_,function(value){
-                if (+value > 0)
-                    self.skipHeatbeat();
+            self.redis.llen(schema.transmit.queue.key).then(function(length){
+                if (+length > 0)
+                    self.emit('note','skip');
                 else
                     self.sendHeartbeat(settings.EventCodes.heartbeat);
-            }));
+            });
         }
-    }));
-};
-
-HeartbeatGenerator.prototype.skipHeatbeat = function(){
-    this.stats.increment('skipped');
-    this.emit('note','skip');
+    });
 };
 
 HeartbeatGenerator.prototype.sendHeartbeat = function(eventCode){
     var self = this;
-    self.redis.incr(schema.transmit.lastSequenceNumber.key,_.bind(self.redisResult,self,_,_,function(sequenceNumber){
+    self.redis.incr(schema.transmit.lastSequenceNumber.key).then(function(sequenceNumber){
         logger.info('send heartbeat: ' + eventCode);
         var message = new m2m.Message({messageType: m2m.Common.MOBILE_ORIGINATED_EVENT,eventCode: eventCode,sequenceNumber: sequenceNumber})
             .pushString(0,self.proxy.gateway.imei);
         self.proxy.sendPrimary(message.toWire(),message.sequenceNumber);
-        self.stats.increment('sent');
         self.emit('note','heartbeat');
-    }));
-};
-
-HeartbeatGenerator.prototype.redisResult = function(err,value,callback) {
-    if (!err)
-        callback(value);
-    else {
-        logger.error('redis error: ' + err);
-        this.stats.increment('error');
-        this.emit('note','error');
-    }
+    });
 };
 
 module.exports = HeartbeatGenerator;

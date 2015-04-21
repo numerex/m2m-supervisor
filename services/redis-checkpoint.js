@@ -22,7 +22,7 @@ RedisCheckpoint.prototype.start = function(callback) {
     logger.info('start checkpoint');
 
     var self = this;
-    self.redis = require('redis'); // NOTE - delay require for mockery testing
+    self.redis = require('then-redis'); // NOTE - delay require for mockery testing
 
     self.startCalled = true;
     self.attemptCheckCallback = function(){ self.attemptCheck(callback); };
@@ -55,12 +55,9 @@ RedisCheckpoint.prototype.attemptCheck = function(callback){
         self.timeout = setTimeout(self.attemptCheckCallback,self.config.retryInterval);
         callback && callback('retry');
     });
-    self.client && self.client.keys('*',function(err,keys){
-        // istanbul ignore else - SHOULD be captured by the event handler above
-        if (!err) {
-            self.keys = keys;
-            callback && callback('ready',self.client);
-        }
+    self.client && self.client.keys('*').then(function(keys){
+        self.keys = keys;
+        callback && callback('ready',self.client);
     });
 };
 

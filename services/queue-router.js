@@ -50,9 +50,16 @@ function QueueRouter(redis,gateway,config) {
     });
     self.redis = redis;
     self.routes = {};
-    self.queueArgs = COMMON_QUEUE_KEYS.concat([self.config.timeoutInterval]);
+    self.setQueueArgs();
     self.gateway = gateway;
     self.client = new UdpListener('router',null,function(buffer) { logger.info('unexpected response: ' + JSON.stringify(buffer)); });
+    self.on('queueResult',function(result){
+        self.emit('note',result);
+        self.emit('checkQueue');
+    });
+    self.on('checkQueue',function(){
+        self.checkQueue();
+    });
 }
 
 util.inherits(QueueRouter,events.EventEmitter);
@@ -75,12 +82,7 @@ QueueRouter.prototype.start = function() {
     var self = this;
     self.startCalled = true;
     self.idleCount = 0;
-    self.checkDepth = 0;
-    self.checkQueueCallback = function(){
-console.log('async called:' + self.ready());
-        self.checkQueue();
-    };
-    self.asyncCheckQueue();
+    self.emit('checkQueue');
     return self;
 };
 
@@ -95,70 +97,73 @@ QueueRouter.prototype.stop = function() {
 QueueRouter.prototype.addRoute = function(router){
     logger.info('add route: ' + router.queueKey);
     this.routes[router.queueKey] = router;
-    this.queueArgs = COMMON_QUEUE_KEYS.concat(_.keys(this.routes)).concat([this.config.timeoutInterval]);
+    this.setQueueArgs();
     return this;
 };
 
-QueueRouter.prototype.nestedCall = function(callback){
-
+QueueRouter.prototype.setQueueArgs = function(){
+    var routeKeys = _.keys(this.routes);
+    this.ackArgs = [schema.ack.queue.key].concat(routeKeys).concat([this.config.timeoutInterval]);
+    this.transmitArgs = COMMON_QUEUE_KEYS.concat(routeKeys).concat([this.config.timeoutInterval]);
 };
 
 QueueRouter.prototype.checkQueue = function(){
-    this.timeout && clearTimeout(this.timeout);
-    this.timeout = null;
+    if (!this.started()) return;
 
     var self = this;
-    self.redis.mget(ACK_STATE_KEYS,_.bind(self.redisCheckResult,self,'checkQueue-mget',_,_,function(values){
-console.log('mget:' + values);
+    self.redis.send('mget',ACK_STATE_KEYS).then(function(values){
         var ackState = getAckState(values);
-        if (ackState.message)
-            self.redis.brpop([schema.ack.queue.key,self.config.timeoutInterval],_.bind(self.redisCheckResult,self,'checkQueue-brpop1',_,_,function(result){
-console.log('brpop1:' + result);
-                if (result && result[0] == schema.ack.queue.key && +result[1] === +ackState.sequenceNumber) {
-                    logger.info('acked: ' + ackState.sequenceNumber);
-                    self.redis.del(ACK_STATE_KEYS,_.bind(self.redisCheckResult,self,'checkQueue-del1',_,_,function(){
-                        var route = self.routes[ackState.routeKey];
-                        route && route.noteAck(+ackState.sequenceNumber);
-                        self.emit('note','ack');
-                    }));
-                } else if (+ackState.retries >= self.config.maxRetries) {
-                    logger.error('too many retries: ' + ackState.message);
-                    self.redis.del(ACK_STATE_KEYS,_.bind(self.redisCheckResult,self,'checkQueue-del2',_,_,function(){
-                        self.emit('note','error');
-                    }));
-                } else {
-                    logger.info('retry: ' + ackState.sequenceNumber);
-                    self.redis.incr(schema.ack.retries.key,_.bind(self.redisCheckResult,self,'checkQueue-incr',_,_,function(){
-                        self.transmitMessage(new m2m.Message({json: ackState.message}));
-                        self.emit('note','retry');
-                    }));
-                }
-            }));
-        else
-            self.redis.brpop(self.queueArgs,_.bind(self.redisCheckResult,self,'checkQueue-brpop2',_,_,function(result){
-console.log('brpop2:' + result);
-                if (!result) {
-                    (++self.idleCount % self.config.idleReport == 0) && logger.info('idle: ' + self.idleCount);
-                    self.emit('note','idle');
-                } else if (result[0] === schema.ack.queue.key) {
-                    logger.warn('ignoring queue entry: ' + result[1]);
-                    self.emit('note','ignore');
-                } else if (result[0] === schema.transmit.queue.key) {
-                    var attributes = self.safeParseJSON(result[1]);
-                    if (attributes)
-                        self.generateMessage(attributes);
+        var queueArgs = ackState.message ? self.ackArgs : self.transmitArgs;
+        self.redis.send('brpop',queueArgs).then(function(result){
+            if (result) {
+                var queueKey = result[0];
+                var value = self.safeParseJSON(result[1]);
+                if (queueKey === schema.ack.queue.key) {
+                    if (ackState.message && +value === +ackState.sequenceNumber) {
+                        logger.info('acked: ' + ackState.sequenceNumber);
+                        self.redis.send('del',ACK_STATE_KEYS).then(function(){
+                            var route = self.routes[ackState.routeKey];
+                            route && route.noteAck(+ackState.sequenceNumber);
+                            self.noteQueueResult('ack');
+                        });
+                    } else {
+                        logger.warn('ignoring queue entry: ' + value);
+                        self.noteQueueResult('ignore');
+                    }
+                } else if (queueKey === schema.transmit.queue.key) {
+                    if (value)
+                        self.generateMessage(value);
                     else {
                         logger.error('invalid message received: ' + result[1]);
-                        self.emit('note','error');
+                        self.noteQueueResult('error');
                     }
                 } else {
-                    logger.info('route(' + result[0] + '): ' + result[1]);
-                    var route = self.routes[result[0]];
-                    route && route.processQueueEntry(result[1]);
-                    self.emit('note','command');
+                    logger.info('route(' + queueKey + '): ' + result[1]);
+                    var route = self.routes[queueKey];
+                    route && route.processQueueEntry(value);
+                    self.noteQueueResult('command');
                 }
-            }));
-    }));
+            } else if (ackState.message){
+                if (+ackState.retries >= self.config.maxRetries) {
+                    logger.error('too many retries: ' + ackState.message);
+                    self.redis.send('del',ACK_STATE_KEYS).then(function(){
+                        var route = self.routes[queueKey];
+                        route && route.noteError(value);
+                        self.noteQueueResult('error');
+                    });
+                } else {
+                    logger.info('retry: ' + ackState.sequenceNumber);
+                    self.redis.incr(schema.ack.retries.key).then(function(){
+                        self.transmitMessage(new m2m.Message({json: ackState.message}));
+                        self.noteQueueResult('retry');
+                    });
+                }
+            } else {
+                (++self.idleCount % self.config.idleReport == 0) && logger.info('idle: ' + self.idleCount);
+                self.noteQueueResult('idle');
+            }
+        });
+    });
 };
 
 QueueRouter.prototype.generateMessage = function(attributes) {
@@ -175,9 +180,9 @@ QueueRouter.prototype.generateMessage = function(attributes) {
     if (sequenceNumber)
         self.assembleMessage(eventCode,timestamp,sequenceNumber,attributes);
     else
-        self.redis.incr(schema.transmit.lastSequenceNumber.key,_.bind(self.redisCheckResult,self,'generateMessage',_,_,function(newSequenceNumber){
+        self.redis.incr(schema.transmit.lastSequenceNumber.key).then(function(newSequenceNumber){
             self.assembleMessage(eventCode,timestamp,newSequenceNumber,attributes);
-        }));
+        });
 };
 
 QueueRouter.prototype.assembleMessage = function(eventCode,timestamp,sequenceNumber,attributes){
@@ -201,10 +206,10 @@ QueueRouter.prototype.assembleMessage = function(eventCode,timestamp,sequenceNum
             }
     });
 
-    self.redis.mset(ackStatePairs(message,null),_.bind(self.redisCheckResult,self,'assembleMessage',_,_,function(){
+    self.redis.send('mset',ackStatePairs(message,null)).then(function(){
         self.transmitMessage(message);
-        self.emit('note','transmit')
-    }));
+        self.noteQueueResult('transmit');
+    });
 };
 
 QueueRouter.prototype.transmitMessage = function(message){
@@ -213,37 +218,8 @@ QueueRouter.prototype.transmitMessage = function(message){
     this.client.send(message.toWire(),'localhost',+this.gateway[this.gateway.primary + 'Relay']); // TODO which relay to use?
 };
 
-QueueRouter.prototype.asyncCheckQueue = function(){
-console.log('async submit:' + this.ready());
-    if (this.ready()) this.timeout = setTimeout(this.checkQueueCallback,1);
-};
-
-QueueRouter.prototype.redisCheckResult = function(caller,err,value,callback) {
-    if (!err) {
-        try {
-console.log(caller + ' before:' + this.checkDepth);            
-            this.checkDepth++;
-            callback(value);
-        } catch(e) {
-            logger.error('check callback failure(' + caller + '): ' + e);
-            // istanbul ignore else - NOTE re-throw what is likely an assert failuring during testing
-            if (process.env.testing) throw(e);
-            this.emit('note','error');
-        }
-        this.checkDepth--;
-console.log(caller + ' after:' + this.checkDepth);
-    } else {
-console.log(caller + ' error:' + this.checkDepth);
-        logger.error('redis check error(' + caller + '): ' + err);
-        this.emit('note','error');
-        this.asyncCheckQueue();
-    }
-    if (this.checkDepth < 0) {
-        logger.error('check depth underflow(' + caller + '): ' + this.checkDepth);
-        this.emit('note','error');
-    } else if (this.checkDepth == 0 && this.ready()) {
-        this.asyncCheckQueue();
-    }
+QueueRouter.prototype.noteQueueResult = function(result){
+    this.emit('queueResult',result);
 };
 
 QueueRouter.prototype.safeParseJSON = function(contents) {

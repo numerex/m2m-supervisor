@@ -40,16 +40,13 @@ ConfigCheckpoint.prototype.attemptCheck = function(callback){
     if (!this.started()) return;
 
     var self = this;
-    self.redis.hgetall(self.rootKey,function(err,hash){
+    self.redis.hgetall(self.rootKey).then(function(hash){
         hash = hash || {};
-        if (!err && _.difference(self.required,_.intersection(self.required,Object.keys(hash))).length == 0)
+        if (_.difference(self.required,_.intersection(self.required,Object.keys(hash))).length == 0)
             callback('ready',helpers.hash2config(hash,self.hashkeys));
         else {
+            logger.info('not ready');
             setTimeout(self.attemptCheckCallback,self.config.retryInterval);
-            if (err)
-                logger.error('redis error: ' + err);
-            else
-                logger.info('not ready');
             callback('retry');
         }
     });
