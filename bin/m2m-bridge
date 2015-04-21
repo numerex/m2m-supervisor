@@ -19,15 +19,17 @@ var redisChk = new RedisCheckpoint().start(function(event,redis) {
         if (event !== 'ready') return;
 
         var heartbeat = null;
+
+
         var modem = null;
         var proxy = new M2mProxy(redis,gateway);
         var route = new RouteWatcher(gateway)  // TODO detect failure and stop the dependent objects... then restart on ready
             .on('ready',function(){ if (!modem) {
                 modem = new ModemWatcher(gateway)
-                    .on('ready',function(){ if (!heartbeat) heartbeat = new HeartbeatGenerator(redis,proxy).start(); })
                     .on('imei',function(imei){
                         if (!gateway.imei)  proxy.gateway.imei = gateway.imei = imei;
                         redis.hsetnx(schema.config.key,hashkeys.gateway.imei.key,imei);
+                        if (!heartbeat) heartbeat = new HeartbeatGenerator(redis,proxy).start();
                     })
                     .start();
             }})
