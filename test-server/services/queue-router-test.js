@@ -173,6 +173,7 @@ describe('QueueRouter',function() {
             ]);
             test.pp.snapshot().should.eql([
                 '[router    ] start router',
+                '[router    ] valid message received: {"eventCode":10,"timestamp":0,"sequenceNumber":1,"11":12,"13":"string","14":null}',
                 '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":10,"sequenceNumber":1,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":1,"id":11,"value":12},{"type":2,"id":13,"value":"string"}]}',
                 "[router    ] outgoing - size: 49 from: localhost:4001",
                 '[router    ] stop router'
@@ -202,6 +203,7 @@ describe('QueueRouter',function() {
             ]);
             test.pp.snapshot().should.eql([
                 '[router    ] start router',
+                '[router    ] valid message received: {"hack":1}',
                 '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":1000000000000,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
                 "[router    ] outgoing - size: 34 from: localhost:4001",
                 '[router    ] stop router'

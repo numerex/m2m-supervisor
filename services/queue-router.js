@@ -127,9 +127,10 @@ QueueRouter.prototype.checkQueue = function(){
                         self.noteQueueResult('ignore');
                     }
                 } else if (queueKey === schema.transmit.queue.key) {
-                    if (value)
+                    if (value) {
+                        logger.error('valid message received: ' + result[1]);
                         self.generateMessage(value);
-                    else {
+                    } else {
                         logger.error('invalid message received: ' + result[1]);
                         self.noteQueueResult('error');
                     }
