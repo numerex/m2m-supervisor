@@ -67,11 +67,11 @@ DeviceRouter.prototype.readerEvent = function(event){
 };
 
 DeviceRouter.prototype.noteAck = function(sequenceNumber){
-    logger.info('ack(' + self.deviceKey + ') received: ' + sequenceNumber);
+    logger.info('ack(' + this.deviceKey + ') received: ' + sequenceNumber);
 };
 
 DeviceRouter.prototype.noteError = function(sequenceNumber){
-    logger.info('error(' + self.deviceKey + ') received: ' + sequenceNumber);
+    logger.info('error(' + this.deviceKey + ') received: ' + sequenceNumber);
 };
 
 DeviceRouter.prototype.processQueueEntry = function(entry){
