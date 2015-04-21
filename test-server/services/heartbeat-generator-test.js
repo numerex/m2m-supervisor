@@ -11,7 +11,6 @@ describe('HeartbeatGenerator',function() {
     beforeEach(function () {
         test.timekeeper.freeze(BASE_TIME);
         test.mockery.enable();
-        test.mockery.registerMock('lynx',test.mocklynx);
         test.mockery.registerMock('redis', test.mockredis);
         test.mockery.warnOnUnregistered(false);
         test.mockredis.reset();
@@ -32,9 +31,7 @@ describe('HeartbeatGenerator',function() {
 
     afterEach(function () {
         test.mockery.deregisterMock('redis');
-        test.mockery.deregisterMock('lynx');
         test.mockery.disable();
-        test.mocklynx.snapshot().should.eql([]);
         test.mockredis.snapshot().should.eql([]);
         test.pp.snapshot().should.eql([]);
         mockProxy.snapshot().should.eql([]);
@@ -57,12 +54,6 @@ describe('HeartbeatGenerator',function() {
                     '[heartbeat ] start heartbeat',
                     '[heartbeat ] send heartbeat: 1',
                     '[heartbeat ] stop heartbeat']);
-                test.mocklynx.snapshot().should.eql([
-                    {increment: 'started'},
-                    {increment: 'sent'},
-                    {increment: 'skipped'},
-                    {increment: 'stopped'}
-                ]);
                 test.mockredis.snapshot().should.eql([
                     {incr: 'm2m-transmit:last-sequence-number'},
                     {get: 'm2m-transmit:last-private-timestamp'}]);
@@ -92,12 +83,6 @@ describe('HeartbeatGenerator',function() {
                     '[heartbeat ] start heartbeat',
                     '[heartbeat ] send heartbeat: 1',
                     '[heartbeat ] stop heartbeat']);
-                test.mocklynx.snapshot().should.eql([
-                    {increment: 'started'},
-                    {increment: 'sent'},
-                    {increment: 'skipped'},
-                    {increment: 'stopped'}
-                ]);
                 test.mockredis.snapshot().should.eql([
                     {incr: 'm2m-transmit:last-sequence-number'},
                     {get: 'm2m-transmit:last-private-timestamp'},
@@ -130,12 +115,6 @@ describe('HeartbeatGenerator',function() {
                     '[heartbeat ] send heartbeat: 1',
                     '[heartbeat ] send heartbeat: 0',
                     '[heartbeat ] stop heartbeat']);
-                test.mocklynx.snapshot().should.eql([
-                    {increment: 'started'},
-                    {increment: 'sent'},
-                    {increment: 'sent'},
-                    {increment: 'stopped'}
-                ]);
                 test.mockredis.snapshot().should.eql([
                     {incr: 'm2m-transmit:last-sequence-number'},
                     {get: 'm2m-transmit:last-private-timestamp'},
@@ -152,62 +131,6 @@ describe('HeartbeatGenerator',function() {
         heartbeat.start();
     });
 
-    it('should throw an error if redis fails on incr',function(done){
-        test.mockredis.errors['m2m-transmit:last-sequence-number'] = 'test error';
-
-        var events = [];
-        var heartbeat = new HeartbeatGenerator(redis,mockProxy);
-        heartbeat.on('note',function(event){
-            events.push(event);
-            events.should.eql(['error']);
-            test.pp.snapshot().should.eql([
-                '[heartbeat ] start heartbeat',
-                '[heartbeat ] redis error: test error']);
-            test.mocklynx.snapshot().should.eql([
-                {increment: 'started'},
-                {increment: 'error'}
-            ]);
-            test.mockredis.snapshot().should.eql([
-                {incr: 'm2m-transmit:last-sequence-number'}
-            ]);
-            done();
-        });
-        heartbeat.start();
-    });
-
-    it('should throw an error if redis fails on get',function(done){
-        test.mockredis.errors['m2m-transmit:last-private-timestamp'] = 'test error';
-        test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = 0;
-        test.mockredis.lookup.get['m2m-transmit:last-sequence-number'] = 7;
-
-        var events = [];
-        var heartbeat = new HeartbeatGenerator(redis,mockProxy,{heartbeatInterval: 10});
-        heartbeat.on('note',function(event){
-            events.push(event);
-            if (events.length > 1) {
-                events.should.eql(['heartbeat','error']);
-                heartbeat.stop();
-                test.pp.snapshot().should.eql([
-                    '[heartbeat ] start heartbeat',
-                    '[heartbeat ] send heartbeat: 1',
-                    '[heartbeat ] redis error: test error',
-                    '[heartbeat ] stop heartbeat']);
-                test.mocklynx.snapshot().should.eql([
-                    {increment: 'started'},
-                    {increment: 'sent'},
-                    {increment: 'error'},
-                    {increment: 'stopped'}
-                ]);
-                test.mockredis.snapshot().should.eql([
-                    {incr: 'm2m-transmit:last-sequence-number'},
-                    {get: 'm2m-transmit:last-private-timestamp'}]);
-                mockProxy.snapshot().should.eql([['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>','8']]);
-                done();
-            }
-        });
-        heartbeat.start();
-    });
-
     it('should throw an error if start called twice',function(done){
         test.mockredis.lookup.get['m2m-transmit:last-sequence-number'] = 7;
 
@@ -218,10 +141,6 @@ describe('HeartbeatGenerator',function() {
             '[heartbeat ] start heartbeat',
             '[heartbeat ] send heartbeat: 1',
             '[heartbeat ] stop heartbeat']);
-        test.mocklynx.snapshot().should.eql([
-            {increment: 'started'},
-            {increment: 'sent'},
-            {increment: 'stopped'}]);
         test.mockredis.snapshot().should.eql([
             {incr: 'm2m-transmit:last-sequence-number'}
         ]);
@@ -233,7 +152,6 @@ describe('HeartbeatGenerator',function() {
         var heartbeat = new HeartbeatGenerator(redis,mockProxy);
         test.expect(function(){ heartbeat.stop(); }).to.throw('not started');
         test.pp.snapshot().should.eql([]);
-        test.mocklynx.snapshot().should.eql([]);
         test.mockredis.snapshot().should.eql([]);
         done();
     });

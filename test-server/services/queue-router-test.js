@@ -214,44 +214,51 @@ describe('QueueRouter',function() {
     it('should retry several times and then discard a message that is not acked',function(done){
         test.mockredis.lookup.get['m2m-ack:message'] = '{"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}';
         test.mockredis.lookup.get['m2m-ack:sequence-number'] = '2';
+        test.mockredis.lookup.get['m2m-ack:route-key'] = 'testQueue';
         test.mockredis.lookup.get['m2m-transmit:retries'] = '0';
 
         var events = [];
-        var router = new QueueRouter(redis,testGateway).on('note',function(event){
-            events.push(event);
-            if (event === 'error') {
-                router.stop();
-                test.mockredis.snapshot().should.eql([
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: ['m2m-ack:queue',5]},{incr: 'm2m-ack:retries'},
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: ['m2m-ack:queue',5]},{incr: 'm2m-ack:retries'},
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: ['m2m-ack:queue',5]},{incr: 'm2m-ack:retries'},
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: ['m2m-ack:queue',5]},{incr: 'm2m-ack:retries'},
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: ['m2m-ack:queue',5]},{incr: 'm2m-ack:retries'},
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: ['m2m-ack:queue',5]},{del: QueueRouter.ACK_STATE_KEYS}
-                ]);
-                test.pp.snapshot().should.eql([
-                    '[router    ] start router',
-                    '[router    ] retry: 2',
-                    '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                    "[router    ] outgoing - size: 34 from: localhost:4001",
-                    '[router    ] retry: 2',
-                    '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                    "[router    ] outgoing - size: 34 from: localhost:4001",
-                    '[router    ] retry: 2',
-                    '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                    "[router    ] outgoing - size: 34 from: localhost:4001",
-                    '[router    ] retry: 2',
-                    '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                    "[router    ] outgoing - size: 34 from: localhost:4001",
-                    '[router    ] retry: 2',
-                    '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                    "[router    ] outgoing - size: 34 from: localhost:4001",
-                    '[router    ] too many retries: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                    '[router    ] stop router'
-                ]);
-                done();
-            }
-        }).start();
+        var router = new QueueRouter(redis,testGateway)
+            .on('note',function(event){
+                events.push(event);
+                if (event === 'error') {
+                    router.stop();
+                    test.mockredis.snapshot().should.eql([
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{del: QueueRouter.ACK_STATE_KEYS}
+                    ]);
+                    test.pp.snapshot().should.eql([
+                        '[router    ] add route: testQueue',
+                        '[router    ] start router',
+                        '[router    ] retry: 2',
+                        '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                        "[router    ] outgoing - size: 34 from: localhost:4001",
+                        '[router    ] retry: 2',
+                        '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                        "[router    ] outgoing - size: 34 from: localhost:4001",
+                        '[router    ] retry: 2',
+                        '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                        "[router    ] outgoing - size: 34 from: localhost:4001",
+                        '[router    ] retry: 2',
+                        '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                        "[router    ] outgoing - size: 34 from: localhost:4001",
+                        '[router    ] retry: 2',
+                        '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                        "[router    ] outgoing - size: 34 from: localhost:4001",
+                        '[router    ] too many retries: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                        '[test-route] error: 2',
+                        '[router    ] stop router'
+                    ]);
+                    mockRoute.snapshot().should.eql([{error: 2}]);
+                    done();
+                }
+            })
+            .addRoute(mockRoute)
+            .start();
     });
 
     it('should handle an ack of an expected message',function(done){
@@ -267,16 +274,17 @@ describe('QueueRouter',function() {
                 events.push(event);
                 if (event === 'ack') {
                     router.stop();
-                    mockRoute.snapshot().should.eql([2]);
                     test.mockredis.snapshot().should.eql([
-                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: ['m2m-ack:queue',5]},{del: QueueRouter.ACK_STATE_KEYS}
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{del: QueueRouter.ACK_STATE_KEYS}
                     ]);
                     test.pp.snapshot().should.eql([
                         '[router    ] add route: testQueue',
                         '[router    ] start router',
                         '[router    ] acked: 2',
+                        '[test-route] ack: 2',
                         '[router    ] stop router'
                     ]);
+                    mockRoute.snapshot().should.eql([{ack: 2}]);
                     done();
                 }
             })
@@ -285,62 +293,26 @@ describe('QueueRouter',function() {
     });
 
     it('should handle an routed command',function(done){
-        test.mockredis.lookup.brpop = [['testQueue','test command']];
+        test.mockredis.lookup.brpop = [['testQueue','"test command"']];
 
         var router = new QueueRouter(redis,testGateway)
             .on('note',function(){
                 router.stop();
-                mockRoute.snapshot().should.eql(['test command']);
                 test.mockredis.snapshot().should.eql([
                     {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs}
                 ]);
                 test.pp.snapshot().should.eql([
                     '[router    ] add route: testQueue',
                     '[router    ] start router',
-                    '[router    ] route(testQueue): test command',
+                    '[router    ] route(testQueue): "test command"',
+                    '[test-route] command: test command',
                     '[router    ] stop router'
                 ]);
+                mockRoute.snapshot().should.eql([{command: 'test command'}]);
                 done();
             })
             .addRoute(mockRoute)
             .start();
-    });
-
-    it('should detect a redis error when processing redis commands',function(){
-        var router = new QueueRouter(redis).start();
-        router.redisCheckResult('test','test error',null,null);
-        router.stop();
-        test.pp.snapshot().should.eql([
-            '[router    ] start router',
-            '[router    ] redis check error(test): test error',
-            '[router    ] stop router'
-        ]);
-        test.mockredis.snapshot().should.eql([]);
-    });
-
-    it('should detect a callback exception when processing redis commands',function(){
-        var router = new QueueRouter(redis).start();
-        test.expect(function(){ router.redisCheckResult('test',null,null,null); }).to.throw('object is not a function');
-        router.stop();
-        test.pp.snapshot().should.eql([
-            '[router    ] start router',
-            '[router    ] check callback failure(test): TypeError: object is not a function',
-            '[router    ] stop router'
-        ]);
-        test.mockredis.snapshot().should.eql([]);
-    });
-
-    it('should detect check underflow',function(){
-        var router = new QueueRouter(redis).start();
-        router.checkDepth--;
-        router.redisCheckResult('test',null,null,function(){});
-        router.stop();
-        test.pp.snapshot().should.eql([
-            '[router    ] start router',
-            '[router    ] check depth underflow(test): -1',
-            '[router    ] stop router'
-        ]);
-        test.mockredis.snapshot().should.eql([]);
     });
 
 });

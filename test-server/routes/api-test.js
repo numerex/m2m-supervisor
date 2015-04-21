@@ -5,7 +5,7 @@ describe('API router',function() {
 
     before(function () {
         test.mockery.enable();
-        test.mockery.registerMock('redis', test.mockredis);
+        test.mockery.registerMock('then-redis', test.mockredis);
         test.mockery.warnOnUnregistered(false);
         app = require(process.cwd() + '/app');
     });
@@ -112,32 +112,6 @@ describe('API router',function() {
                     '[redis-chk ] start checkpoint',
                     '[api       ] config changes: {"gateway:primary":"private"}',
                     /^\[express   \] \S+ <-- POST \/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
-                    '[redis-chk ] stop checkpoint'
-                ]);
-                done();
-            });
-    });
-
-    it('GET /config should detect that a redis error',function(done) {
-        test.mockredis.errors['m2m-config'] = 'test error';
-        var request = require('supertest');
-        request(app).get('/api/config')
-            .expect('Content-Type',/json/)
-            .expect(200)
-            .end(function(err,res){
-                test.should.not.exist(err);
-                res.text.should.eql('{"error":"redis error: test error"}');
-                require(process.cwd() + '/routes/api').resetRedisChk();
-                test.mockredis.snapshot().should.eql([
-                    {keys: '*'},
-                    {hgetall: 'm2m-config'},
-                    {quit: null}
-                ]);
-                test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
-                    '[redis-chk ] start checkpoint',
-                    '[api       ] redis error: test error',
-                    /^\[express   \] \S+ <-- GET \/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
                     '[redis-chk ] stop checkpoint'
                 ]);
                 done();

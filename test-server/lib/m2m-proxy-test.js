@@ -116,7 +116,7 @@ describe('M2mProxy',function() {
             events.push(type);
         });
 
-        test.timekeeper.freeze(1428594562570);
+        test.timekeeper.freeze(1000000000000);
         proxy.private.client.events.message('test',{address: 'localhost',port: 1234});
         events.should.eql(['private']);
         mockdgram.deliveries.should.eql([['test',0,4,3011,'private-host']]);
@@ -125,7 +125,7 @@ describe('M2mProxy',function() {
             '[outside   ] outgoing - size: 4 from: private-host:3011'
         ]);
         test.mockredis.snapshot().should.eql([
-            {mset: ['m2m-transmit:last-timestamp',1428594562570,'m2m-transmit:last-private-timestamp',1428594562570]}
+            {mset: ['m2m-transmit:last-timestamp',1000000000000,'m2m-transmit:last-private-timestamp',1000000000000]}
         ]);
         test.timekeeper.reset();
     });
@@ -137,7 +137,7 @@ describe('M2mProxy',function() {
             events.push(type);
         });
 
-        test.timekeeper.freeze(1428594562570);
+        test.timekeeper.freeze(1000000000000);
         proxy.public.client.events.message('test',{address: 'localhost',port: 1234});
         events.should.eql(['public']);
         mockdgram.deliveries.should.eql([['test',0,4,3011,'public-host']]);
@@ -146,13 +146,13 @@ describe('M2mProxy',function() {
             '[outside   ] outgoing - size: 4 from: public-host:3011'
         ]);
         test.mockredis.snapshot().should.eql([
-            {set: ['m2m-transmit:last-timestamp',1428594562570]}
+            {set: ['m2m-transmit:last-timestamp',1000000000000]}
         ]);
         test.timekeeper.reset();
     });
 
     it('should send a public and then a primvate message using sendPrimary',function(){
-        test.timekeeper.freeze(1428594562570);
+        test.timekeeper.freeze(1000000000000);
 
         var events = [];
         var proxy = new M2mProxy(redis,defaults);
@@ -170,8 +170,8 @@ describe('M2mProxy',function() {
             '[outside   ] outgoing - size: 4 from: private-host:3011'
         ]);
         test.mockredis.snapshot().should.eql([
-            {set: ['m2m-transmit:last-timestamp',1428594562570]},
-            {mset: ['m2m-transmit:last-timestamp',1428594562570,'m2m-transmit:last-private-timestamp',1428594562570]}
+            {set: ['m2m-transmit:last-timestamp',1000000000000]},
+            {mset: ['m2m-transmit:last-timestamp',1000000000000,'m2m-transmit:last-private-timestamp',1000000000000]}
         ]);
         test.timekeeper.reset();
     });

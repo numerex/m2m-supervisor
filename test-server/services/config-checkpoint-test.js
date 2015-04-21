@@ -40,29 +40,6 @@ describe('ConfigCheckpoint',function() {
         checkpoint.config.should.eql({retryInterval: 1000,extra: 1});
     });
 
-    it('should retry if redis responds with an error',function(done){
-        test.mockredis.errors['m2m-config'] = 'test error';
-
-        var count = 0;
-        var checkpoint = new ConfigCheckpoint(redis,schema.config.key,null,null,{retryInterval: 10});
-        checkpoint.start(function(event,config){
-            event.should.eql('retry');
-            if (count++ > 0) {
-                checkpoint.stop();
-                test.pp.snapshot().should.eql([
-                    '[cfg-chk   ] start checkpoint',
-                    '[cfg-chk   ] redis error: test error',
-                    '[cfg-chk   ] redis error: test error',
-                    '[cfg-chk   ] stop checkpoint'
-                ]);
-                test.mockredis.snapshot().should.eql([
-                    {hgetall: 'm2m-config'},
-                    {hgetall: 'm2m-config'}]);
-                done();
-            }
-        });
-    });
-
     it('should retry if no configuration exists and there are any requirements',function(done){
         test.mockredis.lookup.hgetall['m2m-config'] = null;
 

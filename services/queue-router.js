@@ -55,7 +55,7 @@ function QueueRouter(redis,gateway,config) {
     self.client = new UdpListener('router',null,function(buffer) { logger.info('unexpected response: ' + JSON.stringify(buffer)); });
     self.on('queueResult',function(result){
         self.emit('note',result);
-        self.emit('checkQueue');
+        _.defer(function (){ self.emit('checkQueue'); });
     });
     self.on('checkQueue',function(){
         self.checkQueue();
@@ -70,10 +70,6 @@ QueueRouter.prototype.started = function(){
     return !!this.startCalled;
 };
 
-QueueRouter.prototype.ready = function(){
-    return this.started() && !!this.gateway;
-};
-
 QueueRouter.prototype.start = function() {
     if (this.started()) throw(new Error('already started'));
 
@@ -82,7 +78,7 @@ QueueRouter.prototype.start = function() {
     var self = this;
     self.startCalled = true;
     self.idleCount = 0;
-    self.emit('checkQueue');
+    _.defer(function(){ self.emit('checkQueue'); });
     return self;
 };
 
@@ -147,8 +143,8 @@ QueueRouter.prototype.checkQueue = function(){
                 if (+ackState.retries >= self.config.maxRetries) {
                     logger.error('too many retries: ' + ackState.message);
                     self.redis.send('del',ACK_STATE_KEYS).then(function(){
-                        var route = self.routes[queueKey];
-                        route && route.noteError(value);
+                        var route = self.routes[ackState.routeKey];
+                        route && route.noteError(+ackState.sequenceNumber);
                         self.noteQueueResult('error');
                     });
                 } else {

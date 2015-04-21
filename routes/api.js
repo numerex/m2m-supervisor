@@ -17,44 +17,20 @@ function checkRedis(callback){
     callback();
 }
 
-function commonRedisCall(res,callback){
-    try {
-        callback();
-    } catch(e) {
-        // istanbul ignore next - not sure how to generate this error in mocking
-        logger.error('redis exception: ' + e);
-        // istanbul ignore next - not sure how to generate this error in mocking
-        res.send({error: 'redis exception: ' + e});
-    }
-}
-
-function commonRedisResult(res,err,result,callback){
-    if (!err)
-        callback(result);
-    else {
-        logger.error('redis error: ' + err);
-        res.send({error: 'redis error: ' + err});
-    }
-}
-
 function requestHash(res,hashKey,resultKey,template){
     if (!redisChk.ready())
         res.send({error: 'Redis not ready'});
     else
-        commonRedisCall(res,function(){
-            redisChk.client.hgetall(hashKey,_.bind(commonRedisResult,this,res,_,_,function(hash){
-                var result = {};
-                result[resultKey] = helpers.hash2groups(hash || {},template);
-                res.send(result);
-            }));
+        redisChk.client.hgetall(hashKey).then(function(hash){
+            var result = {};
+            result[resultKey] = helpers.hash2groups(hash || {},template);
+            res.send(result);
         });
 }
 
-function updateHash(res,updates,callback){
-    commonRedisCall(res,function() {
-        redisChk.client.hmset(updates, _.bind(commonRedisResult, this, res, _, _, function () {
-            callback();
-        }));
+function updateHash(updates,callback){
+    redisChk.client.send('hmset',updates).then(function () {
+        callback();
     });
 }
 
@@ -72,15 +48,13 @@ function changeHash(req,res,hashKey,callback){
     if (updates.length <= 1 && deletes.length <= 1)
         res.send({error: 'No changes requested'});
     else if (deletes.length <= 1)
-        updateHash(res,updates,callback);
+        updateHash(updates,callback);
     else
-        commonRedisCall(res,function(){
-            redisChk.client.hdel(deletes,_.bind(commonRedisResult,this,res,_,_,function(){
-                if (updates.length <= 1)
-                    callback();
-                else
-                    updateHash(res,updates,callback);
-            }));
+        redisChk.client.send('hdel',deletes).then(function(){
+            if (updates.length <= 1)
+                callback();
+            else
+                updateHash(updates,callback);
         });
 }
 
@@ -108,10 +82,8 @@ router.post('/config',function(req,res,next){
 // DEVICE ----------------
 
 function findDeviceIDs(res,callback){
-    commonRedisCall(res,function(){
-        redisChk.client.keys(schema.device.settings.keysPattern(),_.bind(commonRedisResult,this,res,_,_,function(keys){
-            callback(keys);
-        }));
+    redisChk.client.keys(schema.device.settings.keysPattern()).then(function(keys){
+        callback(keys);
     });
 }
 

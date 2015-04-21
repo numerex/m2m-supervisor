@@ -157,6 +157,7 @@ MockRedis.reset = function(){
     MockRedis.clientException = null;
     MockRedis.events = {};
     MockRedis.errors = {};
+    MockRedis.results = [];
     MockRedis.lookup = {
         brpop: [],
         keys: {},
@@ -175,69 +176,91 @@ MockRedis.snapshot = function(){
 };
 
 MockRedis.createClient = function () {
-    return {
+    var client = {
+        send: function(name,args) {
+            return (client[name])(args);
+        },
+        then: function(callback) {
+            var result = MockRedis.results;
+            MockRedis.results = null;
+            callback(result);
+            return client;
+        },
         end: function(){
             MockRedis.calls.push({end: null});
+            MockRedis.results = null;
+            return client;
         },
         on: function(event,callback) {
             MockRedis.events[event] = callback;
             if (event === 'error' && MockRedis.clientException) callback(MockRedis.clientException);
+            MockRedis.results = null;
+            return client;
         },
-        brpop: function(args,callback) {
+        brpop: function(args) {
             MockRedis.calls.push({brpop: args});
-            callback && callback(null,MockRedis.lookup.brpop.pop() || null);
+            MockRedis.results = MockRedis.lookup.brpop.pop() || null;
+            return client;
         },
-        del: function(args,callback){
+        del: function(args){
             MockRedis.calls.push({del: args});
             _.each(args,function(key){
                 MockRedis.lookup.get[key] = null;
             });
-            callback && callback(null,true);
+            MockRedis.results = null;
+            return client;
         },
-        get: function(key,callback) {
+        get: function(key) {
             MockRedis.calls.push({get: key});
-            callback && callback(MockRedis.errors[key] || null,MockRedis.lookup.get[key] || '0');
+            MockRedis.results = MockRedis.lookup.get[key] || '0';
+            return client;
         },
-        hdel: function(args,callback){
+        hdel: function(args){
             MockRedis.calls.push({hdel: args});
-            callback && callback(MockRedis.errors[args[0]] || null,0); // TODO what should the return be??
+            MockRedis.results = null;
+            return client;
         },
-        hgetall: function(key,callback){
+        hgetall: function(key){
             MockRedis.calls.push({hgetall: key});
-            callback && callback(MockRedis.errors[key] || null,MockRedis.lookup.hgetall[key]);
+            MockRedis.results = MockRedis.lookup.hgetall[key];
+            return client;
         },
-        hmset: function(args,callback){
+        hmset: function(args){
             MockRedis.calls.push({hmset: args});
-            callback && callback(MockRedis.errors[args[0]] || null,0); // TODO what should the return be??
+            MockRedis.results = null;
+            return client;
         },
-        incr: function(key,callback) {
+        incr: function(key) {
             MockRedis.calls.push({incr: key});
             var value = +(MockRedis.lookup.get[key] || '0') + 1;
             MockRedis.lookup.get[key] = value.toString();
-            callback && callback(MockRedis.errors[key] || null,MockRedis.lookup.get[key]);
+            MockRedis.results = MockRedis.lookup.get[key];
+            return client;
         },
-        keys: function(pattern,callback) {
+        keys: function(pattern) {
             MockRedis.calls.push({keys: pattern});
-            callback && callback(MockRedis.errors[pattern] || null,MockRedis.lookup.keys[pattern] || []);
+            MockRedis.results = MockRedis.lookup.keys[pattern] || [];
+            return client;
         },
-        llen: function(key,callback) {
+        llen: function(key) {
             MockRedis.calls.push({llen: key});
-            callback && callback(MockRedis.errors[key] || null,MockRedis.lookup.llen[key] || '0');
+            MockRedis.results = MockRedis.lookup.llen[key] || '0';
+            return client;
         },
-        lpush: function(key,value,callback) {
+        lpush: function(key,value) {
             MockRedis.calls.push({lpush: [key,value]});
             var list = MockRedis.lookup.lpush[key] = MockRedis.lookup.lpush[key] || [];
             list.unshift(value);
-            callback && callback(MockRedis.errors[key] || null,list.length);
+            MockRedis.results = null;
+            return client;
         },
-        mget: function(args,callback){
+        mget: function(args){
             MockRedis.calls.push({mget: args});
-            callback && callback(null, _.map(args,function(key){ return MockRedis.lookup.get[key] || null; }));
+            MockRedis.results = _.map(args,function(key){ return MockRedis.lookup.get[key] || null; });
+            return client;
         },
         mset: function(){
-            var callback = null;
             var args = _.toArray(arguments);
-            if (args.length > 0 && typeof args[args.length - 1] === 'function') callback = args.pop();
             if (args.length == 1 && _.isArray(args[0])) args = args[0];
 
             var key = null;
@@ -250,17 +273,22 @@ MockRedis.createClient = function () {
                 }
             });
             MockRedis.calls.push({mset: args});
-            callback && callback(null,args.length / 2);
+            MockRedis.results = null;
+            return client;
         },
-        set: function(key,value,callback){
+        set: function(key,value){
             MockRedis.calls.push({set: [key,value]});
             MockRedis.lookup.get[key] = value;
-            callback && callback(MockRedis.errors[key] || null,true);
+            MockRedis.results = null;
+            return client;
         },
         quit: function(){
             MockRedis.calls.push({quit: null});
+            MockRedis.results = null;
+            return client;
         }
-    }
+    };
+    return client;
 };
 
 module.exports.mockredis = MockRedis;
