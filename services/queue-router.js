@@ -35,7 +35,7 @@ function getAckState(values){
 function ackStatePairs(message,routeKey) {
     return [
         ACK_STATE_KEYS[0],JSON.stringify(message),
-        ACK_STATE_KEYS[1],routeKey || 'none',
+        ACK_STATE_KEYS[1],routeKey,
         ACK_STATE_KEYS[2],0,
         ACK_STATE_KEYS[3],message.sequenceNumber
     ];
