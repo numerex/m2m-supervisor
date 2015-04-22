@@ -156,7 +156,7 @@ describe('QueueRouter',function() {
     });
 
     it('should transmit a basic message providing sequenceNumber',function(done){
-        test.mockredis.lookup.brpop = [['m2m-transmit:queue','{"routeKey":"testQueue","eventCode":10,"timestamp":0,"sequenceNumber":1,"11":12,"13":"string","14":null}']];
+        test.mockredis.lookup.brpop = [['m2m-transmit:queue','{"routeKey":"testQueue","eventCode":10,"timestamp":0,"sequenceNumber":1,"11":12,"13":"string","14":null,"15":"\\u0001"}']];
 
         var router = new QueueRouter(redis,testGateway).on('note',function(event){
             router.stop();
@@ -165,7 +165,7 @@ describe('QueueRouter',function() {
                 {mget: QueueRouter.ACK_STATE_KEYS},
                 {brpop: router.transmitArgs},
                 {mset: [
-                    'm2m-ack:message','{"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":10,"sequenceNumber":1,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":1,"id":11,"value":12},{"type":2,"id":13,"value":"string"}]}',
+                    'm2m-ack:message','{"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":10,"sequenceNumber":1,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":1,"id":11,"value":12},{"type":2,"id":13,"value":"string"},{"type":11,"id":15,"value":{"type":"Buffer","data":[1]}}]}',
                     'm2m-ack:route-key','testQueue',
                     'm2m-ack:retries',0,
                     'm2m-ack:sequence-number',1
@@ -173,9 +173,9 @@ describe('QueueRouter',function() {
             ]);
             test.pp.snapshot().should.eql([
                 '[router    ] start router',
-                '[router    ] valid message received: {"routeKey":"testQueue","eventCode":10,"timestamp":0,"sequenceNumber":1,"11":12,"13":"string","14":null}',
-                '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":10,"sequenceNumber":1,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":1,"id":11,"value":12},{"type":2,"id":13,"value":"string"}]}',
-                "[router    ] outgoing - size: 49 from: localhost:4001",
+                '[router    ] valid message received: {"routeKey":"testQueue","eventCode":10,"timestamp":0,"sequenceNumber":1,"11":12,"13":"string","14":null,"15":"\\u0001"}',
+                '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":10,"sequenceNumber":1,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":1,"id":11,"value":12},{"type":2,"id":13,"value":"string"},{"type":11,"id":15,"value":{"type":"Buffer","data":[1]}}]}',
+                "[router    ] outgoing - size: 54 from: localhost:4001",
                 '[router    ] stop router'
             ]);
             done();

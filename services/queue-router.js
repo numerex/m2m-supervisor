@@ -111,56 +111,65 @@ QueueRouter.prototype.checkQueue = function(){
         var ackState = getAckState(values);
         var queueArgs = ackState.message ? self.ackArgs : self.transmitArgs;
         self.redis.send('brpop',queueArgs).then(function(result){
-            if (result) {
-                var queueKey = result[0];
-                var value = self.safeParseJSON(result[1]);
-                if (queueKey === schema.ack.queue.key) {
-                    if (ackState.message && +value === +ackState.sequenceNumber) {
-                        logger.info('acked: ' + ackState.sequenceNumber);
-                        self.redis.send('del',ACK_STATE_KEYS).then(function(){
-                            var route = self.routes[ackState.routeKey];
-                            route && route.noteAck(+ackState.sequenceNumber);
-                            self.noteQueueResult('ack');
-                        });
-                    } else {
-                        logger.warn('ignoring queue entry: ' + value);
-                        self.noteQueueResult('ignore');
-                    }
-                } else if (queueKey === schema.transmit.queue.key) {
-                    if (value) {
-                        logger.error('valid message received: ' + result[1]);
-                        self.generateMessage(value);
-                    } else {
-                        logger.error('invalid message received: ' + result[1]);
-                        self.noteQueueResult('error');
-                    }
-                } else {
-                    logger.info('route(' + queueKey + '): ' + result[1]);
-                    var route = self.routes[queueKey];
-                    route && route.processQueueEntry(value);
-                    self.noteQueueResult('command');
-                }
-            } else if (ackState.message){
-                if (+ackState.retries >= self.config.maxRetries) {
-                    logger.error('too many retries: ' + ackState.sequenceNumber);
-                    self.redis.send('del',ACK_STATE_KEYS).then(function(){
-                        var route = self.routes[ackState.routeKey];
-                        route && route.noteError(+ackState.sequenceNumber);
-                        self.noteQueueResult('error');
-                    });
-                } else {
-                    logger.info('retry: ' + ackState.sequenceNumber);
-                    self.redis.incr(schema.ack.retries.key).then(function(){
-                        self.transmitMessage(new m2m.Message({json: ackState.message}));
-                        self.noteQueueResult('retry');
-                    });
-                }
-            } else {
+            if (result)
+                self.processQueueEntry(result[0],result[1],ackState);
+            else if (ackState.message)
+                self.processPendingMessage(ackState);
+            else {
                 (++self.idleCount % self.config.idleReport == 0) && logger.info('idle: ' + self.idleCount);
                 self.noteQueueResult('idle');
             }
         });
     });
+};
+
+QueueRouter.prototype.processPendingMessage = function(ackState){
+    var self = this;
+    if (+ackState.retries >= self.config.maxRetries) {
+        logger.error('too many retries: ' + ackState.sequenceNumber);
+        self.redis.send('del',ACK_STATE_KEYS).then(function(){
+            var route = self.routes[ackState.routeKey];
+            route && route.noteError(+ackState.sequenceNumber);
+            self.noteQueueResult('error');
+        });
+    } else {
+        logger.info('retry: ' + ackState.sequenceNumber);
+        self.redis.incr(schema.ack.retries.key).then(function(){
+            self.transmitMessage(new m2m.Message({json: ackState.message}));
+            self.noteQueueResult('retry');
+        });
+    }
+};
+
+QueueRouter.prototype.processQueueEntry = function(queueKey,rawEntry,ackState){
+    var self = this;
+    var queueEntry = self.safeParseJSON(rawEntry);
+    if (queueKey === schema.ack.queue.key) {
+        if (ackState.message && +queueEntry === +ackState.sequenceNumber) {
+            logger.info('acked: ' + ackState.sequenceNumber);
+            self.redis.send('del',ACK_STATE_KEYS).then(function(){
+                var route = self.routes[ackState.routeKey];
+                route && route.noteAck(+ackState.sequenceNumber);
+                self.noteQueueResult('ack');
+            });
+        } else {
+            logger.warn('ignoring queue entry: ' + queueEntry);
+            self.noteQueueResult('ignore');
+        }
+    } else if (queueKey === schema.transmit.queue.key) {
+        if (queueEntry) {
+            logger.error('valid message received: ' + rawEntry);
+            self.generateMessage(queueEntry);
+        } else {
+            logger.error('invalid message received: ' + rawEntry);
+            self.noteQueueResult('error');
+        }
+    } else {
+        logger.info('route(' + queueKey + '): ' + rawEntry);
+        var route = self.routes[queueKey];
+        route && route.processQueueEntry(queueEntry);
+        self.noteQueueResult('command');
+    }
 };
 
 QueueRouter.prototype.generateMessage = function(attributes) {
@@ -197,7 +206,11 @@ QueueRouter.prototype.assembleMessage = function(routeKey,eventCode,timestamp,se
                     message.pushInt(code,value);
                     break;
                 case 'string':
-                    message.pushString(code,value);
+                    var json = JSON.stringify(value);
+                    if (json.length > value.length + 2) // NOTE add 2 for bounding quote characters...
+                        message.pushUByteArray(code,new Buffer(value))
+                    else
+                        message.pushString(code,value);
                     break;
                 // istanbul ignore next - TODO improve self...
                 default:
