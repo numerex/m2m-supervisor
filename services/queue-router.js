@@ -26,7 +26,7 @@ QueueRouter.ACK_STATE_KEYS = ACK_STATE_KEYS;
 function getAckState(values){
     return {
         message:        values[0],
-        routeKey:       values[1] || 'none',
+        routeKey:       values[1],
         retries:        values[2] || '0',
         sequenceNumber: values[3] || '0'
     }
