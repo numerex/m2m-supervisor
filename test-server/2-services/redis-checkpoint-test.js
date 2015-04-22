@@ -5,13 +5,13 @@ describe('RedisCheckpoint',function() {
 
     beforeEach(function () {
         test.mockery.enable();
-        test.mockery.registerMock('redis', test.mockredis);
+        test.mockery.registerMock('then-redis', test.mockredis);
         test.mockery.warnOnUnregistered(false);
         test.mockredis.reset();
     });
 
     afterEach(function () {
-        test.mockery.deregisterMock('redis');
+        test.mockery.deregisterMock('then-redis');
         test.mockery.disable();
         test.mockredis.snapshot().should.eql([]);
         test.pp.snapshot().should.eql([]);
