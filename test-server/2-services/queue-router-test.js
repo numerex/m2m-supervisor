@@ -1,4 +1,3 @@
-var _ = require('lodash');
 var test = require('../test');
 var QueueRouter = require(process.cwd() + '/services/queue-router');
 
