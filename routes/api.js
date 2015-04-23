@@ -127,6 +127,7 @@ router.post('/device',function(req,res,next){
             res.send({error: 'Device ID not provided'});
         else
             findDeviceIDs(res,function(keys){
+                id = id.replace(/[ :]/g,'-');
                 var newKey = schema.device.settings.useParam(id);
                 if (_.indexOf(keys,newKey) >= 0)
                     res.send({error: 'Device ID already used'});
