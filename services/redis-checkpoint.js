@@ -50,7 +50,7 @@ RedisCheckpoint.prototype.attemptCheck = function(callback){
     self.client = self.redis.createClient();
     self.client.on('error',function(error){
         logger.error('redis client error: ' + error);
-        self.client.end();
+        self.client.quit();
         self.client = null;
         self.timeout = setTimeout(self.attemptCheckCallback,self.config.retryInterval);
         callback && callback('retry');
