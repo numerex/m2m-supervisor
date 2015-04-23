@@ -176,19 +176,34 @@ MockRedis.snapshot = function(){
 };
 
 MockRedis.createClient = function () {
+    var internalClient = {
+        end: function(){
+            MockRedis.calls.push({end: null});
+        }
+    };
     var client = {
+        _redisClient: internalClient,
         send: function(name,args) {
             return (client[name])(args);
         },
         then: function(callback) {
-            var result = MockRedis.results;
-            MockRedis.results = null;
-            callback(result);
+            if (!MockRedis.clientException){
+                var result = MockRedis.results;
+                MockRedis.results = null;
+                callback(result);
+            }
             return client;
         },
+        error: function(callback){
+            if (MockRedis.clientException){
+                MockRedis.events.error && MockRedis.events.error(MockRedis.clientException);
+                callback(MockRedis.clientException);
+            }
+            return client;
+        },
+        done: function(){},
         on: function(event,callback) {
             MockRedis.events[event] = callback;
-            if (event === 'error' && MockRedis.clientException) callback(MockRedis.clientException);
             MockRedis.results = null;
             return client;
         },
