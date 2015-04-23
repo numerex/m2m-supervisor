@@ -18,6 +18,7 @@ function DataReader(device,config) {
     self.device.on('retry',function(reason) {
         logger.error('start error: ' + reason);
         self.emit('note','retry');
+        self.emit('retry');
     });
     self.device.on('ready',function(){
         self.emit('note','ready');
@@ -26,6 +27,7 @@ function DataReader(device,config) {
     self.device.on('error',function(error) {
         logger.error('read error: ' + error);
         self.emit('note','error');
+        self.emit('error');
     });
     self.device.on('data',function(data){
         var event = 'unknown';
@@ -84,17 +86,17 @@ DataReader.prototype.submit = function(command,callback){
     self.lastCommand = null;
     self.responseCallback = null;
     if (!self.ready())
-        callback && callback('error','not ready');
+        callback && callback('not ready',null,null);
     else
         logger.info('command: ' + JSON.stringify(command));
-        self.device.writeBuffer(self.config.commandPrefix + command + self.config.commandSuffix,function(error) {
-            if (error)
-                callback && callback('error',error);
-            else {
-                self.lastCommand = command;
-                self.responseCallback = callback;
-            }
-        });
+    self.device.writeBuffer(self.config.commandPrefix + command + self.config.commandSuffix,function(error) {
+        if (error)
+            callback && callback(error,null,null);
+        else {
+            self.lastCommand = command;
+            self.responseCallback = callback;
+        }
+    });
 };
 
 module.exports = DataReader;

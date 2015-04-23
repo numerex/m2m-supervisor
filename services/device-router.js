@@ -1,10 +1,10 @@
 var _ = require('lodash');
 
-var TelnetDevice = require('../lib/telnet-device');
 var ConfigCheckpoint = require('./config-checkpoint');
 var DataReader = require('./data-reader');
 
 var logger = require('../lib/logger')('device');
+var builder = require('../lib/device-builder');
 var helpers = require('../lib/hash-helpers');
 var schema = require('../lib/redis-schema');
 var hashkeys = require('../lib/device-hashkeys');
@@ -22,13 +22,9 @@ function DeviceRouter(redis,deviceKey,note){
     self.connectionChk = new ConfigCheckpoint(redis,self.settingsKey,hashkeys.connection,helpers.requirements(hashkeys.connection)).start(function(connectionEvent,connectionConfig){
         if (connectionEvent !== 'ready') return;
 
-        switch(connectionConfig.type){
-            case 'telnet':
-                self.device = new TelnetDevice({host: connectionConfig.telnetAddress,port: connectionConfig.telnetPort});
-                break;
-            default:
-                return self.noteStatus(self.status = 'error','unavailable connection type(' + self.deviceKey +'): ' + connectionConfig.type);
-        }
+        if (!(self.device = builder.newDevice(connectionConfig)))
+            return self.noteStatus(self.status = 'error','unavailable connection type(' + self.deviceKey +'): ' + connectionConfig.type);
+
         self.routeChk = new ConfigCheckpoint(redis,self.settingsKey,hashkeys.route,helpers.requirements(hashkeys.route)).start(function(routeEvent,routeConfig){
             if (routeEvent !== 'ready') return;
 

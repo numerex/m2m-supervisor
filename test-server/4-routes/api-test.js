@@ -186,10 +186,10 @@ describe('API router',function() {
     });
 
     it('POST /device should detect an existing device ID',function(done){
-        test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:test:settings'];
+        test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:test-123:settings'];
 
         var request = require('supertest');
-        request(app).post('/api/device').send({id: 'test'})
+        request(app).post('/api/device').send({id: 'test 123'})
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -213,27 +213,27 @@ describe('API router',function() {
 
     it('POST /device should create a new device',function(done){
         test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:other:settings'];
-        test.mockredis.lookup.hgetall['m2m-device:test:settings'] = {'connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
+        test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
 
         var request = require('supertest');
-        request(app).post('/api/device').send({id: 'test','connection:telnet:address': 'localhost','connection:telnet:port': 10002})
+        request(app).post('/api/device').send({id: 'test abc:123','connection:telnet:address': 'localhost','connection:telnet:port': 10002})
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.eql('{"device:test":{"Connection":[{"key":"connection:type","label":"Type","options":["telnet","serial"],"type":"string","default":"telnet","required":true},{"key":"connection:telnet:address","label":"Telnet Address","type":"string","default":null,"required":true,"value":"localhost","exists":true},{"key":"connection:telnet:port","label":"Telnet Port","type":"number","default":10001,"required":true,"value":10002,"exists":true},{"key":"connection:serial:port","label":"Serial Port","type":"string","default":"/dev/tty0","required":true},{"key":"connection:serial:baud-rate","label":"Serial Baud Rate","type":"number","default":9600,"required":true}],"Route":[{"key":"route:type","label":"Type","options":["none","ad-hoc","scheduled"],"type":"string","default":"none"},{"key":"route:schedule","label":"Schedule","type":"string","default":null}]}}');
+                res.text.should.eql('{"device:test-abc-123":{"Connection":[{"key":"connection:type","label":"Type","options":["telnet","serial"],"type":"string","default":"telnet","required":true},{"key":"connection:telnet:address","label":"Telnet Address","type":"string","default":null,"required":true,"value":"localhost","exists":true},{"key":"connection:telnet:port","label":"Telnet Port","type":"number","default":10001,"required":true,"value":10002,"exists":true},{"key":"connection:serial:port","label":"Serial Port","type":"string","default":"/dev/tty0","required":true},{"key":"connection:serial:baud-rate","label":"Serial Baud Rate","type":"number","default":9600,"required":true}],"Route":[{"key":"route:type","label":"Type","options":["none","ad-hoc","scheduled"],"type":"string","default":"none"},{"key":"route:schedule","label":"Schedule","type":"string","default":null}]}}');
                 require(process.cwd() + '/routes/api').resetRedisChk();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
                     {keys: 'm2m-device:*:settings'},
-                    {hmset: ['m2m-device:test:settings','connection:telnet:address','localhost','connection:telnet:port',10002]},
-                    {hgetall: 'm2m-device:test:settings'},
+                    {hmset: ['m2m-device:test-abc-123:settings','connection:telnet:address','localhost','connection:telnet:port',10002]},
+                    {hgetall: 'm2m-device:test-abc-123:settings'},
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
                     /^\[express   \] \S+ --> POST \/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis-chk ] start checkpoint',
-                    '[api       ] device creation(test): {"connection:telnet:address":"localhost","connection:telnet:port":10002}',
+                    '[api       ] device creation(test-abc-123): {"connection:telnet:address":"localhost","connection:telnet:port":10002}',
                     /^\[express   \] \S+ <-- POST \/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis-chk ] stop checkpoint'
                 ]);
