@@ -35,7 +35,7 @@ describe('API router',function() {
                 res.text.should.eql('{"error":"Redis not ready"}');
                 require(process.cwd() + '/routes/api').resetRedisChk();
                 test.mockredis.snapshot().should.eql([
-                    {end: null}
+                    {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
                     /^\[express   \] \S+ --> GET \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
