@@ -186,11 +186,6 @@ MockRedis.createClient = function () {
             callback(result);
             return client;
         },
-        end: function(){
-            MockRedis.calls.push({end: null});
-            MockRedis.results = null;
-            return client;
-        },
         on: function(event,callback) {
             MockRedis.events[event] = callback;
             if (event === 'error' && MockRedis.clientException) callback(MockRedis.clientException);
