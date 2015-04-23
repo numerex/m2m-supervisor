@@ -47,18 +47,21 @@ RedisCheckpoint.prototype.stop = function(){
 RedisCheckpoint.prototype.attemptCheck = function(callback){
     var self = this;
     self.timeout = null;
-    self.client = self.redis.createClient();
-    self.client.on('error',function(error){
+    self.client = self.redis.createClient().on('error',function(error){
         logger.error('redis client error: ' + error);
-        self.client.quit();
+        // istanbul ignore else - this shouldn't occur, but just nervous about assuming it won't
+        if (self.client) self.client._redisClient.end();
         self.client = null;
         self.timeout = setTimeout(self.attemptCheckCallback,self.config.retryInterval);
         callback && callback('retry');
     });
-    self.client && self.client.keys('*').then(function(keys){
-        self.keys = keys;
-        callback && callback('ready',self.client);
-    });
+    self.client.keys('*')
+        .then(function(keys){
+            self.keys = keys;
+            callback && callback('ready',self.client);
+        })
+        .error(function(error){})
+        .done();
 };
 
 module.exports = RedisCheckpoint;
