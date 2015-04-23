@@ -38,7 +38,7 @@
     "jquery": "^2.1.3",
     "lodash": "^3.6.0",
     "lynx": "^0.2.0",
-    "m2m-ota-javascript": "0.0.6",
+    "m2m-ota-javascript": "1.0.7",
     "moment": "^2.10.0",
     "redis": "^0.12.1",
     "serialport": "^1.6.3",
