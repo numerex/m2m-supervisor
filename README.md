@@ -64,6 +64,8 @@ Testing
 This project is committed to maintaining full coverage for test suites of the operational code.
 In addition, it includes simulation tools to aid development and on-device testing:
 
-* **/bin/telnet-simulator** -- This process will listen on port 10001 for command sequences as defined in the `test-server/data/telnet-simulation-data.json` file and return the corresponding response.
+* **bin/telnet-simulator** -- This process will listen on port 10001 for command sequences as defined in the `test-server/data/telnet-simulation-data.json` file and return the corresponding response.
 In order to configure the **m2m-transceiver** to use the simulator, simply create a test device configuraion using the **web-server** by providing "localhost" as the Telnet Address --
 everything else should be left as a default.
+
+* **bin/data-tester** -- This process will take a device key on the command line -- none will assume a single device configured -- and, if it exists in Redis, will allow commands to be entered, displaying the response on the console.
