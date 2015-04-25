@@ -35,7 +35,7 @@ describe('HashWatcher',function() {
         watcher.rootKey.should.eql('test');
         watcher.hashkeys.should.eql(hashkeys);
         watcher.retryInterval.should.equal(1000);
-        watcher.checkHash(); // NOTE - should be ignored...
+        watcher.checkReady(); // NOTE - should be ignored...
     });
 
     it('should capture hash attributes when started and emit a change event',function(done){
@@ -49,8 +49,7 @@ describe('HashWatcher',function() {
                 count.should.equal(1);
                 hash.should.eql({test: 'test'});
                 watcher.hash.should.eql({test: 'test'});
-                watcher.ready().should.be.ok;
-                watcher.stop();
+                _.defer(function(){ watcher.stop(); });
             } else {
                 count.should.equal(2);
                 test.mockredis.snapshot().should.eql([
@@ -58,8 +57,9 @@ describe('HashWatcher',function() {
                 ]);
                 test.pp.snapshot().should.eql([
                     '[hash      ] start watching: test',
-                    '[hash      ] check hash: test',
+                    '[hash      ] check ready: test',
                     '[hash      ] hash changed: test',
+                    '[hash      ] now ready: test',
                     '[hash      ] stop watching: test'
                 ]);
                 done();
@@ -79,8 +79,7 @@ describe('HashWatcher',function() {
                 lastHash = hash;
                 hash.should.eql({test: 'test'});
                 watcher.hash.should.eql({test: 'test'});
-                watcher.ready().should.be.ok;
-                watcher.stop();
+                _.defer(function(){ watcher.stop(); });
             },
             stop: function(){
                 test.mockredis.snapshot().should.eql([
@@ -88,8 +87,9 @@ describe('HashWatcher',function() {
                 ]);
                 test.pp.snapshot().should.eql([
                     '[hash      ] start watching: test',
-                    '[hash      ] check hash: test',
+                    '[hash      ] check ready: test',
                     '[hash      ] hash changed: test',
+                    '[hash      ] now ready: test',
                     '[hash      ] stop watching: test'
                 ]);
                 done();
@@ -112,9 +112,9 @@ describe('HashWatcher',function() {
                 ]);
                 test.pp.snapshot().should.eql([
                     '[hash      ] start watching: test-hash',
-                    '[hash      ] check hash: test-hash',
+                    '[hash      ] check ready: test-hash',
                     '[hash      ] hash changed: test-hash',
-                    '[hash      ] check hash: test-hash',
+                    '[hash      ] check ready: test-hash',
                     '[hash      ] stop watching: test-hash'
                 ]);
                 done();
@@ -139,8 +139,7 @@ describe('HashWatcher',function() {
                 lastHash = hash;
                 hash.should.eql({test: 2});
                 watcher.hash.should.eql({'test-key': '2'});
-                watcher.ready().should.be.ok;
-                watcher.stop();
+                _.defer(function(){ watcher.stop(); });
             },
             stop: function(){
                 test.mockredis.snapshot().should.eql([
@@ -148,8 +147,9 @@ describe('HashWatcher',function() {
                 ]);
                 test.pp.snapshot().should.eql([
                     '[hash      ] start watching: test-hash',
-                    '[hash      ] check hash: test-hash',
+                    '[hash      ] check ready: test-hash',
                     '[hash      ] hash changed: test-hash',
+                    '[hash      ] now ready: test-hash',
                     '[hash      ] stop watching: test-hash'
                 ]);
                 done();
@@ -182,10 +182,12 @@ describe('HashWatcher',function() {
                 ]);
                 test.pp.snapshot().should.eql([
                     '[hash      ] start watching: test-hash',
-                    '[hash      ] check hash: test-hash',
+                    '[hash      ] check ready: test-hash',
                     '[hash      ] hash changed: test-hash',
-                    '[hash      ] check hash: test-hash',
+                    '[hash      ] now ready: test-hash',
+                    '[hash      ] check ready: test-hash',
                     '[hash      ] hash changed: test-hash',
+                    '[hash      ] now ready: test-hash',
                     '[hash      ] stop watching: test-hash'
                 ]);
                 done();
@@ -201,7 +203,7 @@ describe('HashWatcher',function() {
                         watcher.stop();
                     else {
                         test.mockredis.lookup.hgetall['test-hash'] = {'test-key': '2'};
-                        watcher.checkHash();
+                        watcher.checkReady();
                     }
                 });
             },
@@ -220,12 +222,9 @@ describe('HashWatcher',function() {
         test.expect(function(){ watcher.start(client); }).to.throw('already started');
         watcher.stop();
         test.mockredis.snapshot().should.eql([
-            {hgetall: 'test'}
         ]);
         test.pp.snapshot().should.eql([
             '[hash      ] start watching: test',
-            '[hash      ] check hash: test',
-            '[hash      ] hash changed: test',
             '[hash      ] stop watching: test'
         ]);
         done();
