@@ -1,3 +1,5 @@
+var _ = require('lodash');
+
 var test = require('../test');
 var RedisWatcher = require(process.cwd() + '/services/redis-watcher');
 
@@ -19,7 +21,7 @@ describe('RedisWatcher',function() {
 
     it('should properly initialize data with minimal arguments',function(){
         var watcher = new RedisWatcher();
-        watcher.config.should.eql({retryInterval: 5000});
+        watcher.retryInterval.should.equal(5000);
         test.pp.snapshot().should.eql([
             '[redis     ] instance created'
         ]);
@@ -28,7 +30,7 @@ describe('RedisWatcher',function() {
 
     it('should properly initialize data with all arguments',function(){
         var watcher = new RedisWatcher({retryInterval: 1000,extra: 1});
-        watcher.config.should.eql({retryInterval: 1000,extra: 1});
+        watcher.retryInterval.should.equal(1000);
         test.pp.snapshot().should.eql([
             '[redis     ] instance removed',
             '[redis     ] instance created'
@@ -49,7 +51,9 @@ describe('RedisWatcher',function() {
                         '[redis     ] instance removed',
                         '[redis     ] instance created',
                         '[redis     ] start watching',
+                        '[redis     ] check ready',
                         '[redis     ] redis client error: test error',
+                        '[redis     ] check ready',
                         '[redis     ] redis client error: test error',
                         '[redis     ] stop watching'
                     ]);
@@ -85,14 +89,20 @@ describe('RedisWatcher',function() {
                         '[redis     ] instance removed',
                         '[redis     ] instance created',
                         '[redis     ] start watching',
-                        '[redis     ] client ready',
+                        '[redis     ] check ready',
+                        '[redis     ] now ready',
                         '[redis     ] redis client error: test error',
-                        '[redis     ] client no longer ready',
+                        '[redis     ] no longer ready',
                         '[redis     ] redis client error: test error',
+                        '[redis     ] check ready',
+                        '[redis     ] redis client error: test error',
+                        '[redis     ] check ready',
                         '[redis     ] redis client error: test error',
                         '[redis     ] stop watching'
                     ]);
                     test.mockredis.snapshot().should.eql([
+                        {keys: '*'},
+                        {end: null},
                         {keys: '*'},
                         {end: null},
                         {keys: '*'},
@@ -113,7 +123,8 @@ describe('RedisWatcher',function() {
             if (client) {
                 watcher.ready().should.be.ok;
                 count.should.equal(1);
-                watcher.stop();
+                _.defer(function(){
+                    watcher.stop(); });
             } else {
                 watcher.ready().should.not.be.ok;
                 count.should.equal(2);
@@ -121,7 +132,8 @@ describe('RedisWatcher',function() {
                     '[redis     ] instance removed',
                     '[redis     ] instance created',
                     '[redis     ] start watching',
-                    '[redis     ] client ready',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
                     '[redis     ] stop watching'
                 ]);
                 test.mockredis.snapshot().should.eql([
@@ -150,20 +162,23 @@ describe('RedisWatcher',function() {
         var watcher = new RedisWatcher();
         watcher.addClientWatcher(clientWatcher);
         watcher.start();
-        watcher.stop();
-        clientWatcher.calls.should.eql(['start','stop']);
-        test.pp.snapshot().should.eql([
-            '[redis     ] instance removed',
-            '[redis     ] instance created',
-            '[redis     ] start watching',
-            '[redis     ] client ready',
-            '[redis     ] stop watching'
-        ]);
-        test.mockredis.snapshot().should.eql([
-            {keys: '*'},
-            {quit: null}
-        ]);
-        done();
+        _.defer(function(){
+            watcher.stop();
+            test.pp.snapshot().should.eql([
+                '[redis     ] instance removed',
+                '[redis     ] instance created',
+                '[redis     ] start watching',
+                '[redis     ] check ready',
+                '[redis     ] now ready',
+                '[redis     ] stop watching'
+            ]);
+            clientWatcher.calls.should.eql(['start','stop']);
+            test.mockredis.snapshot().should.eql([
+                {keys: '*'},
+                {quit: null}
+            ]);
+            done();
+        });
     });
 
     it('should stop a client watcher added after ready',function(done){
@@ -183,20 +198,23 @@ describe('RedisWatcher',function() {
         watcher.start();
         clientWatcher.client = watcher.client;
         watcher.addClientWatcher(clientWatcher);
-        watcher.stop();
-        clientWatcher.calls.should.eql(['stop']);
-        test.pp.snapshot().should.eql([
-            '[redis     ] instance removed',
-            '[redis     ] instance created',
-            '[redis     ] start watching',
-            '[redis     ] client ready',
-            '[redis     ] stop watching'
-        ]);
-        test.mockredis.snapshot().should.eql([
-            {keys: '*'},
-            {quit: null}
-        ]);
-        done();
+        _.defer(function() {
+            watcher.stop();
+            clientWatcher.calls.should.eql(['start','stop']);
+            test.pp.snapshot().should.eql([
+                '[redis     ] instance removed',
+                '[redis     ] instance created',
+                '[redis     ] start watching',
+                '[redis     ] check ready',
+                '[redis     ] now ready',
+                '[redis     ] stop watching'
+            ]);
+            test.mockredis.snapshot().should.eql([
+                {keys: '*'},
+                {quit: null}
+            ]);
+            done();
+        });
     });
 
     it('should throw an error if start called twice',function(done){
@@ -208,12 +226,9 @@ describe('RedisWatcher',function() {
             '[redis     ] instance removed',
             '[redis     ] instance created',
             '[redis     ] start watching',
-            '[redis     ] client ready',
             '[redis     ] stop watching'
         ]);
         test.mockredis.snapshot().should.eql([
-            {keys: '*'},
-            {quit: null}
         ]);
         done();
     });

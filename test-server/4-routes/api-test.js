@@ -42,6 +42,7 @@ describe('API router',function() {
                 test.matchArrays(test.pp.snapshot(),[
                     /^\[express   \] \S+ --> GET \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] start watching',
+                    '[redis     ] check ready',
                     '[redis     ] redis client error: test error',
                     /^\[express   \] \S+ <-- GET \/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
                     '[redis     ] stop watching'
@@ -69,7 +70,8 @@ describe('API router',function() {
                     /^\[express   \] \S+ --> GET \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
-                    '[redis     ] client ready',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
                     /^\[express   \] \S+ <-- GET \/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
                 ]);
                 done();
@@ -119,7 +121,8 @@ describe('API router',function() {
                     /^\[express   \] .* --> POST \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
-                    '[redis     ] client ready',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
                     '[api       ] config changes: {"gateway:primary":"private"}',
                     /^\[express   \] \S+ <-- POST \/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
                     '[redis     ] stop watching'
@@ -148,7 +151,8 @@ describe('API router',function() {
                     /^\[express   \] \S+ --> GET \/api\/devices HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
-                    '[redis     ] client ready',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
                     /^\[express   \] \S+ <-- GET \/api\/devices HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
@@ -175,7 +179,8 @@ describe('API router',function() {
                     /^\[express   \] \S+ --> GET \/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
-                    '[redis     ] client ready',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
                     /^\[express   \] \S+ <-- GET \/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
@@ -200,7 +205,8 @@ describe('API router',function() {
                     /^\[express   \] \S+ --> POST \/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
-                    '[redis     ] client ready',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
                     /^\[express   \] \S+ <-- POST \/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
@@ -228,7 +234,8 @@ describe('API router',function() {
                     /^\[express   \] \S+ --> POST \/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
-                    '[redis     ] client ready',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
                     /^\[express   \] \S+ <-- POST \/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
@@ -261,7 +268,8 @@ describe('API router',function() {
                     /^\[express   \] \S+ --> POST \/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
-                    '[redis     ] client ready',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
                     '[api       ] device creation(test-abc-123): {"connection:telnet:address":"localhost","connection:telnet:port":10002}',
                     /^\[express   \] \S+ <-- POST \/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
@@ -291,7 +299,8 @@ describe('API router',function() {
                     /^\[express   \] \S+ --> GET \/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
-                    '[redis     ] client ready',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
                     /^\[express   \] \S+ <-- GET \/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
@@ -319,7 +328,8 @@ describe('API router',function() {
                     /^\[express   \] \S+ --> POST \/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
-                    '[redis     ] client ready',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
                     '[api       ] device changes(test-abc-123): {}',
                     /^\[express   \] \S+ <-- POST \/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
@@ -350,7 +360,8 @@ describe('API router',function() {
                     /^\[express   \] \S+ --> POST \/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
-                    '[redis     ] client ready',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
                     '[api       ] device changes(test-abc-123): {"connection:telnet:address":"localhost"}',
                     /^\[express   \] \S+ <-- POST \/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
@@ -383,7 +394,8 @@ describe('API router',function() {
                     /^\[express   \] \S+ --> POST \/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
-                    '[redis     ] client ready',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
                     '[api       ] device changes(test-abc-123): {"connection:telnet:port":null}',
                     /^\[express   \] \S+ <-- POST \/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
@@ -415,7 +427,8 @@ describe('API router',function() {
                     /^\[express   \] \S+ --> POST \/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
-                    '[redis     ] client ready',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
                     '[api       ] device changes(test-abc-123): {"connection:telnet:address":"localhost","connection:telnet:port":null}',
                     /^\[express   \] \S+ <-- POST \/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
@@ -441,7 +454,8 @@ describe('API router',function() {
                     /^\[express   \] \S+ --> GET \/api\/status HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
-                    '[redis     ] client ready',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
                     /^\[express   \] \S+ <-- GET \/api\/status HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
