@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 var M2mProxy = require('../lib/m2m-proxy');
-var RedisCheckpoint = require('../services/redis-checkpoint');
-var ConfigCheckpoint = require('../services/config-checkpoint');
+var RedisWatcher = require('../services/redis-watcher');
+var HashWatcher = require('../services/hash-watcher');
 var RouteWatcher = require('../services/route-watcher');
 var ModemWatcher = require('../services/modem-watcher');
 var HeartbeatGenerator = require('../services/heartbeat-generator');
@@ -10,11 +10,20 @@ var HeartbeatGenerator = require('../services/heartbeat-generator');
 var schema = require('../lib/redis-schema');
 var hashkeys = require('../lib/config-hashkeys');
 
-var redisChk = new RedisCheckpoint().start(function(event,redis) {
+var routeWatcher = null;
+var configWatcher = new HashWatcher(schema.config.key,hashkeys)
+    .addKeysetWatcher('gateway',false,false,function(gateway){
+
+    });
+new RedisWatcher()
+    .addClientWatcher(configWatcher)
+    .start();
+
+var redisWatcher = new RedisWatcher().start(function(event,redis) {
     console.log('redis:' + event);
     if (event !== 'ready') return;
 
-    var configChk = new ConfigCheckpoint(redis,schema.config.key,hashkeys.gateway).start(function(event,gateway) {
+    var configChk = new HashWatcher(redis,schema.config.key,hashkeys.gateway).start(function(event,gateway) {
         console.log('config:' + event);
         if (event !== 'ready') return;
 
@@ -22,7 +31,6 @@ var redisChk = new RedisCheckpoint().start(function(event,redis) {
 
 
         var modem = null;
-        var proxy = new M2mProxy(redis,gateway);
         var route = new RouteWatcher(gateway)  // TODO detect failure and stop the dependent objects... then restart on ready
             .on('ready',function(){ if (!modem) {
                 modem = new ModemWatcher(gateway)
