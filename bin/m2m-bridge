@@ -10,37 +10,20 @@ var HeartbeatGenerator = require('../services/heartbeat-generator');
 var schema = require('../lib/redis-schema');
 var hashkeys = require('../lib/config-hashkeys');
 
-var routeWatcher = null;
-var configWatcher = new HashWatcher(schema.config.key,hashkeys)
-    .addKeysetWatcher('gateway',false,false,function(gateway){
+var modemWatcher = new ModemWatcher()
+    .on('imei',function(imei){ RedisWatcher.instance.client.hsetnx(schema.config.key,hashkeys.gateway.imei.key,imei); });
 
-    });
+var routeWatcher = new RouteWatcher()
+    .on('ready',function(){ if (!modemWatcher.started()) modemWatcher.start(); });
+
+var proxy = new M2mProxy();
+var heartbeat = new HeartbeatGenerator();
+var configWatcher = new HashWatcher(schema.config.key,hashkeys)
+    .addKeysetWatcher('ppp',true,routeWatcher)
+    .addKeysetWatcher('gateway',true,proxy)
+    .addKeysetWatcher('gateway',true,heartbeat);
+
 new RedisWatcher()
     .addClientWatcher(configWatcher)
+    .addClientWatcher(routeWatcher)
     .start();
-
-var redisWatcher = new RedisWatcher().start(function(event,redis) {
-    console.log('redis:' + event);
-    if (event !== 'ready') return;
-
-    var configChk = new HashWatcher(redis,schema.config.key,hashkeys.gateway).start(function(event,gateway) {
-        console.log('config:' + event);
-        if (event !== 'ready') return;
-
-        var heartbeat = null;
-
-
-        var modem = null;
-        var route = new RouteWatcher(gateway)  // TODO detect failure and stop the dependent objects... then restart on ready
-            .on('ready',function(){ if (!modem) {
-                modem = new ModemWatcher(gateway)
-                    .on('imei',function(imei){
-                        if (!gateway.imei)  proxy.gateway.imei = gateway.imei = imei;
-                        redis.hsetnx(schema.config.key,hashkeys.gateway.imei.key,imei);
-                        if (!heartbeat) heartbeat = new HeartbeatGenerator(redis,proxy).start();
-                    })
-                    .start();
-            }})
-            .start();
-    });
-});
