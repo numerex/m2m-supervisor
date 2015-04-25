@@ -1,43 +1,35 @@
 var _ = require('lodash');
 var util = require('util');
-var events = require('events');
+
+var Watcher = require('../lib/watcher');
 
 var logger = require('../lib/logger')('route');
 
 function RouteWatcher(config) {
-    config = _.defaults(config || {},{
-        routeInterval: 15*1000
-    });
-    this.routeInterval = config.routeInterval;
-    this.shell = require('shelljs');    // NOTE - delay 'require' for mocking
+    Watcher.apply(this,[logger,config]);
+    this.routeInterval = (config || {}).routeInterval || 15.1000;
     this.outputs = {};
+    this.shell = require('shelljs');    // NOTE - delay 'require' for mocking
 }
 
-util.inherits(RouteWatcher,events.EventEmitter);
+util.inherits(RouteWatcher,Watcher);
 
 RouteWatcher.prototype.started = function(){
     return !!this.interval;
 };
 
-RouteWatcher.prototype.start = function(ppp) {
-    if (this.started()) throw(new Error('already started'));
-
-    logger.info('start watching');
-
+RouteWatcher.prototype._onStart = function(ppp) {
     var self = this;
     self.ppp = ppp;
     self.checkRoutes();
     self.interval = setInterval(function(){ self.checkRoutes(); },self.routeInterval);
-    return self;
 };
 
-RouteWatcher.prototype.stop = function() {
-    if (!this.started()) throw(new Error('not started'));
-
-    logger.info('stop watching');
-
+RouteWatcher.prototype._onStop = function() {
     clearInterval(this.interval);
 };
+
+RouteWatcher.prototype.checkReady = function(){}; // NOTE - no need for checking ready
 
 RouteWatcher.prototype.checkRoutes = function(){
     var self = this;
