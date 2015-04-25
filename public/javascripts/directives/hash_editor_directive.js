@@ -13,21 +13,19 @@ app.directive('hashEditor',function(){
                 var newHash = result[$scope.valuesKey];
                 if (newHash)
                     $scope.hash = newHash;
-                else {
+                else
                     reset = false;
-                    if (!$scope.hash)
-                        $scope.hash = {};
-                }
                 $scope.hashKeys = _.keys($scope.hash);
                 $scope.hashValues = $rootScope.globalValues[$scope.valuesKey];
                 if (reset || !$scope.hashValues) {
                     $rootScope.globalValues[$scope.valuesKey] = $scope.hashValues = {};
-                    $scope.resetValues();
+                    $scope.resetValues(true);
                 }
-                $rootScope.globalMessages.error = result.error;
+                if (result.error)
+                    $rootScope.globalMessages = {error: result.error};
             };
 
-            $scope.resetValues = function(){
+            $scope.resetValues = function(keepMessages){
                 if ($scope.extra)
                     $scope.hashValues[$scope.extra.key] = $scope.extra.value;
                 _.each($scope.hash,function(group){
@@ -35,7 +33,7 @@ app.directive('hashEditor',function(){
                         $scope.hashValues[entry.key] = entry.value;
                     });
                 });
-                $rootScope.globalMessages = {};
+                if (!keepMessages) $rootScope.globalMessages = {};
             };
 
             $scope.requestHash = function(){
@@ -44,7 +42,7 @@ app.directive('hashEditor',function(){
                         $scope.setupHash(false,result);
                     })
                     .error(function (error){
-                        $rootScope.globalMessages.error = error;
+                        $rootScope.globalMessages = {error: error};
                     });
             };
 
@@ -64,9 +62,9 @@ app.directive('hashEditor',function(){
                     });
                 });
 
-                $rootScope.globalMessages = {};
+                //$rootScope.globalMessages = {};
                 if (_.keys(dirty).length == 0)
-                    $rootScope.globalMessages.warning = 'No changes';
+                    $rootScope.globalMessages = {warning: 'No changes'};
                 else {
                     $http.post($scope.api,dirty)
                         .success(function(result){
@@ -75,11 +73,11 @@ app.directive('hashEditor',function(){
                             else {
                                 $scope.setupHash(true,result);
                                 if (!$rootScope.globalMessages.error)
-                                    $rootScope.globalMessages.success = 'Changes saved';
+                                    $rootScope.globalMessages= {success: 'Changes saved'};
                             }
                         })
                         .error(function(err){
-                            $rootScope.globalMessages.error = err;
+                            $rootScope.globalMessages = {error: err};
                         })
                 }
             };

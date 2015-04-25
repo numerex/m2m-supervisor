@@ -14,7 +14,8 @@ app.controller('DevicesController',['$scope','$rootScope','$http',function($scop
         exists: true,
         required: true,
         success: function(){
-            $rootScope.globalMessages.success = 'New device added';
+            $rootScope.globalValues[$scope.newDevice.valuesKey].id = null;
+            $rootScope.globalMessages = {success: 'New device added'};
             $scope.setupDevices();
         }
     };
@@ -22,14 +23,18 @@ app.controller('DevicesController',['$scope','$rootScope','$http',function($scop
     $scope.setupDevices = function (){
         $http.get('/api/devices')
             .success(function(result){
-                $scope.devices = _.map(result,function(id){
-                    return {
-                        id: id,
-                        valuesKey: 'device:' + id,
-                        api: '/api/device/' + id
-                    };
-                });
-                $scope.currentID = ($scope.devices[0] || $scope.newDevice).id;
+                if (result.devices)
+                    $scope.devices = _.map(result.devices || [],function(id){
+                        return {
+                            id: id,
+                            valuesKey: 'device:' + id,
+                            api: '/api/device/' + id
+                        };
+                    });
+                if (result.error)
+                    $rootScope.globalMessages = {error: result.error};
+                else
+                    $scope.currentID = ($scope.devices[0] || $scope.newDevice).id;
             })
             .error(function (error){
                 $scope.error = error;
@@ -37,6 +42,7 @@ app.controller('DevicesController',['$scope','$rootScope','$http',function($scop
     };
 
     $scope.makeActive = function(device){
+        $rootScope.globalMessages = {};
         $scope.currentID = device.id;
     };
 

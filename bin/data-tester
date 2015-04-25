@@ -4,8 +4,8 @@ var _ = require('lodash');
 var readline = require('readline');
 var events = require('events');
 
-var RedisCheckpoint = require('../services/redis-checkpoint');
-var ConfigCheckpoint = require('../services/config-checkpoint');
+var RedisWatcher = require('../services/redis-watcher');
+var HashWatcher = require('../services/hash-watcher');
 var DataReader = require('../services/data-reader');
 
 var builder = require('../lib/device-builder');
@@ -14,43 +14,44 @@ var hashkeys = require('../lib/device-hashkeys');
 var helpers = require('../lib/hash-helpers');
 
 var deviceKey = null;
+var configWatcher = null;
 var reader = null;
 var cli = null;
-var redisChk = new RedisCheckpoint();
 var emitter = new events.EventEmitter();
 
+new RedisWatcher()
+    .on('retry',function(){ emitter.emit('stop','Redis is not ready')})
+    .on('ready',function(client){ if (client) emitter.emit('redis',client); });
+
 emitter
-    .once('start',function(){
-        redisChk.start(function(redisEvent,redis) {
-            if (redisEvent === 'ready')
-                emitter.emit('redis',redis);
-            else
-                emitter.emit('stop','Redis not ready');
-        });
-    })
+    .once('start',function(){ RedisWatcher.instance.start(); })
     .once('stop',function(message){
         if (cli) cli.close();
         if (reader) reader.stop();
-        redisChk.stop();
+        if (configWatcher) configWatcher.stop();
+        RedisWatcher.instance.stop();
         console.log(message);
     })
-    .once('redis',function(redis){
-        redis.keys(schema.device.settings.keysPattern()).then(function(settingsKeys){
+    .once('redis',function(client){
+        client.keys(schema.device.settings.keysPattern()).then(function(settingsKeys){
             var deviceKeys = _.map(settingsKeys,function(key){ return schema.device.settings.getParam(key); });
-            if (deviceKeys.length <= 0) return console.log('Sorry, no devices are defined.');
+            if (deviceKeys.length <= 0) return emitter.emit('stop','Sorry, no devices are defined.');
 
             deviceKey = process.argv.length > 2 ? process.argv[2] : deviceKeys.length == 1 ? deviceKeys[0] : null;
-            if (_.indexOf(deviceKeys,deviceKey)) return console.log('You must select one of the following: ' + deviceKeys.join(', '));
+            if (_.indexOf(deviceKeys,deviceKey)) return emitter.emit('stop','You must select one of the following: ' + deviceKeys.join(', '));
 
             var settingsKey = schema.device.settings.useParam(deviceKey);
-            var configChk = new ConfigCheckpoint(redis,settingsKey,hashkeys.connection,helpers.requirements(hashkeys.connection)).start(function(event,config) {
-                configChk.stop();
-                if (event === 'ready')
-                    emitter.emit('reader',config);
-                else{
-                    emitter.emit('stop','Device not ready: ' + deviceKey);
-                }
-            });
+            configWatcher = new HashWatcher(settingsKey,hashkeys)
+                .on('change',function(hash){
+                    if (!hash) return;
+
+                    var config = configWatcher.validateRequirements(hashkeys.connection,helpers.requirements(hashkeys.connection));
+                    if (config)
+                        emitter.emit('reader',config);
+                    else
+                        emitter.emit('stop','Device not ready: ' + deviceKey);
+                })
+                .start(client);
         });
     })
     .once('reader',function(config){

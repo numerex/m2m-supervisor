@@ -98,12 +98,19 @@ HashWatcher.prototype.checkHash = function(){
     });
 };
 
+HashWatcher.prototype.validateRequirements = function(needs,requirements){
+    return _.difference(requirements,_.intersection(requirements,_.keys(this.hash))).length > 0 ?
+        null :
+        helpers.hash2config(this.hash,needs);
+};
+
 HashWatcher.prototype.checkKeysetWatcher = function(target){
     var self = this;
-    if (_.difference(target.requirements,_.intersection(target.requirements,_.keys(self.hash))).length > 0)
-        self.readyStatus = target.ready = false;
-    else
+    var result = self.validateRequirements(target.needs,target.requirements);
+    if (result)
         target.ready = true;
+    else
+        self.readyStatus = target.ready = false;
     if (target.watcher.started())
         target.watcher.stop();
     if (target.ready)

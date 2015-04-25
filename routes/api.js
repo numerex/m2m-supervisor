@@ -1,35 +1,44 @@
 var _ = require('lodash');
 var express = require('express');
 
-var RedisCheckpoint = require('../services/redis-checkpoint');
+var RedisWatcher = require('../services/redis-watcher');
 var logger = require('../lib/logger')('api');
 var schema = require('../lib/redis-schema');
 var helpers = require('../lib/hash-helpers');
 var configTemplate = require('../lib/config-hashkeys');
 var deviceTemplate = require('../lib/device-hashkeys');
 
-var redisChk = new RedisCheckpoint();
 var router = express.Router();
 
 function checkRedis(callback){
-    if (!redisChk) redisChk = new RedisCheckpoint();
-    if (!redisChk.started()) redisChk.start();
-    callback();
+    if (!RedisWatcher.instance) new RedisWatcher();
+    if (RedisWatcher.instance.started())
+        callback();
+    else {
+        RedisWatcher.instance.start();
+        _.defer(callback);
+    }
+}
+
+function requireRedis(res,callback){
+    checkRedis(function(){
+        if (RedisWatcher.instance.ready())
+            callback();
+        else
+            res.send({error: 'Redis not ready'});
+    });
 }
 
 function requestHash(res,hashKey,resultKey,template){
-    if (!redisChk.ready())
-        res.send({error: 'Redis not ready'});
-    else
-        redisChk.client.hgetall(hashKey).then(function(hash){
-            var result = {};
-            result[resultKey] = helpers.hash2groups(hash || {},template);
-            res.send(result);
-        });
+    RedisWatcher.instance.client.hgetall(hashKey).then(function(hash){
+        var result = {};
+        result[resultKey] = helpers.hash2groups(hash || {},template);
+        res.send(result);
+    });
 }
 
 function updateHash(updates,callback){
-    redisChk.client.send('hmset',updates).then(function () {
+    RedisWatcher.instance.client.send('hmset',updates).then(function () {
         callback();
     });
 }
@@ -50,7 +59,7 @@ function changeHash(req,res,hashKey,callback){
     else if (deletes.length <= 1)
         updateHash(updates,callback);
     else
-        redisChk.client.send('hdel',deletes).then(function(){
+        RedisWatcher.instance.client.send('hdel',deletes).then(function(){
             if (updates.length <= 1)
                 callback();
             else
@@ -65,13 +74,13 @@ function requestConfig(res){
 }
 
 router.get('/config',function(req,res,next){
-    checkRedis(function(){
+    requireRedis(res,function(){
         requestConfig(res);
     });
 });
 
 router.post('/config',function(req,res,next){
-    checkRedis(function(){
+    requireRedis(res,function(){
         logger.info('config changes: ' + JSON.stringify(req.body));
         changeHash(req,res,schema.config.key,function(){
             requestConfig(res);
@@ -82,15 +91,15 @@ router.post('/config',function(req,res,next){
 // DEVICE ----------------
 
 function findDeviceIDs(res,callback){
-    redisChk.client.keys(schema.device.settings.keysPattern()).then(function(keys){
+    RedisWatcher.instance.client.keys(schema.device.settings.keysPattern()).then(function(keys){
         callback(keys);
     });
 }
 
 router.get('/devices',function(req,res,next){
-    checkRedis(function(){
+    requireRedis(res,function(){
         findDeviceIDs(res,function(keys){
-            res.send(_.map(keys,function(key){ return schema.device.settings.getParam(key); }));
+            res.send({devices: _.map(keys,function(key){ return schema.device.settings.getParam(key); })});
         })
     });
 });
@@ -100,13 +109,13 @@ function requestDevice(res,id){
 }
 
 router.get('/device/:id',function(req,res,next){
-    checkRedis(function(){
+    requireRedis(res,function(){
         requestDevice(res,req.params.id);
     });
 });
 
 router.post('/device/:id',function(req,res,next){
-    checkRedis(function(){
+    requireRedis(res,function(){
         logger.info('device changes(' + req.params.id + '): ' + JSON.stringify(req.body));
         changeHash(req,res,schema.device.settings.useParam(req.params.id),function(){
             requestDevice(res,req.params.id);
@@ -115,12 +124,14 @@ router.post('/device/:id',function(req,res,next){
 });
 
 router.get('/device',function(req,res,next){
-    var defaults = _.defaults(helpers.hash2groups({},deviceTemplate));
-    res.send({'new-device': defaults});
+    requireRedis(res,function(){
+        var defaults = _.defaults(helpers.hash2groups({},deviceTemplate));
+        res.send({'new-device': defaults});
+    });
 });
 
 router.post('/device',function(req,res,next){
-    checkRedis(function(){
+    requireRedis(res,function(){
         var id = req.body.id;
         delete req.body.id;
         if (!id)
@@ -146,7 +157,7 @@ router.post('/device',function(req,res,next){
 router.get('/status',function(req,res,next){
     checkRedis(function(){
         res.send({
-            redis: !!redisChk.client,
+            redis: !!RedisWatcher.instance.client,
             ethernet: true, // TODO check these other services
             ppp: true,
             cpu: true,
@@ -159,8 +170,8 @@ router.get('/status',function(req,res,next){
 
 module.exports = router;
 
-module.exports.resetRedisChk = function(){ // NOTE instrumentation for testing
+module.exports.resetRedisWatcher = function(){ // NOTE instrumentation for testing
     // istanbul ignore else - testing scenario that isn't worth creating
-    if (redisChk && redisChk.started()) redisChk.stop();
-    redisChk = null;
+    if (RedisWatcher.instance && RedisWatcher.instance.started()) RedisWatcher.instance.stop();
+    RedisWatcher.instance = null;
 };
