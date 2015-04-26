@@ -50,6 +50,7 @@ module.exports.mockdgram = function() {
         };
         socket.close = function () {
             socket.closed = true;
+            socket.events.close();
         };
         return socket;
     };

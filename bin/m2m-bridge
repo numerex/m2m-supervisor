@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-var M2mProxy = require('../lib/m2m-proxy');
+var GatewayProxy = require('../services/gateway-proxy');
 var RedisWatcher = require('../services/redis-watcher');
 var HashWatcher = require('../services/hash-watcher');
 var RouteWatcher = require('../services/route-watcher');
@@ -15,7 +15,7 @@ var modemWatcher = new ModemWatcher()
 
 var routeWatcher = new RouteWatcher();
 
-var proxy = new M2mProxy();
+var proxy = new GatewayProxy();
 var heartbeat = new HeartbeatGenerator();
 var configWatcher = new HashWatcher(schema.config.key,hashkeys)
     .addKeysetWatcher('PPP',true,routeWatcher)

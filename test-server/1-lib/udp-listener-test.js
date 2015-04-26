@@ -8,8 +8,6 @@ describe('UdpListener',function() {
         test.mockery.enable();
         test.mockery.registerMock('dgram',mockdgram = new test.mockdgram());
         test.mockery.warnOnUnregistered(false);
-        //test.mockery.registerAllowables(['./logger', './statsd-client']);
-        //test.pp.snapshot();
     });
 
     afterEach(function () {
@@ -50,7 +48,7 @@ describe('UdpListener',function() {
 
     it('should log connection closed',function(){
         var listener = new UdpListener('test');
-        listener.client.events.close();
+        listener.close();
         mockdgram.deliveries.should.eql([]);
         test.pp.snapshot().should.eql(['[test      ] connection closed']);
     });
