@@ -6,7 +6,7 @@ describe('RouteWatcher',function(){
 
     var helpers = require(process.cwd() + '/lib/hash-helpers');
     var hashkeys = require(process.cwd() + '/lib/config-hashkeys');
-    var ppp = helpers.hash2config({},hashkeys.ppp);
+    var ppp = helpers.hash2config({},hashkeys.PPP);
 
     beforeEach(function() {
         test.mockery.enable();

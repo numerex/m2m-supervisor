@@ -1,18 +1,14 @@
 var _ = require('lodash');
 var util = require('util');
-var events = require('events');
 
+var Watcher = require('../lib/watcher');
 var FileDevice = require('../lib/file-device');
 
 var logger = require('../lib/logger')('modem');
 
 function ModemWatcher(config) {
     var self = this;
-    self.config = _.defaults(config || {},{
-        reportFile:     '/dev/ttyUSB2',
-        commandFile:    '/dev/ttyUSB2',
-        rssiInterval:   60*1000
-    });
+    Watcher.apply(self,[logger,config]);
 
     self.on('requestIMEI',function(){ if (self.ready()) self.requestIMEI(); });
     self.on('requestRSSI',function(){ if (self.ready())  self.requestRSSI(); });
@@ -21,6 +17,27 @@ function ModemWatcher(config) {
         self.emit('requestRSSI');
     });
 
+}
+
+util.inherits(ModemWatcher,Watcher);
+
+ModemWatcher.Reports = Object.freeze({
+    FLOW: '^DSFLOWRPT:',    // Huawei format: ^DSFLOWRPT:<curr_ds_time>,<tx_rate>,<rx_rate>,<cu rr_tx_flow>,<curr_rx_flow>,<qos_tx_rate>,<qos_rx_rate>
+    RSSI: '+CSQ:'           // Huawei format: +CSQ: <rssi>,<ber>
+});
+
+ModemWatcher.prototype.ready = function(){
+    return !!this.device && this.device.ready();
+};
+
+ModemWatcher.prototype.checkReady = function(){}; // NOTE - no need for checking ready
+
+ModemWatcher.prototype._onStart = function(config) {
+    var self = this;
+    self.imei = null;
+    self.imeiCandidates = [];
+
+    self.config = config;
     self.device = new FileDevice({inFile: self.config.reportFile,outFile: self.config.commandFile,retryInterval: self.config.retryInterval});
     self.device.on('ready',function(){
         self.interval = setInterval(function() { self.emit('requestRSSI'); },self.config.rssiInterval);
@@ -43,44 +60,16 @@ function ModemWatcher(config) {
             self.considerIMEI(line);
         });
     });
-}
 
-util.inherits(ModemWatcher,events.EventEmitter);
-
-ModemWatcher.Reports = Object.freeze({
-    FLOW: '^DSFLOWRPT:',    // Huawei format: ^DSFLOWRPT:<curr_ds_time>,<tx_rate>,<rx_rate>,<cu rr_tx_flow>,<curr_rx_flow>,<qos_tx_rate>,<qos_rx_rate>
-    RSSI: '+CSQ:'           // Huawei format: +CSQ: <rssi>,<ber>
-});
-
-ModemWatcher.prototype.started = function(){
-    return this.device.opened();
-};
-
-ModemWatcher.prototype.ready = function(){
-    return this.device.ready();
-};
-
-ModemWatcher.prototype.start = function() {
-    if (this.started()) throw(new Error('already started'));
-
-    logger.info('start watcher');
-
-    var self = this;
-    self.imei = null;
-    self.imeiCandidates = [];
     self.device.open();
-    return self;
 };
 
-ModemWatcher.prototype.stop = function() {
-    if (!this.started()) throw(new Error('not started'));
-
-    logger.info('stop watcher');
-
+ModemWatcher.prototype._onStop = function() {
     if (this.interval) clearInterval(this.interval);
     this.interval = null;
 
     this.device.close();
+    this.device = null;
 };
 
 ModemWatcher.prototype.considerLine = function(prefix,line,callback){

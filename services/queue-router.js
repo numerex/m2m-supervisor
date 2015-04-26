@@ -1,8 +1,8 @@
 var _ = require('lodash');
 var m2m = require('m2m-ota-javascript');
 var util = require('util');
-var events = require('events');
 
+var Watcher = require('../lib/watcher');
 var UdpListener = require('../lib/udp-listener');
 
 var logger = require('../lib/logger')('router');
@@ -41,18 +41,17 @@ function ackStatePairs(message,routeKey) {
     ];
 }
 
-function QueueRouter(redis,gateway,config) {
+function QueueRouter(config) {
     var self = this;
+    Watcher.apply(self,[logger,config]);
     self.config = _.defaults(config || {},{
         idleReport:         60 / 5,
         maxRetries:         5,
         timeoutInterval:    5
     });
-    self.redis = redis;
     self.routes = {};
     self.setQueueArgs();
-    self.gateway = gateway;
-    self.client = new UdpListener('router',null,function(buffer) { logger.info('unexpected response: ' + JSON.stringify(buffer)); });
+    self.listener = new UdpListener('router',null,function(buffer) { logger.info('unexpected response: ' + JSON.stringify(buffer)); });
     self.on('queueResult',function(result){
         self.emit('note',result);
         _.defer(function (){ self.emit('checkQueue'); });
@@ -62,32 +61,24 @@ function QueueRouter(redis,gateway,config) {
     });
 }
 
-util.inherits(QueueRouter,events.EventEmitter);
+util.inherits(QueueRouter,Watcher);
 
 QueueRouter.COMMON_QUEUE_KEYS = COMMON_QUEUE_KEYS;
 
-QueueRouter.prototype.started = function(){
-    return !!this.startCalled;
-};
+QueueRouter.prototype.checkReady = function(){}; // NOTE - no need for checking ready
 
-QueueRouter.prototype.start = function() {
-    if (this.started()) throw(new Error('already started'));
-
-    logger.info('start router');
-
+QueueRouter.prototype._onStart = function(gateway) {
     var self = this;
-    self.startCalled = true;
+    self.redis = require('then-redis').createClient()
+        .on('error',function(error){ logger.error('redis client error: ' + error); });
+    self.gateway = gateway;
     self.idleCount = 0;
     _.defer(function(){ self.emit('checkQueue'); });
-    return self;
 };
 
-QueueRouter.prototype.stop = function() {
-    if (!this.started()) throw(new Error('not started'));
-
-    logger.info('stop router');
-
-    this.startCalled = false;
+QueueRouter.prototype._onStop = function(){
+    this.redis.quit();
+    this.redis = null;
 };
 
 QueueRouter.prototype.addRoute = function(router){
@@ -208,7 +199,7 @@ QueueRouter.prototype.assembleMessage = function(routeKey,eventCode,timestamp,se
                 case 'string':
                     var json = JSON.stringify(value);
                     if (json.length > value.length + 2) // NOTE add 2 for bounding quote characters...
-                        message.pushUByteArray(code,new Buffer(value))
+                        message.pushUByteArray(code,new Buffer(value));
                     else
                         message.pushString(code,value);
                     break;
@@ -228,7 +219,7 @@ QueueRouter.prototype.assembleMessage = function(routeKey,eventCode,timestamp,se
 QueueRouter.prototype.transmitMessage = function(message){
     logger.info('transmit: ' + JSON.stringify(message));
     this.idleCount = 0;
-    this.client.send(message.toWire(),'localhost',+this.gateway[this.gateway.primary + 'Relay']); // TODO which relay to use?
+    this.listener.send(message.toWire(),'localhost',+this.gateway[this.gateway.primary + 'Relay']); // TODO which relay to use?
 };
 
 QueueRouter.prototype.noteQueueResult = function(result){

@@ -14,10 +14,6 @@ function RouteWatcher(config) {
 
 util.inherits(RouteWatcher,Watcher);
 
-RouteWatcher.prototype.started = function(){
-    return !!this.interval;
-};
-
 RouteWatcher.prototype._onStart = function(ppp) {
     var self = this;
     self.ppp = ppp;
