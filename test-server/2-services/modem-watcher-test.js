@@ -210,11 +210,16 @@ describe('ModemWatcher',function(){
         done();
     });
 
-    //it('should detect a device read error',function(done){
-    //    var watcher = new ModemWatcher();
-    //    watcher.device.emit('error','test error');
-    //    test.pp.snapshot().should.eql(['[modem     ] read error: test error']);
-    //    done();
-    //});
+    it('should detect a device read error',function(done){
+        var watcher = new ModemWatcher().start({reportFile: '/dev/null',commandFile: '/dev/null',rssiInterval: 100});
+        watcher.device.emit('error','test error');
+        watcher.stop();
+        test.pp.snapshot().should.eql([
+            '[modem     ] start watching',
+            '[modem     ] read error: test error',
+            '[modem     ] stop watching'
+        ]);
+        done();
+    });
 
 });

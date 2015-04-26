@@ -43,7 +43,7 @@ function ackStatePairs(message,routeKey) {
 
 function QueueRouter(config) {
     var self = this;
-    Watcher.apply(self,[logger,config]);
+    Watcher.apply(self,[logger,config,true]);
     self.config = _.defaults(config || {},{
         idleReport:         60 / 5,
         maxRetries:         5,
@@ -64,8 +64,6 @@ function QueueRouter(config) {
 util.inherits(QueueRouter,Watcher);
 
 QueueRouter.COMMON_QUEUE_KEYS = COMMON_QUEUE_KEYS;
-
-QueueRouter.prototype.checkReady = function(){}; // NOTE - no need for checking ready
 
 QueueRouter.prototype._onStart = function(gateway) {
     var self = this;

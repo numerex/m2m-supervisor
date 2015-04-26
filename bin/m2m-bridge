@@ -13,14 +13,14 @@ var hashkeys = require('../lib/config-hashkeys');
 var modemWatcher = new ModemWatcher()
     .on('imei',function(imei){ RedisWatcher.instance.client.hsetnx(schema.config.key,hashkeys.gateway.imei.key,imei); });
 
-var routeWatcher = new RouteWatcher()
-    .on('ready',function(){ if (!modemWatcher.started()) modemWatcher.start(); });
+var routeWatcher = new RouteWatcher();
 
 var proxy = new M2mProxy();
 var heartbeat = new HeartbeatGenerator();
 var configWatcher = new HashWatcher(schema.config.key,hashkeys)
-    .addKeysetWatcher('ppp',true,routeWatcher)
-    .addKeysetWatcher('gateway',true,proxy)
+    .addKeysetWatcher('PPP',true,routeWatcher)
+    .addKeysetWatcher('modem',true,modemWatcher)
+    .addKeysetWatcher('gateway',false,proxy)
     .addKeysetWatcher('gateway',true,heartbeat);
 
 new RedisWatcher()

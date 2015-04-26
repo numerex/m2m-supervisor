@@ -74,8 +74,8 @@ describe('Watcher',function() {
 
     util.inherits(RetryWatcher,Watcher);
 
-    RetryWatcher.prototype._onStart = function(arg){
-        logger.info('start now: ' + arg);
+    RetryWatcher.prototype._onStart = function(arg1,arg2){
+        logger.info('start now: ' + [arg1,arg2]);
     };
 
     RetryWatcher.prototype._onCheckReady = function(callback){
@@ -97,7 +97,7 @@ describe('Watcher',function() {
             watcher.stop();
             test.pp.snapshot().should.eql([
                 '[watcher   ] start watching: retry',
-                '[watcher   ] start now: test',
+                '[watcher   ] start now: test1,test2',
                 '[watcher   ] check ready: retry',
                 '[watcher   ] check ready: retry',
                 '[watcher   ] check ready: retry',
@@ -106,7 +106,7 @@ describe('Watcher',function() {
             ]);
             done();
         });
-        watcher.start('test');
+        watcher.start('test1','test2');
     });
 
     it('should retry when not ready after start',function(done){
@@ -133,7 +133,7 @@ describe('Watcher',function() {
             watcher.stop();
             test.pp.snapshot().should.eql([
                 '[watcher   ] start watching: retry',
-                '[watcher   ] start now: test',
+                '[watcher   ] start now: test1,test2',
                 '[watcher   ] check ready: retry',
                 '[watcher   ] now ready: retry',
                 '[watcher   ] check ready: retry',
@@ -143,7 +143,7 @@ describe('Watcher',function() {
             ]);
             done();
         });
-        watcher.start('test');
+        watcher.start('test1','test2');
     })
 
 });

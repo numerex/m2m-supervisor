@@ -8,7 +8,7 @@ var logger = require('../lib/logger')('modem');
 
 function ModemWatcher(config) {
     var self = this;
-    Watcher.apply(self,[logger,config]);
+    Watcher.apply(self,[logger,config,true]);
 
     self.on('requestIMEI',function(){ if (self.ready()) self.requestIMEI(); });
     self.on('requestRSSI',function(){ if (self.ready())  self.requestRSSI(); });
@@ -29,8 +29,6 @@ ModemWatcher.Reports = Object.freeze({
 ModemWatcher.prototype.ready = function(){
     return !!this.device && this.device.ready();
 };
-
-ModemWatcher.prototype.checkReady = function(){}; // NOTE - no need for checking ready
 
 ModemWatcher.prototype._onStart = function(config) {
     var self = this;

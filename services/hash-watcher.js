@@ -30,7 +30,7 @@ HashWatcher.prototype._onStop = function(){
         if (target.watcher.started()) target.watcher.stop();
     });
 
-    self.emit('change',null);
+    self.emit('change',null,null);
 };
 
 HashWatcher.prototype._onCheckReady = function(callback){
@@ -43,18 +43,19 @@ HashWatcher.prototype._onCheckReady = function(callback){
             logger.info('hash changed: ' + self.rootKey);
             self.readyStatus = true;
             _.each(self.keysetWatchers, _.bind(self.checkKeysetWatcher,self));
-            self.emit('change',self.hash);
+            self.emit('change',self.hash,self.client);
         }
         callback(self.readyStatus);
     });
 };
 
 HashWatcher.prototype.addChangeWatcher = function(watcher){
-    this.on('change',function(hash){
+    var self = this;
+    self.on('change',function(hash){
         if (watcher.started())
             watcher.stop();
         if (hash)
-            watcher.start(hash);
+            watcher.start(hash,self.client);
     });
 };
 
@@ -85,7 +86,7 @@ HashWatcher.prototype.checkKeysetWatcher = function(target){
     if (target.watcher.started())
         target.watcher.stop();
     if (target.ready)
-        target.watcher.start(helpers.hash2config(self.hash,target.needs));
+        target.watcher.start(helpers.hash2config(self.hash,target.needs),self.client);
 };
 
 module.exports = HashWatcher;
