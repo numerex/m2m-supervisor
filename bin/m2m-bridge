@@ -16,7 +16,7 @@ var modemWatcher = new ModemWatcher()
 var routeWatcher = new RouteWatcher();
 
 var proxy = new GatewayProxy();
-var heartbeat = new HeartbeatGenerator();
+var heartbeat = new HeartbeatGenerator(proxy);
 var configWatcher = new HashWatcher(schema.config.key,hashkeys)
     .addKeysetWatcher('PPP',true,routeWatcher)
     .addKeysetWatcher('modem',true,modemWatcher)
@@ -25,5 +25,4 @@ var configWatcher = new HashWatcher(schema.config.key,hashkeys)
 
 new RedisWatcher()
     .addClientWatcher(configWatcher)
-    .addClientWatcher(routeWatcher)
     .start();

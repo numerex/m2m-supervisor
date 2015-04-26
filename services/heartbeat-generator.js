@@ -48,7 +48,7 @@ HeartbeatGenerator.prototype.sendHeartbeat = function(eventCode){
     self.redis.incr(schema.transmit.lastSequenceNumber.key).then(function(sequenceNumber){
         logger.info('send heartbeat: ' + eventCode);
         var message = new m2m.Message({messageType: m2m.Common.MOBILE_ORIGINATED_EVENT,eventCode: eventCode,sequenceNumber: sequenceNumber})
-            .pushString(0,self.proxy.gateway.imei);
+            .pushString(0,self.proxy.config.imei);
         self.proxy.sendPrimary(message.toWire(),message.sequenceNumber);
         self.emit('note','heartbeat');
     });

@@ -7,7 +7,6 @@ var logger = require('../lib/logger')('route');
 
 function RouteWatcher(config) {
     Watcher.apply(this,[logger,config,true]);
-    this.routeInterval = (config || {}).routeInterval || 15.1000;
     this.outputs = {};
     this.shell = require('shelljs');    // NOTE - delay 'require' for mocking
 }
@@ -18,7 +17,7 @@ RouteWatcher.prototype._onStart = function(ppp) {
     var self = this;
     self.ppp = ppp;
     self.checkRoutes();
-    self.interval = setInterval(function(){ self.checkRoutes(); },self.routeInterval);
+    self.interval = setInterval(function(){ self.checkRoutes(); },self.ppp.routeInterval);
 };
 
 RouteWatcher.prototype._onStop = function() {

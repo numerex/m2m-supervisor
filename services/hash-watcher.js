@@ -57,6 +57,7 @@ HashWatcher.prototype.addChangeWatcher = function(watcher){
         if (hash)
             watcher.start(hash,self.client);
     });
+    return self;
 };
 
 
@@ -68,6 +69,7 @@ HashWatcher.prototype.addKeysetWatcher = function(keyset,required,watcher){
         needs: self.hashkeys[keyset],
         requirements: required ? helpers.requirements(self.hashkeys[keyset]) : []
     });
+    return self;
 };
 
 HashWatcher.prototype.validateRequirements = function(needs,requirements){
