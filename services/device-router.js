@@ -4,17 +4,16 @@ var util = require('util');
 var Watcher = require('../lib/watcher');
 var HashWatcher = require('./hash-watcher');
 var DataReader = require('./data-reader');
+var DeviceWatcher = require('./device-watcher');
 
-var logger = require('../lib/logger')('device');
-var builder = require('../lib/device-builder');
+var logger = require('../lib/logger')('dev-route');
 var helpers = require('../lib/hash-helpers');
 var schema = require('../lib/redis-schema');
 var hashkeys = require('../lib/device-hashkeys');
 
-function DeviceRouter(redis,deviceKey){
+function DeviceRouter(deviceKey){
     var self = this;
-    Watcher.apply(this,[logger,{qualifier: deviceKey},true]);
-    self.redis = redis;
+    Watcher.apply(self,[logger,{qualifier: deviceKey},true]);
     self.deviceKey = deviceKey;
     self.queueKey = schema.device.queue.useParam(deviceKey);
     self.messageBase = {routeKey: self.queueKey};
@@ -33,13 +32,24 @@ function DeviceRouter(redis,deviceKey){
                 return self.noteErrorStatus('unavailable route type: ' + self.routeConfig.type);
         }
         
-        self.reader = new DataReader(self.device).start(_.bind(self.readerEvent,self,_)).on('error',self.noteErrorStatus);
+        self.reader = new DataReader(self.device).on('error',self.noteErrorStatus).start(_.bind(self.readerEvent,self,_));
         self.noteStatus('ready');
     });
 
-    self.reset();    
+    self.deviceWatcher = new DeviceWatcher(self.deviceKey).on('ready',function(ready){
+        if (!ready) return;
+
+        if (self.deviceWatcher.device) {
+            self.device = self.deviceWatcher.device.on('error',self.noteErrorStatus);
+            self.noteStatus('device');
+        } else {
+            self.noteErrorStatus('unavailable connection type: ' + self.deviceWatcher.config.type);
+        }
+    });
+
+    self.reset();
     self.settingsWatcher = new HashWatcher(self.settingsKey,hashkeys)
-        .addKeysetWatcher('connection',true,self)
+        .addKeysetWatcher('connection',true,self.deviceWatcher)
         .on('change',function(hash){
             if (!hash) return;
             
@@ -49,7 +59,6 @@ function DeviceRouter(redis,deviceKey){
                 self.noteStatus('route');
             }
         })
-        .start(self.redis);
 }
 
 util.inherits(DeviceRouter,Watcher);
@@ -58,16 +67,14 @@ DeviceRouter.prototype.ready = function(){
     return !!this.reader && this.reader.started();
 };
 
-DeviceRouter.prototype._onStart = function(config){
-    if (this.device = builder.newDevice(config).on('error',this.noteErrorStatus))
-        this.noteStatus('device');
-    else
-        this.noteErrorStatus('unavailable connection type: ' + config.type);
+DeviceRouter.prototype._onStart = function(redis){
+    this.redis = redis;
 };
 
 DeviceRouter.prototype._onStop = function(){
     this.reset();
     this.noteStatus(null);
+    this.redis = null;
 };
 
 DeviceRouter.prototype.reset = function(){

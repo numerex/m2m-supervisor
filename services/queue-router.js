@@ -68,14 +68,20 @@ QueueRouter.COMMON_QUEUE_KEYS = COMMON_QUEUE_KEYS;
 QueueRouter.prototype._onStart = function(gateway) {
     var self = this;
     self.redis = require('then-redis').createClient()
-        .on('error',function(error){ logger.error('redis client error: ' + error); });
+        .on('error',function(error){
+            logger.error('redis client error: ' + error);
+
+            // istanbul ignore else - this shouldn't occur, but just nervous about assuming it won't
+            if (self.client) self.client._redisClient.end();
+            self.client = null;
+        });
     self.gateway = gateway;
     self.idleCount = 0;
     _.defer(function(){ self.emit('checkQueue'); });
 };
 
 QueueRouter.prototype._onStop = function(){
-    this.redis.quit();
+    if (this.redis) this.redis.quit();
     this.redis = null;
 };
 
