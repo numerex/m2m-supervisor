@@ -17,10 +17,12 @@ Dependencies
 ----
 
 * Redis should be running on the default port
-* If PM2 is installed, you may use `pm2 start processes.json` from the project root to launch the following processes
+* If PM2 is installed, you may use `pm2 start processes.json` from the project root to launch the **m2m-supervisor**
 
 Processes
 ----
+
+* **bin/m2m-supervisor** -- This process combines all of the following process elements into a single instance...
 
 * **bin/m2m-bridge** -- This process will do the following:
  * Wait for Redis to be available, then...

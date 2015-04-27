@@ -1,16 +1,8 @@
 {
   "apps":[
     {
-      "name":           "m2m-bridge",
-      "script":         "bin/m2m-bridge"
-    },
-    {
-      "name":           "m2m-transceiver",
-      "script":         "bin/m2m-transceiver"
-    },
-    {
-      "name":           "web-server",
-      "script":         "bin/web-server"
+      "name":           "supervisor",
+      "script":         "bin/m2m-supervisor"
     }
   ]
 }
