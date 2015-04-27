@@ -67,11 +67,11 @@ QueueRouter.COMMON_QUEUE_KEYS = COMMON_QUEUE_KEYS;
 
 QueueRouter.prototype._onStart = function(gateway) {
     var self = this;
-    self.redis = require('../lib/hinted-redis').createClient()
+    self.client = require('../lib/hinted-redis').createClient()
         .on('error',function(error){
             logger.error('redis client error: ' + error);
 
-            // istanbul ignore if - this shouldn't occur, but just nervous about assuming it won't
+            // istanbul ignore else - this shouldn't occur, but just nervous about assuming it won't
             if (self.client) self.client._redisClient.end();
             self.client = null;
         });
@@ -81,9 +81,8 @@ QueueRouter.prototype._onStart = function(gateway) {
 };
 
 QueueRouter.prototype._onStop = function(){
-    // istanbul ignore else - paired with use of "end" above...
-    if (this.redis) this.redis.quit();
-    this.redis = null;
+    if (this.client) this.client.quit();
+    this.client = null;
 };
 
 QueueRouter.prototype.addRoute = function(router){
@@ -103,10 +102,10 @@ QueueRouter.prototype.checkQueue = function(){
     if (!this.started()) return;
 
     var self = this;
-    self.redis.send('mget',ACK_STATE_KEYS).thenHint('getAckState',function(values){
+    self.client.send('mget',ACK_STATE_KEYS).thenHint('getAckState',function(values){
         var ackState = getAckState(values);
         var queueArgs = ackState.message ? self.ackArgs : self.transmitArgs;
-        self.redis.send('brpop',queueArgs).thenHint('checkQueue',function(result){
+        self.client.send('brpop',queueArgs).thenHint('checkQueue',function(result){
             if (result)
                 self.processQueueEntry(result[0],result[1],ackState);
             else if (ackState.message)
@@ -123,14 +122,14 @@ QueueRouter.prototype.processPendingMessage = function(ackState){
     var self = this;
     if (+ackState.retries >= self.config.maxRetries) {
         logger.error('too many retries: ' + ackState.sequenceNumber);
-        self.redis.send('del',ACK_STATE_KEYS).thenHint('tooManyRetries',function(){
+        self.client.send('del',ACK_STATE_KEYS).thenHint('tooManyRetries',function(){
             var route = self.routes[ackState.routeKey];
             route && route.noteError(+ackState.sequenceNumber);
             self.noteQueueResult('error');
         });
     } else {
         logger.info('retry: ' + ackState.sequenceNumber);
-        self.redis.incr(schema.ack.retries.key).thenHint('incrRetries',function(){
+        self.client.incr(schema.ack.retries.key).thenHint('incrRetries',function(){
             self.transmitMessage(new m2m.Message({json: ackState.message}));
             self.noteQueueResult('retry');
         });
@@ -143,7 +142,7 @@ QueueRouter.prototype.processQueueEntry = function(queueKey,rawEntry,ackState){
     if (queueKey === schema.ack.queue.key) {
         if (ackState.message && +queueEntry === +ackState.sequenceNumber) {
             logger.info('acked: ' + ackState.sequenceNumber);
-            self.redis.send('del',ACK_STATE_KEYS).thenHint('clearAckState',function(){
+            self.client.send('del',ACK_STATE_KEYS).thenHint('clearAckState',function(){
                 var route = self.routes[ackState.routeKey];
                 route && route.noteAck(+ackState.sequenceNumber);
                 self.noteQueueResult('ack');
@@ -185,7 +184,7 @@ QueueRouter.prototype.generateMessage = function(attributes) {
     if (sequenceNumber)
         self.assembleMessage(routeKey,eventCode,timestamp,sequenceNumber,attributes);
     else
-        self.redis.incr(schema.transmit.lastSequenceNumber.key).thenHint('incrSequenceNumber',function(newSequenceNumber){
+        self.client.incr(schema.transmit.lastSequenceNumber.key).thenHint('incrSequenceNumber',function(newSequenceNumber){
             self.assembleMessage(routeKey,eventCode,timestamp,newSequenceNumber,attributes);
         });
 };
@@ -215,7 +214,7 @@ QueueRouter.prototype.assembleMessage = function(routeKey,eventCode,timestamp,se
             }
     });
 
-    self.redis.send('mset',ackStatePairs(message,routeKey)).thenHint('setAckState',function(){
+    self.client.send('mset',ackStatePairs(message,routeKey)).thenHint('setAckState',function(){
         self.transmitMessage(message);
         self.noteQueueResult('transmit');
     });

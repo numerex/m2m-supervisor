@@ -1,8 +1,10 @@
 {
   "apps":[
     {
-      "name":           "supervisor",
-      "script":         "bin/m2m-supervisor"
+      "name": "supervisor",
+      "script": "bin/m2m-supervisor",
+      "err_file": "logs/m2m-supervisor-err.log",
+      "out_file": "logs/m2m-supervisor-out.log"
     }
   ]
 }

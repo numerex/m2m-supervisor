@@ -339,7 +339,7 @@ describe('QueueRouter',function() {
             '[router    ] stop watching'
         ]);
         test.mockredis.snapshot().should.eql([
-            {quit: null}
+            {end: null}
         ]);
         done();
     });
