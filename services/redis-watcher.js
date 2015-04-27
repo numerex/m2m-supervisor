@@ -38,19 +38,21 @@ RedisWatcher.prototype._onCheckReady = function(callback){
         if (self.client) self.client._redisClient.end();
         self.client = null;
 
-        if (!callback)
+        if (!callback) {
+console.log('HERE!');
             self.checkReady();
+        }
         else {
             callback(null);
             callback = null;
         }
     });
     self.client.keys('*')
-        .error(function(){})
         .then(function(keys){
             self.keys = keys;
             callback(self.client);
         })
+        .error(function(){})
         .done();
 };
 

@@ -18,7 +18,7 @@ util.inherits(HeartbeatGenerator,Watcher);
 HeartbeatGenerator.prototype._onStart = function(config,redis) {
     var self = this;
     self.redis = redis;
-    self.heartbeatInterval = (config || {}).heartbeatInterval || 60*60*1000;
+    self.heartbeatInterval = config.heartbeatInterval;
     self.sendHeartbeat(settings.EventCodes.startup);
     self.interval = setInterval(function(){ self.considerHeartbeat(); },self.heartbeatInterval);
 };

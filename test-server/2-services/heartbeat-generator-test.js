@@ -16,7 +16,7 @@ describe('HeartbeatGenerator',function() {
         test.mockredis.reset();
         redis = test.mockredis.createClient();
         mockProxy = {
-            config: {imei: '123456789012345'},
+            config: {imei: '123456789012345',heartbeatInterval: 10},
             messages: []
         };
         mockProxy.sendPrimary = function(buffer,ignoreAckHint){
@@ -61,7 +61,7 @@ describe('HeartbeatGenerator',function() {
                 done();
             }
         });
-        heartbeat.start({heartbeatInterval: 10},redis);
+        heartbeat.start(mockProxy.config,redis);
     });
 
     it('should send a startup but then skip regular heartbeats if messages are in the queue',function(done){
@@ -92,7 +92,7 @@ describe('HeartbeatGenerator',function() {
                 done();
             }
         });
-        heartbeat.start({heartbeatInterval: 10},redis);
+        heartbeat.start(mockProxy.config,redis);
     });
 
     it('should send a startup and then regular heartbeats if no other messages have been sent and the queue is empty',function(done){
@@ -128,14 +128,14 @@ describe('HeartbeatGenerator',function() {
                 done();
             }
         });
-        heartbeat.start({heartbeatInterval: 10},redis);
+        heartbeat.start(mockProxy.config,redis);
     });
 
     it('should throw an error if start called twice',function(done){
         test.mockredis.lookup.get['m2m-transmit:last-sequence-number'] = 7;
 
-        var heartbeat = new HeartbeatGenerator(mockProxy).start({heartbeatInterval: 10},redis);
-        test.expect(function(){ heartbeat.start({heartbeatInterval: 10},redis); }).to.throw('already started');
+        var heartbeat = new HeartbeatGenerator(mockProxy).start(mockProxy.config,redis);
+        test.expect(function(){ heartbeat.start(mockProxy.config,redis); }).to.throw('already started');
         heartbeat.stop();
         test.pp.snapshot().should.eql([
             '[heartbeat ] start watching',

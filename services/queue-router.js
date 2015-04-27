@@ -71,7 +71,7 @@ QueueRouter.prototype._onStart = function(gateway) {
         .on('error',function(error){
             logger.error('redis client error: ' + error);
 
-            // istanbul ignore else - this shouldn't occur, but just nervous about assuming it won't
+            // istanbul ignore if - this shouldn't occur, but just nervous about assuming it won't
             if (self.client) self.client._redisClient.end();
             self.client = null;
         });
@@ -81,6 +81,7 @@ QueueRouter.prototype._onStart = function(gateway) {
 };
 
 QueueRouter.prototype._onStop = function(){
+    // istanbul ignore else - paired with use of "end" above...
     if (this.redis) this.redis.quit();
     this.redis = null;
 };
