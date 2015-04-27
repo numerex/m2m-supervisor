@@ -2,47 +2,34 @@
 
 var _ = require('lodash');
 
-var RedisCheckpoint = require('../services/redis-checkpoint');
-var ConfigCheckpoint = require('../services/config-checkpoint');
+var RedisWatcher = require('../services/redis-watcher');
+var HashWatcher = require('../services/hash-watcher');
 var QueueRouter = require('../services/queue-router');
 var DeviceRouter = require('../services/device-router');
 
 var schema = require('../lib/redis-schema');
-var helpers = require('../lib/hash-helpers');
 var configHashkeys = require('../lib/config-hashkeys');
 
-var redisChk = new RedisCheckpoint().start(function(redisEvent,redis) {
-    if (redisEvent !== 'ready') return;
+var queueRouter = new QueueRouter();
 
-    var gatewayChk = new ConfigCheckpoint(redis,schema.config.key,configHashkeys.gateway,helpers.requirements(configHashkeys.gateway)).start(function(gatewayEvent,gateway) {
-        if (gatewayEvent !== 'ready') return;
+var configWatcher = new HashWatcher(schema.config.key,configHashkeys)
+    .addKeysetWatcher('gateway',true,queueRouter);
 
-        var queueRouter = new QueueRouter(redis,gateway);
+var redisWatcher = new RedisWatcher()
+    .on('ready',configureDevices)
+    .addClientWatcher(configWatcher)
+    .start();
 
-        var deviceCount = 0;
-        var readyCount = 0;
-        _.each(redisChk.keys,function(key){
-            var deviceKey = schema.device.settings.getParam(key);
-            if (!deviceKey) return;
+function configureDevices(redis){
+    _.each(redisWatcher.keys,function(key){
+        var deviceKey = schema.device.settings.getParam(key);
+        if (!deviceKey) return;
+        if (queueRouter.routes[deviceKey]) return; // TODO maybe recreate or refresh it??
 
-            deviceCount++;
-            var deviceRouter = new DeviceRouter(redis,deviceKey,function(status){
-                console.log('device status(' + deviceKey + '):' + status);
-                switch(status){
-                    case 'ready':
-                        queueRouter.addRoute(deviceRouter);
-                        break;
-                    case 'off':
-                        break;
-                    default:
-                        return;
-                }
-                if (deviceCount == ++readyCount) queueRouter.start();
-            });
+        var deviceRouter = new DeviceRouter(redis,deviceKey).on('status',function(status){
+            console.log('device status(' + deviceKey + '):' + status);
+            if (status == 'ready')
+                queueRouter.addRoute(deviceRouter);
         });
-        if (deviceCount == 0) queueRouter.start();
-
     });
-});
-
-
+}

@@ -1,6 +1,8 @@
 var _ = require('lodash');
+var util = require('util');
 
-var HashWatcher = require('./config-checkpoint');
+var Watcher = require('../lib/watcher');
+var HashWatcher = require('./hash-watcher');
 var DataReader = require('./data-reader');
 
 var logger = require('../lib/logger')('device');
@@ -11,11 +13,13 @@ var hashkeys = require('../lib/device-hashkeys');
 
 function DeviceRouter(redis,deviceKey){
     var self = this;
+    Watcher.apply(this,[logger,{qualifier: deviceKey},true]);
     self.redis = redis;
     self.deviceKey = deviceKey;
     self.queueKey = schema.device.queue.useParam(deviceKey);
     self.messageBase = {routeKey: self.queueKey};
     self.settingsKey = schema.device.settings.useParam(deviceKey);
+    self.noteErrorStatus = function(error) { self.noteStatus('error','error(' + self.deviceKey + '):' + error); };
     
     self.on('status',function(status){
         if (!status || !self.device || !self.routeConfig || self.reader) return;
@@ -26,10 +30,10 @@ function DeviceRouter(redis,deviceKey){
             case 'ad-hoc':
                 break;
             default:
-                return self.noteStatus('error','unavailable route type(' + self.deviceKey +'): ' + self.routeConfig.type)
+                return self.noteErrorStatus('unavailable route type: ' + self.routeConfig.type);
         }
         
-        self.reader = new DataReader(self.device).start(_.bind(self.readerEvent,self,_));
+        self.reader = new DataReader(self.device).start(_.bind(self.readerEvent,self,_)).on('error',self.noteErrorStatus);
         self.noteStatus('ready');
     });
 
@@ -48,26 +52,20 @@ function DeviceRouter(redis,deviceKey){
         .start(self.redis);
 }
 
-DeviceRouter.prototype.started = function(){
-    return this.status !== null;
-};
+util.inherits(DeviceRouter,Watcher);
 
 DeviceRouter.prototype.ready = function(){
     return !!this.reader && this.reader.started();
 };
 
-DeviceRouter.prototype.start = function(config){
-    if (this.started()) throw(new Error('already started'));
-
-    if (this.device = builder.newDevice(config))
+DeviceRouter.prototype._onStart = function(config){
+    if (this.device = builder.newDevice(config).on('error',this.noteErrorStatus))
         this.noteStatus('device');
     else
-        this.noteStatus('error','unavailable connection type(' + this.deviceKey +'): ' + config.type);
+        this.noteErrorStatus('unavailable connection type: ' + config.type);
 };
 
-DeviceRouter.prototype.stop = function(){
-    if (!this.started()) throw(new Error('not started'));
-    
+DeviceRouter.prototype._onStop = function(){
     this.reset();
     this.noteStatus(null);
 };
