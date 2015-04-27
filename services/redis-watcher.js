@@ -20,7 +20,7 @@ function RedisWatcher(config){
 util.inherits(RedisWatcher,Watcher);
 
 RedisWatcher.prototype._onStart = function() {
-    this.redis = require('then-redis'); // NOTE - delay require for mockery testing
+    this.redis = require('../lib/hinted-redis'); // NOTE - delay require for mockery testing
 };
 
 RedisWatcher.prototype._onStop = function(){
@@ -46,11 +46,11 @@ RedisWatcher.prototype._onCheckReady = function(callback){
         }
     });
     self.client.keys('*')
+        .error(function(){})
         .then(function(keys){
             self.keys = keys;
             callback(self.client);
         })
-        .error(function(error){})
         .done();
 };
 

@@ -30,7 +30,7 @@ function requireRedis(res,callback){
 }
 
 function requestHash(res,hashKey,resultKey,template){
-    RedisWatcher.instance.client.hgetall(hashKey).then(function(hash){
+    RedisWatcher.instance.client.hgetall(hashKey).thenHint('requestHash',function(hash){
         var result = {};
         result[resultKey] = helpers.hash2groups(hash || {},template);
         res.send(result);
@@ -38,7 +38,7 @@ function requestHash(res,hashKey,resultKey,template){
 }
 
 function updateHash(updates,callback){
-    RedisWatcher.instance.client.send('hmset',updates).then(function () {
+    RedisWatcher.instance.client.send('hmset',updates).thenHint('updateHash',function () {
         callback();
     });
 }
@@ -59,7 +59,7 @@ function changeHash(req,res,hashKey,callback){
     else if (deletes.length <= 1)
         updateHash(updates,callback);
     else
-        RedisWatcher.instance.client.send('hdel',deletes).then(function(){
+        RedisWatcher.instance.client.send('hdel',deletes).thenHint('deleteHash',function(){
             if (updates.length <= 1)
                 callback();
             else
@@ -91,7 +91,7 @@ router.post('/config',function(req,res,next){
 // DEVICE ----------------
 
 function findDeviceIDs(res,callback){
-    RedisWatcher.instance.client.keys(schema.device.settings.keysPattern()).then(function(keys){
+    RedisWatcher.instance.client.keys(schema.device.settings.keysPattern()).thenHint('findDeviceIDs',function(keys){
         callback(keys);
     });
 }

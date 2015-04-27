@@ -38,7 +38,7 @@ CommandScheduler.prototype.enqueueCommands = function(commands){
     var self = this;
     var string = JSON.stringify(commands);
     logger.info('enqueue commands: ' + string);
-    self.redis.lpush(self.queueKey,string).then(function(){
+    self.redis.lpush(self.queueKey,string).thenHint('enqueueCommand',function(){
         self.noteEvent('commands');
     });
 };

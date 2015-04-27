@@ -1,3 +1,4 @@
+var _ = require('lodash');
 var fs = require('fs');
 var test = require('../test');
 var RouteWatcher = require(process.cwd() + '/services/route-watcher');
@@ -121,7 +122,7 @@ describe('RouteWatcher',function(){
 
     it('should check routes at intervals',function(done){
         var count = 0;
-        var watcher = new RouteWatcher({routeInterval: 1}).on('note',function(){
+        var watcher = new RouteWatcher().on('note',function(){
             if (count++ > 0) {
                 watcher.stop();
                 test.pp.snapshot().should.eql([
@@ -132,7 +133,7 @@ describe('RouteWatcher',function(){
                 test.mockshelljs.snapshot().should.eql([]);
                 done();
             }
-        }).start(ppp);
+        }).start(_.defaults({routeInterval: 1},ppp));
     });
 
     it('should allow caching of shell responses',function() {

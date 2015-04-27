@@ -93,7 +93,7 @@ describe('RedisWatcher',function() {
                         '[redis     ] now ready',
                         '[redis     ] redis client error: test error',
                         '[redis     ] no longer ready',
-                        '[redis     ] redis client error: test error',
+                        //'[redis     ] redis client error: test error',
                         '[redis     ] check ready',
                         '[redis     ] redis client error: test error',
                         '[redis     ] check ready',

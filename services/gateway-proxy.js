@@ -27,14 +27,14 @@ GatewayProxy.prototype._onStart = function(config,redis){
                 case m2m.Common.MOBILE_TERMINATED_EVENT:
                     // TODO send ack now?
                     logger.info('enqueue command');
-                    self.redis.lpush(schema.command.queue.key,JSON.stringify(message));
+                    self.redis.lpush(schema.command.queue.key,JSON.stringify(message)).errorHint('pushCommand');
                     break;
                 case m2m.Common.MOBILE_TERMINATED_ACK:
                     if (self.ignoreAckHint === message.sequenceNumber)
                         logger.info('ignore ack: ' + message.sequenceNumber);
                     else {
                         logger.info('relay ack: ' + message.sequenceNumber);
-                        self.redis.lpush(schema.ack.queue.key,message.sequenceNumber);
+                        self.redis.lpush(schema.ack.queue.key,message.sequenceNumber).errorHint('pushAck');
                     }
                     break;
                 default:
@@ -61,7 +61,7 @@ GatewayProxy.prototype.sendPrivate = function(buffer,ignoreAckHint){
     var self = this;
     if (ignoreAckHint) self.ignoreAckHint = ignoreAckHint;
     var timestamp = new Date().valueOf();
-    self.redis.mset(schema.transmit.lastTimestamp.key,timestamp,schema.transmit.lastPrivateTimestamp.key,timestamp).then(function(){
+    self.redis.mset(schema.transmit.lastTimestamp.key,timestamp,schema.transmit.lastPrivateTimestamp.key,timestamp).thenHint('sendPrivate',function(){
         self.outside.send(buffer,self.config.privateHost,+self.config.privatePort);
         self.emit('send','private');
     });
@@ -71,7 +71,7 @@ GatewayProxy.prototype.sendPrivate = function(buffer,ignoreAckHint){
 GatewayProxy.prototype.sendPublic = function(buffer,ignoreAckHint){
     var self = this;
     if (ignoreAckHint) self.ignoreAckHint = ignoreAckHint;
-    self.redis.set(schema.transmit.lastTimestamp.key,new Date().valueOf()).then(function(){
+    self.redis.set(schema.transmit.lastTimestamp.key,new Date().valueOf()).thenHint('sendPublic',function(){
         self.outside.send(buffer,self.config.publicHost,+self.config.publicPort);
         self.emit('send','public');
     });

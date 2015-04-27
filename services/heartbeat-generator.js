@@ -29,11 +29,11 @@ HeartbeatGenerator.prototype._onStop = function() {
 
 HeartbeatGenerator.prototype.considerHeartbeat = function(){
     var self = this;
-    self.redis.get(schema.transmit.lastPrivateTimestamp.key).then(function(lastPrivateTimestamp){
+    self.redis.get(schema.transmit.lastPrivateTimestamp.key).thenHint('getTimestamp',function(lastPrivateTimestamp){
         if (new Date().valueOf() < +lastPrivateTimestamp + self.heartbeatInterval)
             self.emit('note','skip');
         else {
-            self.redis.llen(schema.transmit.queue.key).then(function(length){
+            self.redis.llen(schema.transmit.queue.key).thenHint('getQueueLength',function(length){
                 if (+length > 0)
                     self.emit('note','skip');
                 else
@@ -45,7 +45,7 @@ HeartbeatGenerator.prototype.considerHeartbeat = function(){
 
 HeartbeatGenerator.prototype.sendHeartbeat = function(eventCode){
     var self = this;
-    self.redis.incr(schema.transmit.lastSequenceNumber.key).then(function(sequenceNumber){
+    self.redis.incr(schema.transmit.lastSequenceNumber.key).thenHint('incrSequenceNumber',function(sequenceNumber){
         logger.info('send heartbeat: ' + eventCode);
         var message = new m2m.Message({messageType: m2m.Common.MOBILE_ORIGINATED_EVENT,eventCode: eventCode,sequenceNumber: sequenceNumber})
             .pushString(0,self.proxy.config.imei);

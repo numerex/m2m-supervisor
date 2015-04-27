@@ -7,7 +7,8 @@ module.exports.pp = require(process.cwd() + '/lib/bunyan-prettyprinter');
 module.exports.mockery = require('mockery');
 module.exports.timekeeper = require('timekeeper');
 
-require(process.cwd() + '/lib/logger')('test      ').info('test environment loaded: ' + process.cwd());
+logger = require(process.cwd() + '/lib/logger')('test      ');
+logger.info('test environment loaded: ' + process.cwd());
 
 module.exports.matchArrays = function(actual,expected){
     actual.length.should.equal(expected.length);
@@ -202,6 +203,8 @@ MockRedis.createClient = function () {
             }
             return client;
         },
+        errorHint: function(label) { return client.error(function(error){ logger.error('error(' + label + '): ' + error); })},
+        thenHint: function(label,callback) { return client.then(callback).errorHint(label); },
         done: function(){},
         on: function(event,callback) {
             MockRedis.events[event] = callback;

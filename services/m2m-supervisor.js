@@ -21,7 +21,7 @@ function M2mSupervisor(httpPort){
     self.queueRouter = new QueueRouter();
 
     self.modemWatcher = new ModemWatcher()
-        .on('imei',function(imei){ RedisWatcher.instance.client.hsetnx(schema.config.key,configHashkeys.gateway.imei.key,imei); });
+        .on('imei',function(imei){ RedisWatcher.instance.client.hsetnx(schema.config.key,configHashkeys.gateway.imei.key,imei).errorHint('setIMEI'); });
 
     self.routeWatcher = new RouteWatcher();
 

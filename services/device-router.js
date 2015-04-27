@@ -131,7 +131,7 @@ DeviceRouter.prototype.processQueueEntry = function(entry){
                 10: command,
                 11: response,
                 12: error
-            })));
+            }))).errorHint('lpush');
         });
 };
 

@@ -16,7 +16,7 @@ describe('HeartbeatGenerator',function() {
         test.mockredis.reset();
         redis = test.mockredis.createClient();
         mockProxy = {
-            gateway: {imei: '123456789012345'},
+            config: {imei: '123456789012345'},
             messages: []
         };
         mockProxy.sendPrimary = function(buffer,ignoreAckHint){

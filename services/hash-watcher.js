@@ -35,7 +35,7 @@ HashWatcher.prototype._onStop = function(){
 
 HashWatcher.prototype._onCheckReady = function(callback){
     var self = this;
-    self.client.hgetall(self.rootKey).then(function(hash){
+    self.client.hgetall(self.rootKey).thenHint('onCheckReady',function(hash){
         self.hash = hash || {};
         var json = JSON.stringify(self.hash);
         if (self.lastJSON !== json) {

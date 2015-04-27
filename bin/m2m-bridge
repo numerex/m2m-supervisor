@@ -11,7 +11,7 @@ var schema = require('../lib/redis-schema');
 var hashkeys = require('../lib/config-hashkeys');
 
 var modemWatcher = new ModemWatcher()
-    .on('imei',function(imei){ RedisWatcher.instance.client.hsetnx(schema.config.key,hashkeys.gateway.imei.key,imei); });
+    .on('imei',function(imei){ RedisWatcher.instance.client.hsetnx(schema.config.key,hashkeys.gateway.imei.key,imei).errorHint('setIMEI'); });
 
 var routeWatcher = new RouteWatcher();
 
