@@ -176,47 +176,47 @@ describe('M2mSupervisor',function() {
                     //    {mget:['m2m-ack:message','m2m-ack:route-key','m2m-ack:retries','m2m-ack:sequence-number']},
                     //    {brpop: ['m2m-ack:queue','m2m-transmit:queue','m2m-device:testKey:queue',5]}
                     //]);
+                    _.defer(function(){
+                        supervisor.stop();
+                        //test.mockredis.snapshot().should.eql([
+                        //    {mget:['m2m-ack:message','m2m-ack:route-key','m2m-ack:retries','m2m-ack:sequence-number']},
+                        //    {brpop: ['m2m-ack:queue','m2m-transmit:queue','m2m-device:testKey:queue',5]},
+                        //    {quit: null},
+                        //    {quit: null}
+                        //]);
+                        //test.pp.snapshot().should.eql([
+                        //    '[outside   ] incoming - size: 34 from: 192.119.183.253:3011',
+                        //    '[proxy     ] relay ack: 1',
+                        //    '[modem     ] RSSI: 21,99',
+                        //    '[modem     ] IMEI: 352214046337094',
+                        //    '[router    ] add route: m2m-device:testKey:queue',
+                        //    '[router    ] ignoring queue entry: 2',
+                        //    '[redis     ] stop watching',
+                        //    '[hash      ] stop watching: m2m-config',
+                        //    '[route     ] stop watching',
+                        //    '[modem     ] stop watching',
+                        //    '[proxy     ] stop watching',
+                        //    '[private   ] connection closed',
+                        //    '[public    ] connection closed',
+                        //    '[outside   ] connection closed',
+                        //    '[heartbeat ] stop watching',
+                        //    '[router    ] stop watching',
+                        //    '[hash      ] stop watching: m2m-device:testKey:settings',
+                        //    '[device    ] stop watching: testKey',
+                        //    '[reader    ] stop watching'
+                        //]);
+                        test.mocknet.snapshot().should.eql([
+                            {connect: {host: 'host',port: 1234}},
+                            {end: null}
+                        ]);
+                        test.pp.snapshot(); // NOTE - too many race conditions
+                        test.mockredis.snapshot(); // NOTE - too many race conditions
+                        test.mockshelljs.snapshot(); // NOTE - per route-watcher tests, clear ...
+                        test.timekeeper.reset();
+                        done();
+                    });
                     break;
             }
-            _.defer(function(){
-                supervisor.stop();
-                //test.mockredis.snapshot().should.eql([
-                //    {mget:['m2m-ack:message','m2m-ack:route-key','m2m-ack:retries','m2m-ack:sequence-number']},
-                //    {brpop: ['m2m-ack:queue','m2m-transmit:queue','m2m-device:testKey:queue',5]},
-                //    {quit: null},
-                //    {quit: null}
-                //]);
-                //test.pp.snapshot().should.eql([
-                //    '[outside   ] incoming - size: 34 from: 192.119.183.253:3011',
-                //    '[proxy     ] relay ack: 1',
-                //    '[modem     ] RSSI: 21,99',
-                //    '[modem     ] IMEI: 352214046337094',
-                //    '[router    ] add route: m2m-device:testKey:queue',
-                //    '[router    ] ignoring queue entry: 2',
-                //    '[redis     ] stop watching',
-                //    '[hash      ] stop watching: m2m-config',
-                //    '[route     ] stop watching',
-                //    '[modem     ] stop watching',
-                //    '[proxy     ] stop watching',
-                //    '[private   ] connection closed',
-                //    '[public    ] connection closed',
-                //    '[outside   ] connection closed',
-                //    '[heartbeat ] stop watching',
-                //    '[router    ] stop watching',
-                //    '[hash      ] stop watching: m2m-device:testKey:settings',
-                //    '[device    ] stop watching: testKey',
-                //    '[reader    ] stop watching'
-                //]);
-                test.mocknet.snapshot().should.eql([
-                    {connect: {host: 'host',port: 1234}},
-                    {end: null}
-                ]);
-                test.pp.snapshot(); // NOTE - too many race conditions
-                test.mockredis.snapshot(); // NOTE - too many race conditions
-                test.mockshelljs.snapshot(); // NOTE - per route-watcher tests, clear ...
-                test.timekeeper.reset();
-                done();
-            });
         });
     });
 });
