@@ -16,25 +16,25 @@ var ShellBehavior = require('../sockets/shell-behavior');
 var schema = require('../lib/redis-schema');
 var configHashkeys = require('../lib/config-hashkeys');
 
-function M2mSupervisor(httpPort){
+function M2mSupervisor(httpPort,config){
     var self = this;
-    self.queueRouter = new QueueRouter();
+    self.queueRouter = new QueueRouter(config);
 
-    self.modemWatcher = new ModemWatcher()
+    self.modemWatcher = new ModemWatcher(config)
         .on('imei',function(imei){ RedisWatcher.instance.client.hsetnx(schema.config.key,configHashkeys.gateway.imei.key,imei).errorHint('setIMEI'); });
 
-    self.routeWatcher = new RouteWatcher();
+    self.routeWatcher = new RouteWatcher(config);
 
-    self.proxy = new GatewayProxy();
-    self.heartbeat = new HeartbeatGenerator(self.proxy);
-    self.configWatcher = new HashWatcher(schema.config.key,configHashkeys)
+    self.proxy = new GatewayProxy(config);
+    self.heartbeat = new HeartbeatGenerator(self.proxy,config);
+    self.configWatcher = new HashWatcher(schema.config.key,configHashkeys,config)
         .addKeysetWatcher('PPP',true,self.routeWatcher)
         .addKeysetWatcher('modem',true,self.modemWatcher)
         .addKeysetWatcher('gateway',false,self.proxy)
         .addKeysetWatcher('gateway',true,self.heartbeat)
         .addKeysetWatcher('gateway',true,self.queueRouter);
 
-    self.redisWatcher = new RedisWatcher()
+    self.redisWatcher = new RedisWatcher(config)
         .on('ready',_.bind(self.configureDevices,self))
         .addClientWatcher(self.configWatcher);
 
@@ -52,20 +52,22 @@ M2mSupervisor.prototype.stop = function(){
     this.redisWatcher.stop();
 };
 
-M2mSupervisor.prototype.configureDevices = function(redis){
-    if (!redis) return;
+M2mSupervisor.prototype.configureDevices = function(client){
+    if (!client) return;
 
     var self = this;
     _.each(self.redisWatcher.keys,function(key){
         var deviceKey = schema.device.settings.getParam(key);
+        // istanbul ignore if - should never occur, but nervous about not checking...
         if (!deviceKey) return;
-        if (self.queueRouter.routes[deviceKey]) return; // TODO maybe recreate or refresh it??
+        // istanbul ignore if - TODO maybe recreate or refresh it??
+        if (self.queueRouter.routes[deviceKey]) return;
 
         var deviceRouter = new DeviceRouter(deviceKey)
             .on('status',function(status){ if (status == 'ready') self.queueRouter.addRoute(deviceRouter); });
         self.redisWatcher.addClientWatcher(deviceRouter.settingsWatcher);
-        deviceRouter.start(redis);
-        deviceRouter.settingsWatcher.start(redis);
+        deviceRouter.start(client);
+        deviceRouter.settingsWatcher.start(client);
     });
 };
 

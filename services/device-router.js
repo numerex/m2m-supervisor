@@ -25,15 +25,23 @@ function DeviceRouter(deviceKey){
 
         switch(self.routeConfig.type){
             case 'none':
+                self.routeConfig.type = 'off'; // NOTE - modify type to avoid recursive off events -- TODO revise??
                 return self.noteStatus('off');
+            case 'off':
+                return;
             case 'ad-hoc':
                 break;
             default:
                 return self.noteErrorStatus('unavailable route type: ' + self.routeConfig.type);
         }
-        
-        self.reader = new DataReader(self.device).on('error',self.noteErrorStatus).start(_.bind(self.readerEvent,self,_));
-        self.noteStatus('ready');
+
+        self.reader = new DataReader(self.device)
+            .on('error',self.noteErrorStatus)
+            .start();
+        _.defer(function(){
+            self.noteStatus('ready');
+            self.emit('ready',self.ready());
+        });
     });
 
     self.deviceWatcher = new DeviceWatcher(self.deviceKey).on('ready',function(ready){
@@ -56,6 +64,7 @@ function DeviceRouter(deviceKey){
             
             var config = helpers.hash2config(hash,hashkeys.route);
             if (JSON.stringify(config) !== JSON.stringify(self.routeConfig)) {
+                if (self.ready()) self.resetReader();
                 self.routeConfig = config;
                 self.noteStatus('route');
             }
@@ -68,20 +77,24 @@ DeviceRouter.prototype.ready = function(){
     return !!this.reader && this.reader.started();
 };
 
-DeviceRouter.prototype._onStart = function(redis){
-    this.redis = redis;
+DeviceRouter.prototype._onStart = function(client){
+    this.client = client;
 };
 
 DeviceRouter.prototype._onStop = function(){
     this.reset();
     this.noteStatus(null);
-    this.redis = null;
+    this.client = null;
 };
 
 DeviceRouter.prototype.reset = function(){
     this.device = null;
     this.routeConfig = null;
-    if (this.reader && this.reader.started()) this.reader.stop();
+    this.resetReader();
+};
+
+DeviceRouter.prototype.resetReader = function(){
+    if (this.ready()) this.reader.stop();
     this.reader = null;
 };
 
@@ -89,26 +102,6 @@ DeviceRouter.prototype.noteStatus = function(status,info){
     if (status && this.status === 'error') return;
     
     this.emit('status',this.status = status,info || null);
-};
-    
-DeviceRouter.prototype.readerEvent = function(event){
-    var self = this;
-    switch(self.status){
-        case 'ready':
-            break;
-        case 'pending':
-            switch(event){
-                case 'ready':
-                    return self.noteStatus('ready');
-                case 'retry':
-                    break;
-                default:
-                    return self.noteStatus('unexpected reader event(' + self.deviceKey +'): ' + event);
-            }
-            break;
-        default:
-            logger.error('ignore reader event(' + self.deviceKey + '): ' + event);
-    }
 };
 
 DeviceRouter.prototype.noteAck = function(sequenceNumber){
@@ -121,19 +114,22 @@ DeviceRouter.prototype.noteError = function(sequenceNumber){
 
 DeviceRouter.prototype.processQueueEntry = function(entry){
     var self = this;
-    logger.info('queue entry(' + self.deviceKey + '): ' + JSON.stringify(entry));
-    if (entry && typeof entry === 'object' && entry.command)
+    if (!entry || typeof entry !== 'object' || !entry.command)
+        logger.error('invalid queue entry(' + self.deviceKey + '): ' + JSON.stringify(entry));
+    else {
+        logger.info('queue entry(' + self.deviceKey + '): ' + JSON.stringify(entry));
         self.reader.submit(entry.command,function(error,command,response){
             if (error)
                 logger.error('error(' + self.deviceKey + '): ' + error);
             else
-                logger.info('response(' + self.deviceKey + '): ' + response);
-            self.redis.lpush(schema.transmit.queue.key,JSON.stringify(_.defaults({},self.messageBase,{
+                logger.info('response(' + self.deviceKey + '): ' + JSON.stringify(response));
+            self.client.lpush(schema.transmit.queue.key,JSON.stringify(_.defaults({},self.messageBase,{
                 10: command,
                 11: response,
                 12: error
             }))).errorHint('lpush');
         });
+    }
 };
 
 module.exports = DeviceRouter;

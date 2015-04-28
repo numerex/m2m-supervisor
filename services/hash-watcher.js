@@ -85,10 +85,14 @@ HashWatcher.prototype.checkKeysetWatcher = function(target){
         target.ready = true;
     else
         self.readyStatus = target.ready = false;
-    if (target.watcher.started())
-        target.watcher.stop();
-    if (target.ready)
-        target.watcher.start(helpers.hash2config(self.hash,target.needs),self.client);
+    var json = JSON.stringify(result);
+    if (json !== target.lastJSON) {
+        target.lastJSON = json;
+        if (target.watcher.started())
+            target.watcher.stop();
+        if (target.ready)
+            target.watcher.start(helpers.hash2config(self.hash,target.needs),self.client);
+    }
 };
 
 module.exports = HashWatcher;

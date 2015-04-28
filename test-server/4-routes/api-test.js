@@ -11,7 +11,7 @@ describe('API router',function() {
     });
 
     after(function () {
-        test.mockery.deregisterMock('redis');
+        test.mockery.deregisterMock('then-redis');
         test.mockery.disable();
     });
 

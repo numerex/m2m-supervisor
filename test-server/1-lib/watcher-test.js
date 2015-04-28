@@ -18,6 +18,8 @@ describe('Watcher',function() {
     it('should properly initialize data with minimal arguments',function(){
         var watcher = new Watcher(logger);
         watcher.retryInterval.should.eql(5000);
+        watcher.started().should.not.be.ok;
+        watcher.ready().should.not.be.ok;
     });
 
     it('should properly initialize data with all arguments',function(){

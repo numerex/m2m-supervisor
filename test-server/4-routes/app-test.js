@@ -6,13 +6,13 @@ describe('app',function() {
 
     before(function () {
         test.mockery.enable();
-        test.mockery.registerMock('redis', test.mockredis);
+        test.mockery.registerMock('then-redis', test.mockredis);
         test.mockery.warnOnUnregistered(false);
         app = require(process.cwd() + '/app');
     });
 
     after(function () {
-        test.mockery.deregisterMock('redis');
+        test.mockery.deregisterMock('then-redis');
         test.mockery.disable();
     });
 

@@ -283,6 +283,11 @@ MockRedis.createClient = function () {
             MockRedis.results = null;
             return client;
         },
+        hsetnx: function(key,subkey,value){
+            MockRedis.calls.push({hsetnx: [key,subkey,value]});
+            MockRedis.results = null;
+            return client;
+        },
         incr: function(key) {
             MockRedis.calls.push({incr: key});
             var value = +(MockRedis.lookup.get[key] || '0') + 1;
@@ -403,6 +408,23 @@ module.exports.mocksocketio.snapshot = function(){
         calls: calls
     };
 };
+
+// HTTP -----------------------
+
+var MockHTTP = {
+    reset: function(){
+        MockHTTP.port = null;
+        MockHTTP.app = null;
+        MockHTTP.addressResult = null;
+        MockHTTP.events = {};
+    },
+    createServer: function(app){ MockHTTP.app = app; return MockHTTP; },
+    listen: function(port){ MockHTTP.port = port; },
+    address: function(){ return MockHTTP.addressResult || {addr: 'host',port: MockHTTP.port || 1234}; },
+    on: function(event,callback){ MockHTTP.events[event] = callback; return MockHTTP; }
+};
+
+module.exports.mockhttp = MockHTTP;
 
 process.env.testing = true;
 
