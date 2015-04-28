@@ -1,4 +1,4 @@
-var logger = require('./../lib/logger')('http');
+var logger = require('../lib/logger')('http');
 
 function HttpServer() {
 }
@@ -32,11 +32,13 @@ HttpServer.prototype.start = function(port){
         switch (error.code) {
             case 'EACCES':
                 logger.error(bind + ' requires elevated privileges');
-                process.exit(1);
+                // istanbul ignore if - do not exit during testing
+                if (!process.env.testing) process.exit(1);
                 break;
             case 'EADDRINUSE':
                 logger.error(bind + ' is already in use');
-                process.exit(1);
+                // istanbul ignore if - do not exit during testing
+                if (!process.env.testing) process.exit(1);
                 break;
             default:
                 logger.error('unknown error for ' + bind + ': ' + error);

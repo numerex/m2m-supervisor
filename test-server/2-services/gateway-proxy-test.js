@@ -21,7 +21,7 @@ describe('GatewayProxy',function() {
 
     beforeEach(function () {
         test.mockery.enable();
-        test.mockery.registerMock('redis',test.mockredis);
+        test.mockery.registerMock('then-redis',test.mockredis);
         test.mockery.registerMock('dgram',mockdgram = new test.mockdgram());
         test.mockery.warnOnUnregistered(false);
         test.mockredis.reset();
@@ -30,7 +30,7 @@ describe('GatewayProxy',function() {
 
     afterEach(function () {
         test.mockery.deregisterMock('dgram');
-        test.mockery.deregisterMock('redis');
+        test.mockery.deregisterMock('then-redis');
         test.mockery.disable();
         test.mockredis.snapshot().should.eql([]);
         test.pp.snapshot().should.eql([]);

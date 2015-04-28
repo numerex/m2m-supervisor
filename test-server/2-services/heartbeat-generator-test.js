@@ -11,7 +11,7 @@ describe('HeartbeatGenerator',function() {
     beforeEach(function () {
         test.timekeeper.freeze(BASE_TIME);
         test.mockery.enable();
-        test.mockery.registerMock('redis', test.mockredis);
+        test.mockery.registerMock('then-redis', test.mockredis);
         test.mockery.warnOnUnregistered(false);
         test.mockredis.reset();
         redis = test.mockredis.createClient();
@@ -30,7 +30,7 @@ describe('HeartbeatGenerator',function() {
     });
 
     afterEach(function () {
-        test.mockery.deregisterMock('redis');
+        test.mockery.deregisterMock('then-redis');
         test.mockery.disable();
         test.mockredis.snapshot().should.eql([]);
         test.pp.snapshot().should.eql([]);

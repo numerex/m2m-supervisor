@@ -4,9 +4,9 @@ var _ = require('lodash');
 var readline = require('readline');
 var events = require('events');
 
+var DataReader = require('../lib/data-reader');
 var RedisWatcher = require('../services/redis-watcher');
 var HashWatcher = require('../services/hash-watcher');
-var DataReader = require('../services/data-reader');
 
 var builder = require('../lib/device-builder');
 var schema = require('../lib/redis-schema');
