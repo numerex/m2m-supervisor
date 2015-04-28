@@ -3,8 +3,8 @@ var util = require('util');
 
 var Watcher = require('../lib/watcher');
 var DeviceWatcher = require('../lib/device-watcher');
+var DataReader = require('../lib/data-reader');
 var HashWatcher = require('./hash-watcher');
-var DataReader = require('./data-reader');
 
 var logger = require('../lib/logger')('dev-route');
 var helpers = require('../lib/hash-helpers');
