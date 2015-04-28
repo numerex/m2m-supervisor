@@ -28,6 +28,45 @@ MockEventHandler.prototype.on = function(event,callback){
     this.eventHandlers[event] = callback;
 };
 
+// NET ------------------------
+
+var MockNet = {
+    connectException: null,
+    writeException: null,
+    calls: [],
+    events: {},
+    connect: function(args,callback){
+        if (MockNet.connectException) throw(new Error(MockNet.connectException));
+        MockNet.calls.push({connect: args});
+        callback && callback();
+        return MockNet;
+    },
+    on: function(event,callback){
+        MockNet.events[event] = callback;
+        return MockNet;
+    },
+    write: function(buffer,callback){
+        if (MockNet.writeException) throw(new Error(MockNet.writeException));
+        MockNet.calls.push({write: buffer});
+        callback && callback();
+    },
+    end: function(){
+        MockNet.calls.push({end: null});
+    },
+    reset: function(){
+        MockNet.connectException = null;
+        MockNet.writeException = null;
+        MockNet.calls = [];
+        MockNet.events = {};
+    },
+    snapshot: function(){
+        var result = MockNet.calls;
+        MockNet.calls = [];
+        return result;
+    }
+};
+module.exports.mocknet = MockNet;
+
 // DRAM -----------------------
 
 module.exports.mockdgram = function() {

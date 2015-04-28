@@ -2,9 +2,9 @@ var _ = require('lodash');
 var util = require('util');
 
 var Watcher = require('../lib/watcher');
+var DeviceWatcher = require('../lib/device-watcher');
 var HashWatcher = require('./hash-watcher');
 var DataReader = require('./data-reader');
-var DeviceWatcher = require('./device-watcher');
 
 var logger = require('../lib/logger')('dev-route');
 var helpers = require('../lib/hash-helpers');
@@ -37,9 +37,10 @@ function DeviceRouter(deviceKey){
     });
 
     self.deviceWatcher = new DeviceWatcher(self.deviceKey).on('ready',function(ready){
-        if (!ready) return;
-
-        if (self.deviceWatcher.device) {
+        if (!ready) {
+            self.reset();
+            self.settingsWatcher.checkReady();
+        } else if (self.deviceWatcher.device) {
             self.device = self.deviceWatcher.device.on('error',self.noteErrorStatus);
             self.noteStatus('device');
         } else {

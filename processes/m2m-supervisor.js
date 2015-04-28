@@ -1,14 +1,14 @@
 var _ = require('lodash');
 
-var GatewayProxy = require('./gateway-proxy');
-var RedisWatcher = require('./redis-watcher');
-var HashWatcher = require('./hash-watcher');
-var QueueRouter = require('./queue-router');
-var DeviceRouter = require('./device-router');
-var RouteWatcher = require('./route-watcher');
-var ModemWatcher = require('./modem-watcher');
-var HeartbeatGenerator = require('./heartbeat-generator');
-var HttpServer = require('./http-server');
+var GatewayProxy = require('../services/gateway-proxy');
+var RedisWatcher = require('../services/redis-watcher');
+var HashWatcher = require('../services/hash-watcher');
+var QueueRouter = require('../services/queue-router');
+var DeviceRouter = require('../services/device-router');
+var RouteWatcher = require('../services/route-watcher');
+var ModemWatcher = require('../services/modem-watcher');
+var HeartbeatGenerator = require('../services/heartbeat-generator');
+var HttpServer = require('../services/http-server');
 
 var SocketServer = require('../sockets/socket-server');
 var ShellBehavior = require('../sockets/shell-behavior');
@@ -45,6 +45,7 @@ function M2mSupervisor(httpPort){
 
 M2mSupervisor.prototype.start = function(){
     this.redisWatcher.start();
+    return this;
 };
 
 M2mSupervisor.prototype.stop = function(){

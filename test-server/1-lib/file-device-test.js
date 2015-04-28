@@ -34,4 +34,24 @@ describe('FileDevice',function() {
         });
     });
 
+    it('should be created by DeviceBuilder',function(){
+        var builder = require(process.cwd() + '/lib/device-builder');
+        var device = builder.newDevice({type: 'file',inFile: 'a',outFile: 'b',retryInterval: 1});
+        [device.inFile,device.outFile,device.retryInterval].should.eql(['a','b',1]);
+        [builder.newDevice()].should.eql([null]);
+    });
+
+    it('should be created by DeviceWatcher',function(){
+        var DeviceWatcher = require(process.cwd() + '/lib/device-watcher');
+        var watcher = new DeviceWatcher('testKey');
+        watcher.start({type: 'file',inFile: 'a',outFile: 'b',retryInterval: 1});
+        [watcher.device.inFile,watcher.device.outFile,watcher.device.retryInterval].should.eql(['a','b',1]);
+        watcher.stop();
+        [watcher.device].should.eql([null]);
+        test.pp.snapshot().should.eql([
+            '[device    ] start watching: testKey',
+            '[device    ] stop watching: testKey'
+        ]);
+    })
+
 });
