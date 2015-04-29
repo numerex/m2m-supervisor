@@ -40,15 +40,9 @@ function requestHash(res,hashKey,resultKey,template){
 }
 
 function updateHash(updates,callback){
-    if (updates.length > 1)
-        RedisWatcher.instance.client.send('hmset',updates).thenHint('updateHash',function () {
-            if (M2mSupervisor.instance) M2mSupervisor.instance.configWatcher.checkReady();
-            callback();
-        });
-    else {
-        if (M2mSupervisor.instance) M2mSupervisor.instance.configWatcher.checkReady();
+    RedisWatcher.instance.client.send('hmset',updates).thenHint('updateHash',function () {
         callback();
-    }
+    });
 }
 
 function changeHash(req,res,hashKey,callback){
@@ -68,7 +62,10 @@ function changeHash(req,res,hashKey,callback){
         updateHash(updates,callback);
     else
         RedisWatcher.instance.client.send('hdel',deletes).thenHint('deleteHash',function(){
-            updateHash(updates,callback);
+            if (updates.length <= 1)
+                callback();
+            else
+                updateHash(updates,callback);
         });
 }
 
@@ -88,6 +85,7 @@ router.post('/config',function(req,res,next){
     requireRedis(res,function(){
         logger.info('config changes: ' + JSON.stringify(req.body));
         changeHash(req,res,schema.config.key,function(){
+            if (M2mSupervisor.instance) M2mSupervisor.instance.configWatcher.checkReady();
             requestConfig(res);
         });
     });
@@ -161,17 +159,22 @@ router.post('/device',function(req,res,next){
 
 router.get('/status',function(req,res,next){
     checkRedis(function(){
-        res.send({
-            redis: !!RedisWatcher.instance.client,
-            ethernet: true, // TODO check these other services
-            ppp: true,
-            cpu: true,
-            memory: true,
-            disk: true,
-            logic: true
-        })
+        res.send(buildStatus())
     });
 });
+
+function buildStatus(){
+    var status = {};
+    status.redis = !!RedisWatcher.instance.client;
+    if (M2mSupervisor.instance){
+        status.config   = M2mSupervisor.instance.configWatcher.ready();
+        status.modem    = !!M2mSupervisor.instance.modemWatcher && M2mSupervisor.instance.modemWatcher.ready();
+        status.ppp      = !!M2mSupervisor.instance.routeWatcher && M2mSupervisor.instance.routeWatcher.ready();
+        status.proxy    = !!M2mSupervisor.instance.proxy        && M2mSupervisor.instance.proxy.started();
+        status.router   = !!M2mSupervisor.instance.queueRouter && M2mSupervisor.instance.queueRouter.started();
+    }
+    return status;
+}
 
 module.exports = router;
 
