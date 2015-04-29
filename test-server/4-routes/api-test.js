@@ -444,7 +444,7 @@ describe('API router',function() {
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.eql('{"redis":true,"ethernet":true,"ppp":true,"cpu":true,"memory":true,"disk":true,"logic":true}');
+                res.text.should.eql('{"redis":true}');
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},

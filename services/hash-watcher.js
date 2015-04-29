@@ -39,8 +39,8 @@ HashWatcher.prototype._onCheckReady = function(callback){
         self.hash = hash || {};
         var json = JSON.stringify(self.hash);
         if (self.lastJSON !== json) {
+            if (self.lastJSON) logger.info('hash changed: ' + self.rootKey);
             self.lastJSON = json;
-            logger.info('hash changed: ' + self.rootKey);
             self.readyStatus = true;
             _.each(self.keysetWatchers, _.bind(self.checkKeysetWatcher,self));
             self.emit('change',self.hash,self.client);

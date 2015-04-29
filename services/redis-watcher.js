@@ -62,6 +62,7 @@ RedisWatcher.prototype.addClientWatcher = function(watcher){
         else if (!client && watcher.started())
             watcher.stop();
     });
+    if (this.client && !watcher.started()) watcher.start(this.client);
     return this;
 };
 

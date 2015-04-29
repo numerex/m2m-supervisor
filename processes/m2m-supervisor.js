@@ -89,9 +89,8 @@ M2mSupervisor.prototype.configureDevices = function(client){
 
         var deviceRouter = new DeviceRouter(deviceKey)
             .on('status',function(status){ if (status == 'ready') self.queueRouter.addRoute(deviceRouter); });
-        self.redisWatcher.addClientWatcher(deviceRouter.settingsWatcher);
         deviceRouter.start(client);
-        deviceRouter.settingsWatcher.start(client);
+        self.redisWatcher.addClientWatcher(deviceRouter.settingsWatcher);
     });
 };
 

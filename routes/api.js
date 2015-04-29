@@ -85,6 +85,7 @@ router.post('/config',function(req,res,next){
     requireRedis(res,function(){
         logger.info('config changes: ' + JSON.stringify(req.body));
         changeHash(req,res,schema.config.key,function(){
+            // istanbul ignore if - TODO consider how to test...
             if (M2mSupervisor.instance) M2mSupervisor.instance.configWatcher.checkReady();
             requestConfig(res);
         });
@@ -166,6 +167,7 @@ router.get('/status',function(req,res,next){
 function buildStatus(){
     var status = {};
     status.redis = !!RedisWatcher.instance.client;
+    // istanbul ignore if - TODO consider how to test...
     if (M2mSupervisor.instance){
         status.config   = M2mSupervisor.instance.configWatcher.ready();
         status.modem    = !!M2mSupervisor.instance.modemWatcher && M2mSupervisor.instance.modemWatcher.ready();

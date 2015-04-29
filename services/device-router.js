@@ -23,18 +23,6 @@ function DeviceRouter(deviceKey){
     self.on('status',function(status){
         if (!status || !self.device || !self.routeConfig || self.reader) return;
 
-        switch(self.routeConfig.type){
-            case 'none':
-                self.routeConfig.type = 'off'; // NOTE - modify type to avoid recursive off events -- TODO revise??
-                return self.noteStatus('off');
-            case 'off':
-                return;
-            case 'ad-hoc':
-                break;
-            default:
-                return self.noteErrorStatus('unavailable route type: ' + self.routeConfig.type);
-        }
-
         self.reader = new DataReader(self.device)
             .on('error',self.noteErrorStatus)
             .start();
@@ -46,8 +34,10 @@ function DeviceRouter(deviceKey){
 
     self.deviceWatcher = new DeviceWatcher(self.deviceKey).on('ready',function(ready){
         if (!ready) {
-            self.reset();
-            self.settingsWatcher.checkReady();
+            if (self.started()) {
+                self.reset();
+                self.settingsWatcher.checkReady();
+            }
         } else if (self.deviceWatcher.device) {
             self.device = self.deviceWatcher.device.on('error',self.noteErrorStatus);
             self.noteStatus('device');
@@ -65,8 +55,16 @@ function DeviceRouter(deviceKey){
             var config = helpers.hash2config(hash,hashkeys.route);
             if (JSON.stringify(config) !== JSON.stringify(self.routeConfig)) {
                 if (self.ready()) self.resetReader();
-                self.routeConfig = config;
-                self.noteStatus('route');
+                switch(config.type){
+                    case 'none':
+                        return self.noteStatus('off');
+                    case 'ad-hoc':
+                        self.routeConfig = config;
+                        self.noteStatus('route');
+                        break;
+                    default:
+                        return self.noteErrorStatus('unavailable route type: ' + config.type);
+                }
             }
         })
 }
@@ -79,9 +77,11 @@ DeviceRouter.prototype.ready = function(){
 
 DeviceRouter.prototype._onStart = function(client){
     this.client = client;
+    this.settingsWatcher.start(client);
 };
 
 DeviceRouter.prototype._onStop = function(){
+    this.settingsWatcher.stop();
     this.reset();
     this.noteStatus(null);
     this.client = null;
@@ -99,7 +99,7 @@ DeviceRouter.prototype.resetReader = function(){
 };
 
 DeviceRouter.prototype.noteStatus = function(status,info){
-    if (status && this.status === 'error') return;
+    //if (status && this.status === 'error') return; TODO - do we need this?
     
     this.emit('status',this.status = status,info || null);
 };
