@@ -2,6 +2,8 @@ var _ = require('lodash');
 var express = require('express');
 
 var RedisWatcher = require('../services/redis-watcher');
+var M2mSupervisor = require('../processes/m2m-supervisor');
+
 var logger = require('../lib/logger')('api');
 var schema = require('../lib/redis-schema');
 var helpers = require('../lib/hash-helpers');
@@ -38,9 +40,15 @@ function requestHash(res,hashKey,resultKey,template){
 }
 
 function updateHash(updates,callback){
-    RedisWatcher.instance.client.send('hmset',updates).thenHint('updateHash',function () {
+    if (updates.length > 1)
+        RedisWatcher.instance.client.send('hmset',updates).thenHint('updateHash',function () {
+            if (M2mSupervisor.instance) M2mSupervisor.instance.configWatcher.checkReady();
+            callback();
+        });
+    else {
+        if (M2mSupervisor.instance) M2mSupervisor.instance.configWatcher.checkReady();
         callback();
-    });
+    }
 }
 
 function changeHash(req,res,hashKey,callback){
@@ -60,10 +68,7 @@ function changeHash(req,res,hashKey,callback){
         updateHash(updates,callback);
     else
         RedisWatcher.instance.client.send('hdel',deletes).thenHint('deleteHash',function(){
-            if (updates.length <= 1)
-                callback();
-            else
-                updateHash(updates,callback);
+            updateHash(updates,callback);
         });
 }
 

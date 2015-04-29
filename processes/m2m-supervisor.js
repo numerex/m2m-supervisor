@@ -17,9 +17,13 @@ var schema = require('../lib/redis-schema');
 var configHashkeys = require('../lib/config-hashkeys');
 
 function M2mSupervisor(config){
+
+    // istanbul ignore if - only for distinguishing log boundaries at run-time
+    if (!process.env.testing) console.log('------------------------------------------------');
+
     config = config || {};
 
-    var httpPort        = config.httpPort;
+    var httpPort        = config.httpPort || process.env.PORT || '3000';
     var runBridge       = config.runBridge;
     var runWeb          = config.runWeb;
     var runTransceiver  = config.runTransceiver;
@@ -56,13 +60,14 @@ function M2mSupervisor(config){
     self.redisWatcher.addClientWatcher(self.configWatcher);
 
     if (runWeb || runAll) {
-        self.httpServer     = new HttpServer().start(httpPort || process.env.PORT || '3000');
+        self.httpServer     = new HttpServer().start(httpPort);
         self.socketServer   = new SocketServer().start(self.httpServer);
         self.shellBehavior  = new ShellBehavior().registerSelf(self.socketServer);
     }
 }
 
 M2mSupervisor.prototype.start = function(){
+    M2mSupervisor.instance = this;
     this.redisWatcher.start();
     return this;
 };
