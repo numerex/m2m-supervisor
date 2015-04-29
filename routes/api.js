@@ -86,7 +86,7 @@ router.post('/config',function(req,res,next){
         logger.info('config changes: ' + JSON.stringify(req.body));
         changeHash(req,res,schema.config.key,function(){
             // istanbul ignore if - TODO consider how to test...
-            if (M2mSupervisor.instance) M2mSupervisor.instance.configWatcher.checkReady();
+            if (M2mSupervisor.instance) M2mSupervisor.instance.configWatcher.emit('checkReady');
             requestConfig(res);
         });
     });

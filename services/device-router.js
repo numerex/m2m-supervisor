@@ -36,7 +36,7 @@ function DeviceRouter(deviceKey){
         if (!ready) {
             if (self.started()) {
                 self.reset();
-                self.settingsWatcher.checkReady();
+                self.settingsWatcher.emit('checkReady');
             }
         } else if (self.deviceWatcher.device) {
             self.device = self.deviceWatcher.device.on('error',self.noteErrorStatus);

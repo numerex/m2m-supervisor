@@ -39,7 +39,7 @@ RedisWatcher.prototype._onCheckReady = function(callback){
         self.client = null;
 
         if (!callback)
-            self.checkReady();
+            self.emit('checkReady');
         else {
             callback(null);
             callback = null;
