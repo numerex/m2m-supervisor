@@ -1,28 +1,5 @@
 #!/usr/bin/env node
 
-var GatewayProxy = require('../services/gateway-proxy');
-var RedisWatcher = require('../services/redis-watcher');
-var HashWatcher = require('../services/hash-watcher');
-var RouteWatcher = require('../services/route-watcher');
-var ModemWatcher = require('../services/modem-watcher');
-var HeartbeatGenerator = require('../services/heartbeat-generator');
+var M2mSupervisor = require('../processes/m2m-supervisor');
 
-var schema = require('../lib/redis-schema');
-var hashkeys = require('../lib/config-hashkeys');
-
-var modemWatcher = new ModemWatcher()
-    .on('imei',function(imei){ RedisWatcher.instance.client.hsetnx(schema.config.key,hashkeys.gateway.imei.key,imei).errorHint('setIMEI'); });
-
-var routeWatcher = new RouteWatcher();
-
-var proxy = new GatewayProxy();
-var heartbeat = new HeartbeatGenerator(proxy);
-var configWatcher = new HashWatcher(schema.config.key,hashkeys)
-    .addKeysetWatcher('PPP',true,routeWatcher)
-    .addKeysetWatcher('modem',true,modemWatcher)
-    .addKeysetWatcher('gateway',false,proxy)
-    .addKeysetWatcher('gateway',true,heartbeat);
-
-new RedisWatcher()
-    .addClientWatcher(configWatcher)
-    .start();
+new M2mSupervisor({runBridge: true}).start();

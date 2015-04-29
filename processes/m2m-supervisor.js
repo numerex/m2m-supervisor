@@ -16,31 +16,50 @@ var ShellBehavior = require('../sockets/shell-behavior');
 var schema = require('../lib/redis-schema');
 var configHashkeys = require('../lib/config-hashkeys');
 
-function M2mSupervisor(httpPort,config){
+function M2mSupervisor(config){
+    config = config || {};
+
+    var httpPort        = config.httpPort;
+    var runBridge       = config.runBridge;
+    var runWeb          = config.runWeb;
+    var runTransceiver  = config.runTransceiver;
+    var runAll          = !runBridge && !runWeb && !runTransceiver;
+
     var self = this;
-    self.queueRouter = new QueueRouter(config);
 
-    self.modemWatcher = new ModemWatcher(config)
-        .on('imei',function(imei){ RedisWatcher.instance.client.hsetnx(schema.config.key,configHashkeys.gateway.imei.key,imei).errorHint('setIMEI'); });
+    self.configWatcher  = new HashWatcher(schema.config.key,configHashkeys,config);
+    self.redisWatcher   = new RedisWatcher(config);
 
-    self.routeWatcher = new RouteWatcher(config);
+    if (runBridge || runAll) {
+        self.modemWatcher   = new ModemWatcher(config).on('imei',function(imei){
+            RedisWatcher.instance.client.hsetnx(schema.config.key,configHashkeys.gateway.imei.key,imei).errorHint('setIMEI');
+        });
 
-    self.proxy = new GatewayProxy(config);
-    self.heartbeat = new HeartbeatGenerator(self.proxy,config);
-    self.configWatcher = new HashWatcher(schema.config.key,configHashkeys,config)
-        .addKeysetWatcher('PPP',true,self.routeWatcher)
-        .addKeysetWatcher('modem',true,self.modemWatcher)
-        .addKeysetWatcher('gateway',false,self.proxy)
-        .addKeysetWatcher('gateway',true,self.heartbeat)
-        .addKeysetWatcher('gateway',true,self.queueRouter);
+        self.routeWatcher   = new RouteWatcher(config);
+        self.proxy          = new GatewayProxy(config);
+        self.heartbeat      = new HeartbeatGenerator(self.proxy,config);
 
-    self.redisWatcher = new RedisWatcher(config)
-        .on('ready',_.bind(self.configureDevices,self))
-        .addClientWatcher(self.configWatcher);
+        self.configWatcher
+            .addKeysetWatcher('PPP',    true,   self.routeWatcher)
+            .addKeysetWatcher('modem',  true,   self.modemWatcher)
+            .addKeysetWatcher('gateway',false,  self.proxy)
+            .addKeysetWatcher('gateway',true,   self.heartbeat);
+    }
 
-    self.httpServer = new HttpServer().start(httpPort || process.env.PORT || '3000');
-    self.socketServer = new SocketServer().start(self.httpServer);
-    self.shellBehavior = new ShellBehavior().registerSelf(self.socketServer);
+    if (runTransceiver || runAll) {
+        self.queueRouter    = new QueueRouter(config);
+
+        self.configWatcher.addKeysetWatcher('gateway',true,self.queueRouter);
+        self.redisWatcher.on('ready',_.bind(self.configureDevices,self));
+    }
+
+    self.redisWatcher.addClientWatcher(self.configWatcher);
+
+    if (runWeb || runAll) {
+        self.httpServer     = new HttpServer().start(httpPort || process.env.PORT || '3000');
+        self.socketServer   = new SocketServer().start(self.httpServer);
+        self.shellBehavior  = new ShellBehavior().registerSelf(self.socketServer);
+    }
 }
 
 M2mSupervisor.prototype.start = function(){

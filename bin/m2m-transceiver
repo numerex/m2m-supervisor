@@ -1,35 +1,5 @@
 #!/usr/bin/env node
 
-var _ = require('lodash');
+var M2mSupervisor = require('../processes/m2m-supervisor');
 
-var RedisWatcher = require('../services/redis-watcher');
-var HashWatcher = require('../services/hash-watcher');
-var QueueRouter = require('../services/queue-router');
-var DeviceRouter = require('../services/device-router');
-
-var schema = require('../lib/redis-schema');
-var configHashkeys = require('../lib/config-hashkeys');
-
-var queueRouter = new QueueRouter();
-
-var configWatcher = new HashWatcher(schema.config.key,configHashkeys)
-    .addKeysetWatcher('gateway',true,queueRouter);
-
-var redisWatcher = new RedisWatcher()
-    .on('ready',configureDevices)
-    .addClientWatcher(configWatcher)
-    .start();
-
-function configureDevices(redis){
-    _.each(redisWatcher.keys,function(key){
-        var deviceKey = schema.device.settings.getParam(key);
-        if (!deviceKey) return;
-        if (queueRouter.routes[deviceKey]) return; // TODO maybe recreate or refresh it??
-
-        var deviceRouter = new DeviceRouter(redis,deviceKey).on('status',function(status){
-            console.log('device status(' + deviceKey + '):' + status);
-            if (status == 'ready')
-                queueRouter.addRoute(deviceRouter);
-        });
-    });
-}
+new M2mSupervisor({runTransceiver: true}).start();

@@ -71,7 +71,7 @@ describe('M2mSupervisor',function() {
     });
 
     it('should start/stop with all available services, but no devices',function(done){
-        var supervisor = new M2mSupervisor().start({retryInterval: 1});
+        var supervisor = new M2mSupervisor({retryInterval: 1}).start();
         test.mockhttp.events.listening();
         _.defer(function(){
             supervisor.stop();
@@ -114,7 +114,7 @@ describe('M2mSupervisor',function() {
         test.mockredis.lookup.brpop = [['m2m-ack:queue',2],null];
 
         test.timekeeper.freeze(1000000000000);
-        var supervisor = new M2mSupervisor().start();
+        var supervisor = new M2mSupervisor({retryInterval: 1}).start();
         test.mockhttp.events.listening();
         var count = 0;
         supervisor.queueRouter.on('queueResult',function(result){
