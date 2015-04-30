@@ -64,12 +64,94 @@ describe('DeviceRouter',function() {
         });
     });
 
+    it('should detect no schedule defined',function(done){
+        test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
+            'connection:type': 'telnet',
+            'connection:telnet:address': 'host',
+            'connection:telnet:port': '1234',
+            'route:type': 'scheduled'
+        };
+
+        var events = [];
+        var router = new DeviceRouter('testKey')
+            .on('status',function(event){
+                events.push(event);
+                if (event !== 'error') return;
+
+                router.stop();
+                events.should.eql(['device','error',null]);
+                test.mockredis.snapshot().should.eql([
+                    {hgetall: 'm2m-device:testKey:settings'}
+                ]);
+                test.mocknet.snapshot().should.eql([
+                ]);
+                test.pp.snapshot().should.eql([
+                    '[dev-route ] start watching: testKey',
+                    '[hash      ] start watching: m2m-device:testKey:settings',
+                    '[hash      ] check ready: m2m-device:testKey:settings',
+                    '[device    ] start watching: testKey',
+                    '[device    ] check ready: testKey',
+                    '[device    ] now ready: testKey',
+                    '[dev-route ] error(testKey): no schedule defined',
+                    '[dev-route ] stop watching: testKey',
+                    '[hash      ] stop watching: m2m-device:testKey:settings',
+                    '[device    ] stop watching: testKey'
+                ]);
+                done();
+            });
+        router.start(client);
+    });
+
+    it('should detect an empty schedule',function(done){
+        test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
+            'connection:type': 'telnet',
+            'connection:telnet:address': 'host',
+            'connection:telnet:port': '1234',
+            'route:type': 'scheduled',
+            'route:schedule': 'test-schedule'
+        };
+        //test.mockredis.lookup.hgetall['m2m-schedule:test-schedule:periods'] = {};
+
+        var events = [];
+        var router = new DeviceRouter('testKey')
+            .on('status',function(event){
+                events.push(event);
+                if (event !== 'error') return;
+
+                router.stop();
+                events.should.eql(['device','error',null]);
+                test.mockredis.snapshot().should.eql([
+                    {hgetall: 'm2m-device:testKey:settings'},
+                    {hgetall: 'm2m-schedule:test-schedule:periods'}
+                ]);
+                test.mocknet.snapshot().should.eql([
+                ]);
+                test.pp.snapshot().should.eql([
+                    '[dev-route ] start watching: testKey',
+                    '[hash      ] start watching: m2m-device:testKey:settings',
+                    '[hash      ] check ready: m2m-device:testKey:settings',
+                    '[device    ] start watching: testKey',
+                    '[device    ] check ready: testKey',
+                    '[device    ] now ready: testKey',
+                    '[dev-route ] error(testKey): empty schedule',
+                    '[dev-route ] stop watching: testKey',
+                    '[hash      ] stop watching: m2m-device:testKey:settings',
+                    '[device    ] stop watching: testKey'
+                ]);
+                done();
+            });
+        router.start(client);
+    });
+
     it('should start/stop with a default telnet device defined for the key',function(done){
         test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
             'connection:type': 'telnet',
             'connection:telnet:address': 'host',
-            'connection:telnet:port': '1234'
+            'connection:telnet:port': '1234',
+            'route:type': 'scheduled',
+            'route:schedule': 'test-schedule'
         };
+        test.mockredis.lookup.hgetall['m2m-schedule:test-schedule:periods'] = {"100": '["TEST1","TEST2"]',"200": '["TEST3"]'};
 
         var events = [];
         var router = new DeviceRouter('testKey')
@@ -81,7 +163,11 @@ describe('DeviceRouter',function() {
                 router.stop();
                 events.should.eql(['device','route','ready',null]);
                 test.mockredis.snapshot().should.eql([
-                    {hgetall: 'm2m-device:testKey:settings'}
+                    {hgetall: 'm2m-device:testKey:settings'},
+                    {hgetall: 'm2m-schedule:test-schedule:periods'},
+                    {lpush: ['m2m-device:testKey:queue','{"command":"TEST1"}']},
+                    {lpush: ['m2m-device:testKey:queue','{"command":"TEST2"}']},
+                    {lpush: ['m2m-device:testKey:queue','{"command":"TEST3"}']}
                 ]);
                 test.mocknet.snapshot().should.eql([
                     {connect: {host: 'host',port: 1234}},
@@ -91,16 +177,18 @@ describe('DeviceRouter',function() {
                     '[dev-route ] start watching: testKey',
                     '[hash      ] start watching: m2m-device:testKey:settings',
                     '[hash      ] check ready: m2m-device:testKey:settings',
-                    //'[hash      ] hash changed: m2m-device:testKey:settings',
                     '[device    ] start watching: testKey',
                     '[device    ] check ready: testKey',
                     '[device    ] now ready: testKey',
-                    //'[dev-route ] error(testKey): unavailable route type: unknown',
                     '[reader    ] start watching',
                     '[hash      ] now ready: m2m-device:testKey:settings',
+                    '[scheduler ] start watching: m2m-device:testKey:queue',
+                    '[scheduler ] schedule[100]: TEST1,TEST2',
+                    '[scheduler ] schedule[200]: TEST3',
                     '[dev-route ] stop watching: testKey',
                     '[hash      ] stop watching: m2m-device:testKey:settings',
                     '[device    ] stop watching: testKey',
+                    '[scheduler ] stop watching: m2m-device:testKey:queue',
                     '[reader    ] stop watching'
                 ]);
                 done();

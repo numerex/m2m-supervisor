@@ -1,3 +1,5 @@
+var fs = require('fs');
+
 var test = require('../test');
 
 var ScheduleFactory = require(process.cwd() + '/lib/schedule-factory');
@@ -23,6 +25,7 @@ describe('ScheduleFactory',function() {
 
     it('should load a valid file', function (done) {
         test.mockredis.lookup.hgetall['m2m-schedule:test:periods'] = {result: 'OK'};
+
         var factory = new ScheduleFactory(client);
         factory.loadSchedulesFile('test','test-server/data/example-schedule.json',function(result){
             result.should.eql({result: 'OK'});
@@ -42,6 +45,7 @@ describe('ScheduleFactory',function() {
 
     it('should detect an invalid file', function (done) {
         test.mockredis.lookup.hgetall['m2m-schedule:test:periods'] = {result: 'OK'};
+
         var factory = new ScheduleFactory(client);
         factory.loadSchedulesFile('test','unknown.file',function(result){
             [result].should.eql([null]);
@@ -52,10 +56,61 @@ describe('ScheduleFactory',function() {
 
     it('should detect an invalid json', function (done) {
         test.mockredis.lookup.hgetall['m2m-schedule:test:periods'] = {result: 'OK'};
+
         var factory = new ScheduleFactory(client);
         factory.loadSchedulesFile('test','test-server/data/invalid.json',function(result){
             [result].should.eql([null]);
             test.pp.snapshot().should.eql(['[sch-fact  ] load error: SyntaxError: Unexpected token .']);
+            done();
+        });
+    });
+
+    it('should allow an empty schedule to delete a hash',function(done){
+        var factory = new ScheduleFactory(client);
+        factory.loadSchedules('test',[],function(result){
+            [result].should.eql([null]);
+            test.mockredis.snapshot().should.eql([
+                {del: 'm2m-schedule:test:periods'},
+                {hgetall: 'm2m-schedule:test:periods'}
+            ]);
+            done();
+        });
+    });
+
+    it('should export an empty schedule',function(done){
+        var factory = new ScheduleFactory(client).exportSchedules('test',function(schedules){
+            schedules.should.eql([]);
+            test.mockredis.snapshot().should.eql([
+                {hgetall: 'm2m-schedule:test:periods'}
+            ]);
+            done();
+        });
+    });
+
+    it('should export a schedule',function(done){
+        test.mockredis.lookup.hgetall['m2m-schedule:test:periods'] = {"100": '["TEST1","TEST2"]',"200": '["TEST3"]'};
+
+        var factory = new ScheduleFactory(client).exportSchedules('test',function(schedules){
+            schedules.should.eql([
+                {period: 100,commands: ['TEST1','TEST2']},
+                {period: 200,commands: ['TEST3']}
+            ]);
+            test.mockredis.snapshot().should.eql([
+                {hgetall: 'm2m-schedule:test:periods'}
+            ]);
+            done();
+        });
+    });
+
+    it('should export a schedule as JSON to a file',function(done){
+        test.mockredis.lookup.hgetall['m2m-schedule:test:periods'] = {"100": '["TEST1","TEST2"]',"200": '["TEST3"]'};
+
+        var factory = new ScheduleFactory(client).exportSchedulesFile('test','tmp/test-schedule.json',function(){
+            var json = fs.readFileSync('tmp/test-schedule.json').toString();
+            json.should.eql('[{"period":100,"commands":["TEST1","TEST2"]},{"period":200,"commands":["TEST3"]}]');
+            test.mockredis.snapshot().should.eql([
+                {hgetall: 'm2m-schedule:test:periods'}
+            ]);
             done();
         });
     });
