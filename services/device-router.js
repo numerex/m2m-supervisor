@@ -2,6 +2,7 @@ var _ = require('lodash');
 var util = require('util');
 
 var Watcher = require('../lib/watcher');
+var CommandScheduler = require('../lib/command-scheduler');
 var DeviceWatcher = require('../lib/device-watcher');
 var DataReader = require('../lib/data-reader');
 var HashWatcher = require('./hash-watcher');
@@ -18,8 +19,13 @@ function DeviceRouter(deviceKey){
     self.queueKey = schema.device.queue.useParam(deviceKey);
     self.messageBase = {routeKey: self.queueKey};
     self.settingsKey = schema.device.settings.useParam(deviceKey);
-    self.noteErrorStatus = function(error) { self.noteStatus('error','error(' + self.deviceKey + '):' + error); };
-    
+
+    self.noteErrorStatus = function(error) {
+        var string = 'error(' + self.deviceKey + '): ' + error;
+        logger.error(string);
+        self.noteStatus('error',string);
+    };
+
     self.on('status',function(status){
         if (!status || !self.device || !self.routeConfig || self.reader) return;
 
@@ -27,6 +33,7 @@ function DeviceRouter(deviceKey){
             .on('error',self.noteErrorStatus)
             .start();
         _.defer(function(){
+            if (self.schedule) self.schedule.start(self.client);
             self.noteStatus('ready');
             self.emit('ready',self.ready());
         });
@@ -62,8 +69,22 @@ function DeviceRouter(deviceKey){
                         self.routeConfig = config;
                         self.noteStatus('route');
                         break;
+                    case 'scheduled':
+                        if (!config.schedule)
+                            self.noteErrorStatus('no schedule defined');
+                        else
+                            self.client.hgetall(schema.schedule.periods.useParam(config.schedule)).thenHint('getSchedule',function(hash){
+                                if (!hash || _.keys(hash).length == 0)
+                                    self.noteErrorStatus('empty schedule');
+                                else {
+                                    self.routeConfig = config;
+                                    self.schedule = new CommandScheduler(self.queueKey,hash);
+                                    self.noteStatus('route');
+                                }
+                            });
+                        break;
                     default:
-                        return self.noteErrorStatus('unavailable route type: ' + config.type);
+                        self.noteErrorStatus('unavailable route type: ' + config.type);
                 }
             }
         })
@@ -94,8 +115,12 @@ DeviceRouter.prototype.reset = function(){
 };
 
 DeviceRouter.prototype.resetReader = function(){
-    if (this.ready()) this.reader.stop();
+    if (this.ready()) {
+        if (this.schedule && this.schedule.started()) this.schedule.stop();
+        this.reader.stop();
+    }
     this.reader = null;
+    this.schedule = null;
 };
 
 DeviceRouter.prototype.noteStatus = function(status,info){

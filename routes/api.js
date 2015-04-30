@@ -174,6 +174,9 @@ function buildStatus(){
         status.ppp      = !!M2mSupervisor.instance.routeWatcher && M2mSupervisor.instance.routeWatcher.ready();
         status.proxy    = !!M2mSupervisor.instance.proxy        && M2mSupervisor.instance.proxy.started();
         status.router   = !!M2mSupervisor.instance.queueRouter && M2mSupervisor.instance.queueRouter.started();
+        _.each(M2mSupervisor.instance.queueRouter && M2mSupervisor.instance.queueRouter.routes || {},function(route,key){
+            status['device:' + route.deviceKey] = route.ready();
+        });
     }
     return status;
 }
