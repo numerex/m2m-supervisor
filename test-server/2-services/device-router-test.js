@@ -95,6 +95,7 @@ describe('DeviceRouter',function() {
                     '[device    ] start watching: testKey',
                     '[device    ] check ready: testKey',
                     '[device    ] now ready: testKey',
+                    //'[dev-route ] error(testKey): unavailable route type: unknown',
                     '[reader    ] start watching',
                     '[hash      ] now ready: m2m-device:testKey:settings',
                     '[dev-route ] stop watching: testKey',
@@ -169,7 +170,7 @@ describe('DeviceRouter',function() {
                 _.defer(function(){
                     events.should.eql([
                         ['device',null],
-                        ['error','error(testKey):unavailable route type: unknown'],
+                        ['error','error(testKey): unavailable route type: unknown'],
                         [null,null]
                     ]);
                     test.mockredis.snapshot().should.eql([
@@ -183,6 +184,7 @@ describe('DeviceRouter',function() {
                         '[device    ] start watching: testKey',
                         '[device    ] check ready: testKey',
                         '[device    ] now ready: testKey',
+                        '[dev-route ] error(testKey): unavailable route type: unknown',
                         '[dev-route ] stop watching: testKey',
                         '[hash      ] stop watching: m2m-device:testKey:settings',
                         '[device    ] stop watching: testKey'
@@ -209,7 +211,7 @@ describe('DeviceRouter',function() {
                 router.ready().should.not.be.ok;
                 router.stop();
                 events.should.eql([
-                    ['error','error(testKey):unavailable connection type: unknown'],
+                    ['error','error(testKey): unavailable connection type: unknown'],
                     [null,null]
                 ]);
                 test.mockredis.snapshot().should.eql([
@@ -223,6 +225,7 @@ describe('DeviceRouter',function() {
                     '[device    ] start watching: testKey',
                     '[device    ] check ready: testKey',
                     '[device    ] now ready: testKey',
+                    '[dev-route ] error(testKey): unavailable connection type: unknown',
                     '[dev-route ] stop watching: testKey',
                     '[hash      ] stop watching: m2m-device:testKey:settings',
                     '[device    ] stop watching: testKey'
