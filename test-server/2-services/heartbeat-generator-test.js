@@ -19,7 +19,7 @@ describe('HeartbeatGenerator',function() {
             config: {imei: '123456789012345',heartbeatInterval: 10},
             messages: []
         };
-        mockProxy.sendPrimary = function(buffer,ignoreAckHint){
+        mockProxy.sendPrivate = function(buffer,ignoreAckHint){
             mockProxy.messages.push([buffer.inspect(),ignoreAckHint]);
         };
         mockProxy.snapshot = function(){

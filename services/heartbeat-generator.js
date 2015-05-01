@@ -49,7 +49,7 @@ HeartbeatGenerator.prototype.sendHeartbeat = function(eventCode){
         logger.info('send heartbeat: ' + eventCode);
         var message = new m2m.Message({messageType: m2m.Common.MOBILE_ORIGINATED_EVENT,eventCode: eventCode,sequenceNumber: sequenceNumber})
             .pushString(0,self.proxy.config.imei);
-        self.proxy.sendPrimary(message.toWire(),message.sequenceNumber);
+        self.proxy.sendPrivate(message.toWire(),message.sequenceNumber);
         self.emit('note','heartbeat');
     });
 };
