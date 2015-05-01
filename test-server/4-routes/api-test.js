@@ -437,6 +437,65 @@ describe('API router',function() {
             });
     });
 
+    it('GET /schedules should return the set of schedule IDs found in redis',function(done){
+        test.mockredis.lookup.keys['m2m-schedule:*:periods'] = ['m2m-schedule:test:periods'];
+
+        var request = require('supertest');
+        request(app).get('/api/schedules')
+            .expect('Content-Type',/json/)
+            .expect(200)
+            .end(function(err,res){
+                test.should.not.exist(err);
+                require(process.cwd() + '/routes/api').resetRedisWatcher();
+                test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
+                    {keys: 'm2m-schedule:*:periods'},
+                    {quit: null}
+                ]);
+                res.text.should.eql('{"schedules":["test"]}');
+                test.matchArrays(test.pp.snapshot(),[
+                    /^\[express   \] \S+ --> GET \/api\/schedules HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    '[redis     ] instance created',
+                    '[redis     ] start watching',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
+                    /^\[express   \] \S+ <-- GET \/api\/schedules HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    '[redis     ] stop watching'
+                ]);
+                done();
+            });
+    });
+
+    it('GET /schedule/:id should return schedule settings',function(done){
+        test.mockredis.lookup.keys['m2m-schedule:*:settings'] = ['m2m-schedule:test:settings'];
+        test.mockredis.lookup.hgetall['m2m-schedule:test:periods'] = {"100": '["TEST1","TEST2"]',"200": '["TEST3"]'};
+
+        var request = require('supertest');
+        request(app).get('/api/schedule/test')
+            .expect('Content-Type',/json/)
+            .expect(200)
+            .end(function(err,res){
+                test.should.not.exist(err);
+                res.text.should.eql('{"schedule:test":[{"period":100,"commands":["TEST1","TEST2"]},{"period":200,"commands":["TEST3"]}]}');
+                require(process.cwd() + '/routes/api').resetRedisWatcher();
+                test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
+                    {hgetall: 'm2m-schedule:test:periods'},
+                    {quit: null}
+                ]);
+                test.matchArrays(test.pp.snapshot(),[
+                    /^\[express   \] \S+ --> GET \/api\/schedule\/test HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    '[redis     ] instance created',
+                    '[redis     ] start watching',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
+                    /^\[express   \] \S+ <-- GET \/api\/schedule\/test HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    '[redis     ] stop watching'
+                ]);
+                done();
+            });
+    });
+
     it('GET /status should return the status of all services',function(done) {
         var request = require('supertest');
         request(app).get('/api/status')

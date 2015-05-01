@@ -1,6 +1,7 @@
 var _ = require('lodash');
 var express = require('express');
 
+var ScheduleFactory = require('../lib/schedule-factory');
 var RedisWatcher = require('../services/redis-watcher');
 var M2mSupervisor = require('../processes/m2m-supervisor');
 
@@ -153,6 +154,37 @@ router.post('/device',function(req,res,next){
                     });
                 }
             });
+    });
+});
+
+// SCHEDULES ----------------
+
+function findScheduleIDs(res,callback){
+    RedisWatcher.instance.client.keys(schema.schedule.periods.keysPattern()).thenHint('findScheduleIDs',function(keys){
+        callback(keys);
+    });
+}
+
+router.get('/schedules',function(req,res,next){
+    requireRedis(res,function(){
+        findScheduleIDs(res,function(keys){
+            res.send({schedules: _.map(keys,function(key){ return schema.schedule.periods.getParam(key); })});
+        })
+    });
+});
+
+function requestSchedule(res,id){
+    var factory = new ScheduleFactory(RedisWatcher.instance.client);
+    factory.exportSchedules(id,function(schedules){
+        var result = {};
+        result['schedule:' + id] = schedules;
+        res.send(result);
+    });
+}
+
+router.get('/schedule/:id',function(req,res,next){
+    requireRedis(res,function(){
+        requestSchedule(res,req.params.id);
     });
 });
 
