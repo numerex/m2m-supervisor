@@ -58,7 +58,6 @@ describe('HashWatcher',function() {
                 test.pp.snapshot().should.eql([
                     '[hash      ] start watching: test',
                     '[hash      ] check ready: test',
-                    '[hash      ] hash changed: test',
                     '[hash      ] now ready: test',
                     '[hash      ] stop watching: test'
                 ]);
@@ -88,7 +87,6 @@ describe('HashWatcher',function() {
                 test.pp.snapshot().should.eql([
                     '[hash      ] start watching: test',
                     '[hash      ] check ready: test',
-                    '[hash      ] hash changed: test',
                     '[hash      ] now ready: test',
                     '[hash      ] stop watching: test'
                 ]);
@@ -113,7 +111,6 @@ describe('HashWatcher',function() {
                 test.pp.snapshot().should.eql([
                     '[hash      ] start watching: test-hash',
                     '[hash      ] check ready: test-hash',
-                    '[hash      ] hash changed: test-hash',
                     '[hash      ] check ready: test-hash',
                     '[hash      ] stop watching: test-hash'
                 ]);
@@ -148,7 +145,6 @@ describe('HashWatcher',function() {
                 test.pp.snapshot().should.eql([
                     '[hash      ] start watching: test-hash',
                     '[hash      ] check ready: test-hash',
-                    '[hash      ] hash changed: test-hash',
                     '[hash      ] now ready: test-hash',
                     '[hash      ] stop watching: test-hash'
                 ]);
@@ -183,7 +179,6 @@ describe('HashWatcher',function() {
                 test.pp.snapshot().should.eql([
                     '[hash      ] start watching: test-hash',
                     '[hash      ] check ready: test-hash',
-                    '[hash      ] hash changed: test-hash',
                     '[hash      ] now ready: test-hash',
                     '[hash      ] check ready: test-hash',
                     '[hash      ] hash changed: test-hash',
@@ -222,9 +217,12 @@ describe('HashWatcher',function() {
         test.expect(function(){ watcher.start(client); }).to.throw('already started');
         watcher.stop();
         test.mockredis.snapshot().should.eql([
+            {hgetall: 'test'}
         ]);
         test.pp.snapshot().should.eql([
             '[hash      ] start watching: test',
+            '[hash      ] check ready: test',
+            '[hash      ] now ready: test',
             '[hash      ] stop watching: test'
         ]);
         done();

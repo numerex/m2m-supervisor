@@ -275,7 +275,7 @@ MockRedis.createClient = function () {
         },
         hgetall: function(key){
             MockRedis.calls.push({hgetall: key});
-            MockRedis.results = MockRedis.lookup.hgetall[key];
+            MockRedis.results = MockRedis.lookup.hgetall[key] || null;
             return client;
         },
         hmset: function(args){

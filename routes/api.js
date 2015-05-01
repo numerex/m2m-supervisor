@@ -2,6 +2,8 @@ var _ = require('lodash');
 var express = require('express');
 
 var RedisWatcher = require('../services/redis-watcher');
+var M2mSupervisor = require('../processes/m2m-supervisor');
+
 var logger = require('../lib/logger')('api');
 var schema = require('../lib/redis-schema');
 var helpers = require('../lib/hash-helpers');
@@ -83,6 +85,8 @@ router.post('/config',function(req,res,next){
     requireRedis(res,function(){
         logger.info('config changes: ' + JSON.stringify(req.body));
         changeHash(req,res,schema.config.key,function(){
+            // istanbul ignore if - TODO consider how to test...
+            if (M2mSupervisor.instance) M2mSupervisor.instance.configWatcher.emit('checkReady');
             requestConfig(res);
         });
     });
@@ -156,17 +160,26 @@ router.post('/device',function(req,res,next){
 
 router.get('/status',function(req,res,next){
     checkRedis(function(){
-        res.send({
-            redis: !!RedisWatcher.instance.client,
-            ethernet: true, // TODO check these other services
-            ppp: true,
-            cpu: true,
-            memory: true,
-            disk: true,
-            logic: true
-        })
+        res.send(buildStatus())
     });
 });
+
+function buildStatus(){
+    var status = {};
+    status.redis = !!RedisWatcher.instance.client;
+    // istanbul ignore if - TODO consider how to test...
+    if (M2mSupervisor.instance){
+        status.config   = M2mSupervisor.instance.configWatcher.ready();
+        status.modem    = !!M2mSupervisor.instance.modemWatcher && M2mSupervisor.instance.modemWatcher.ready();
+        status.ppp      = !!M2mSupervisor.instance.routeWatcher && M2mSupervisor.instance.routeWatcher.ready();
+        status.proxy    = !!M2mSupervisor.instance.proxy        && M2mSupervisor.instance.proxy.started();
+        status.router   = !!M2mSupervisor.instance.queueRouter && M2mSupervisor.instance.queueRouter.started();
+        _.each(M2mSupervisor.instance.queueRouter && M2mSupervisor.instance.queueRouter.routes || {},function(route,key){
+            status['device:' + route.deviceKey] = route.ready();
+        });
+    }
+    return status;
+}
 
 module.exports = router;
 

@@ -196,7 +196,6 @@ describe('RedisWatcher',function() {
         };
         var watcher = new RedisWatcher();
         watcher.start();
-        clientWatcher.client = watcher.client;
         watcher.addClientWatcher(clientWatcher);
         _.defer(function() {
             watcher.stop();
@@ -226,9 +225,13 @@ describe('RedisWatcher',function() {
             '[redis     ] instance removed',
             '[redis     ] instance created',
             '[redis     ] start watching',
+            '[redis     ] check ready',
+            '[redis     ] now ready',
             '[redis     ] stop watching'
         ]);
         test.mockredis.snapshot().should.eql([
+            {keys: '*'},
+            {quit: null}
         ]);
         done();
     });

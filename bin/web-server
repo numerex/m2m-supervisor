@@ -1,9 +1,6 @@
 #!/usr/bin/env node
 
-var HttpServer = require('../services/http-server');
-var SocketServer = require('../sockets/socket-server');
-var ShellBehavior = require('../sockets/shell-behavior');
 
-var httpServer = new HttpServer().start(process.env.PORT || '3000');
-var socketServer = new SocketServer().start(httpServer);
-var shellBehavior = new ShellBehavior().registerSelf(socketServer);
+var M2mSupervisor = require('../processes/m2m-supervisor');
+
+new M2mSupervisor({runWeb: true}).start();

@@ -45,7 +45,7 @@ describe('M2mSupervisor',function() {
         test.pp.snapshot().should.eql([]);
     });
 
-    it('should start/stop with no services available',function(done){
+    it('should start/stop with no services available - all',function(done){
         test.mockredis.clientException = 'test error';
 
         var supervisor = new M2mSupervisor().start();
@@ -56,7 +56,30 @@ describe('M2mSupervisor',function() {
                 '[redis     ] instance created',
                 '[socket    ] register behavior: shell',
                 '[redis     ] start watching',
+                '[redis     ] check ready',
+                '[redis     ] redis client error: test error',
                 '[http      ] Listening on port 3000',
+                '[redis     ] stop watching'
+            ]);
+            test.mockredis.snapshot().should.eql([
+                {keys: '*'},
+                {end: null}
+            ]);
+            mockRoute.snapshot().should.eql([]);
+            done();
+        });
+    });
+
+    it('should start/stop with no services available -- bridge',function(done){
+        test.mockredis.clientException = 'test error';
+
+        var supervisor = new M2mSupervisor({runBridge: true}).start();
+        _.defer(function(){
+            supervisor.stop();
+            test.pp.snapshot().should.eql([
+                '[redis     ] instance removed',
+                '[redis     ] instance created',
+                '[redis     ] start watching',
                 '[redis     ] check ready',
                 '[redis     ] redis client error: test error',
                 '[redis     ] stop watching'
@@ -70,8 +93,33 @@ describe('M2mSupervisor',function() {
         });
     });
 
-    it('should start/stop with all available services, but no devices',function(done){
-        var supervisor = new M2mSupervisor().start({retryInterval: 1});
+    it('should start/stop with no services available -- transceiver',function(done){
+        test.mockredis.clientException = 'test error';
+
+        var supervisor = new M2mSupervisor({runTransceiver: true}).start();
+        _.defer(function(){
+            supervisor.stop();
+            test.pp.snapshot().should.eql([
+                '[redis     ] instance removed',
+                '[redis     ] instance created',
+                '[redis     ] start watching',
+                '[redis     ] check ready',
+                '[redis     ] redis client error: test error',
+                '[redis     ] stop watching'
+            ]);
+            test.mockredis.snapshot().should.eql([
+                {keys: '*'},
+                {end: null}
+            ]);
+            mockRoute.snapshot().should.eql([]);
+            done();
+        });
+    });
+
+    it('should start/stop with no services available -- web',function(done){
+        test.mockredis.clientException = 'test error';
+
+        var supervisor = new M2mSupervisor({runWeb: true}).start();
         test.mockhttp.events.listening();
         _.defer(function(){
             supervisor.stop();
@@ -80,15 +128,52 @@ describe('M2mSupervisor',function() {
                 '[redis     ] instance created',
                 '[socket    ] register behavior: shell',
                 '[redis     ] start watching',
-                '[http      ] Listening on port 3000',
                 '[redis     ] check ready',
-                '[redis     ] now ready',
-                '[hash      ] start watching: m2m-config',
-                '[redis     ] stop watching',
-                '[hash      ] stop watching: m2m-config'
+                '[redis     ] redis client error: test error',
+                '[http      ] Listening on port 3000',
+                '[redis     ] stop watching'
             ]);
             test.mockredis.snapshot().should.eql([
                 {keys: '*'},
+                {end: null}
+            ]);
+            mockRoute.snapshot().should.eql([]);
+            done();
+        });
+    });
+
+    it('should start/stop with all available services, but no devices',function(done){
+        var supervisor = new M2mSupervisor({retryInterval: 100}).start();
+        test.mockhttp.events.listening();
+        _.defer(function(){
+            supervisor.stop();
+            test.pp.snapshot().should.eql([
+                '[redis     ] instance removed',
+                '[redis     ] instance created',
+                '[socket    ] register behavior: shell',
+                '[redis     ] start watching',
+                '[redis     ] check ready',
+                '[redis     ] now ready',
+                '[hash      ] start watching: m2m-config',
+                '[hash      ] check ready: m2m-config',
+                '[route     ] start watching',
+                '[route     ] pppstats error: Error: no response found: pppstats',
+                '[modem     ] start watching',
+                '[modem     ] start error: Error: ENOENT, no such file or directory \'/dev/ttyUSB2\'',
+                '[proxy     ] start watching',
+                '[http      ] Listening on port 3000',
+                '[redis     ] stop watching',
+                '[hash      ] stop watching: m2m-config',
+                '[route     ] stop watching',
+                '[modem     ] stop watching',
+                '[proxy     ] stop watching',
+                '[private   ] connection closed',
+                '[public    ] connection closed',
+                '[outside   ] connection closed'
+            ]);
+            test.mockredis.snapshot().should.eql([
+                {keys: '*'},
+                {hgetall: 'm2m-config'},
                 {quit: null}
             ]);
             mockRoute.snapshot().should.eql([]);
@@ -114,7 +199,7 @@ describe('M2mSupervisor',function() {
         test.mockredis.lookup.brpop = [['m2m-ack:queue',2],null];
 
         test.timekeeper.freeze(1000000000000);
-        var supervisor = new M2mSupervisor().start();
+        var supervisor = new M2mSupervisor({retryInterval: 1}).start();
         test.mockhttp.events.listening();
         var count = 0;
         supervisor.queueRouter.on('queueResult',function(result){

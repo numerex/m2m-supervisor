@@ -55,9 +55,7 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
                         total++;
                         if (value) success++;
                     });
-                    if (!result.redis || !(result.modem || result.ethernet))
-                        $rootScope.globalStatus = {label: 'Status: DOWN',css: 'label-danger'};
-                    else if (total > success)
+                    if (total > success)
                         $rootScope.globalStatus = {label: 'Status: ERRORS',css: 'label-warning',breakdown: result};
                     else
                         $rootScope.globalStatus = {label: 'Status: OK',css: 'label-success',breakdown: result};

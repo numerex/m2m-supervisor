@@ -2,6 +2,7 @@ var _ = require('lodash');
 var util = require('util');
 
 var Watcher = require('../lib/watcher');
+var CommandScheduler = require('../lib/command-scheduler');
 var DeviceWatcher = require('../lib/device-watcher');
 var DataReader = require('../lib/data-reader');
 var HashWatcher = require('./hash-watcher');
@@ -18,27 +19,21 @@ function DeviceRouter(deviceKey){
     self.queueKey = schema.device.queue.useParam(deviceKey);
     self.messageBase = {routeKey: self.queueKey};
     self.settingsKey = schema.device.settings.useParam(deviceKey);
-    self.noteErrorStatus = function(error) { self.noteStatus('error','error(' + self.deviceKey + '):' + error); };
-    
+
+    self.noteErrorStatus = function(error) {
+        var string = 'error(' + self.deviceKey + '): ' + error;
+        logger.error(string);
+        self.noteStatus('error',string);
+    };
+
     self.on('status',function(status){
         if (!status || !self.device || !self.routeConfig || self.reader) return;
-
-        switch(self.routeConfig.type){
-            case 'none':
-                self.routeConfig.type = 'off'; // NOTE - modify type to avoid recursive off events -- TODO revise??
-                return self.noteStatus('off');
-            case 'off':
-                return;
-            case 'ad-hoc':
-                break;
-            default:
-                return self.noteErrorStatus('unavailable route type: ' + self.routeConfig.type);
-        }
 
         self.reader = new DataReader(self.device)
             .on('error',self.noteErrorStatus)
             .start();
         _.defer(function(){
+            if (self.schedule) self.schedule.start(self.client);
             self.noteStatus('ready');
             self.emit('ready',self.ready());
         });
@@ -46,8 +41,10 @@ function DeviceRouter(deviceKey){
 
     self.deviceWatcher = new DeviceWatcher(self.deviceKey).on('ready',function(ready){
         if (!ready) {
-            self.reset();
-            self.settingsWatcher.checkReady();
+            if (self.started()) {
+                self.reset();
+                self.settingsWatcher.emit('checkReady');
+            }
         } else if (self.deviceWatcher.device) {
             self.device = self.deviceWatcher.device.on('error',self.noteErrorStatus);
             self.noteStatus('device');
@@ -65,8 +62,30 @@ function DeviceRouter(deviceKey){
             var config = helpers.hash2config(hash,hashkeys.route);
             if (JSON.stringify(config) !== JSON.stringify(self.routeConfig)) {
                 if (self.ready()) self.resetReader();
-                self.routeConfig = config;
-                self.noteStatus('route');
+                switch(config.type){
+                    case 'none':
+                        return self.noteStatus('off');
+                    case 'ad-hoc':
+                        self.routeConfig = config;
+                        self.noteStatus('route');
+                        break;
+                    case 'scheduled':
+                        if (!config.schedule)
+                            self.noteErrorStatus('no schedule defined');
+                        else
+                            self.client.hgetall(schema.schedule.periods.useParam(config.schedule)).thenHint('getSchedule',function(hash){
+                                if (!hash || _.keys(hash).length == 0)
+                                    self.noteErrorStatus('empty schedule');
+                                else {
+                                    self.routeConfig = config;
+                                    self.schedule = new CommandScheduler(self.queueKey,hash);
+                                    self.noteStatus('route');
+                                }
+                            });
+                        break;
+                    default:
+                        self.noteErrorStatus('unavailable route type: ' + config.type);
+                }
             }
         })
 }
@@ -79,9 +98,11 @@ DeviceRouter.prototype.ready = function(){
 
 DeviceRouter.prototype._onStart = function(client){
     this.client = client;
+    this.settingsWatcher.start(client);
 };
 
 DeviceRouter.prototype._onStop = function(){
+    this.settingsWatcher.stop();
     this.reset();
     this.noteStatus(null);
     this.client = null;
@@ -94,12 +115,16 @@ DeviceRouter.prototype.reset = function(){
 };
 
 DeviceRouter.prototype.resetReader = function(){
-    if (this.ready()) this.reader.stop();
+    if (this.ready()) {
+        if (this.schedule && this.schedule.started()) this.schedule.stop();
+        this.reader.stop();
+    }
     this.reader = null;
+    this.schedule = null;
 };
 
 DeviceRouter.prototype.noteStatus = function(status,info){
-    if (status && this.status === 'error') return;
+    //if (status && this.status === 'error') return; TODO - do we need this?
     
     this.emit('status',this.status = status,info || null);
 };

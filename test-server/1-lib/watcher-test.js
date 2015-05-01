@@ -34,6 +34,8 @@ describe('Watcher',function() {
         watcher.stop();
         test.pp.snapshot().should.eql([
             '[watcher   ] start watching: test',
+            '[watcher   ] check ready: test',
+            '[watcher   ] now ready: test',
             '[watcher   ] stop watching: test'
         ]);
         done();

@@ -50,6 +50,8 @@ describe('FileDevice',function() {
         [watcher.device].should.eql([null]);
         test.pp.snapshot().should.eql([
             '[device    ] start watching: testKey',
+            '[device    ] check ready: testKey',
+            '[device    ] now ready: testKey',
             '[device    ] stop watching: testKey'
         ]);
     })
