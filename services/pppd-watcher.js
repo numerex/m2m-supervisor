@@ -3,28 +3,28 @@ var util = require('util');
 
 var Watcher = require('../lib/watcher');
 
-var logger = require('../lib/logger')('route');
+var logger = require('../lib/logger')('pppd');
 
-function RouteWatcher(config) {
+function PppdWatcher(config) {
     Watcher.apply(this,[logger,config,true]);
     this.outputs = {};
     this.shell = require('shelljs');    // NOTE - delay 'require' for mocking
 }
 
-util.inherits(RouteWatcher,Watcher);
+util.inherits(PppdWatcher,Watcher);
 
-RouteWatcher.prototype._onStart = function(ppp) {
+PppdWatcher.prototype._onStart = function(ppp) {
     var self = this;
     self.ppp = ppp;
     self.checkRoutes();
     self.interval = setInterval(function(){ self.checkRoutes(); },self.ppp.routeInterval);
 };
 
-RouteWatcher.prototype._onStop = function() {
+PppdWatcher.prototype._onStop = function() {
     clearInterval(this.interval);
 };
 
-RouteWatcher.prototype.checkRoutes = function(){
+PppdWatcher.prototype.checkRoutes = function(){
     var self = this;
     self.pppstatsOutput(true,function(err,pppstatsOutput){
         if (err) {
@@ -56,15 +56,15 @@ RouteWatcher.prototype.checkRoutes = function(){
     });
 };
 
-RouteWatcher.prototype.pppstatsOutput = function(refresh,callback){
+PppdWatcher.prototype.pppstatsOutput = function(refresh,callback){
     this.getShellOutput('pppstats','pppstats',refresh,callback);
 };
 
-RouteWatcher.prototype.routeOutput = function(refresh,callback){
+PppdWatcher.prototype.routeOutput = function(refresh,callback){
     this.getShellOutput('route','route -n',refresh,callback);
 };
 
-RouteWatcher.prototype.getShellOutput = function(key,command,refresh,callback){
+PppdWatcher.prototype.getShellOutput = function(key,command,refresh,callback){
     var self = this;
     if (refresh) self.outputs[key] = null;
 
@@ -83,4 +83,4 @@ RouteWatcher.prototype.getShellOutput = function(key,command,refresh,callback){
         }
 };
 
-module.exports = RouteWatcher;
+module.exports = PppdWatcher;

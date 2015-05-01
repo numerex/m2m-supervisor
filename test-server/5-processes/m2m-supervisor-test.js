@@ -156,15 +156,15 @@ describe('M2mSupervisor',function() {
                 '[redis     ] now ready',
                 '[hash      ] start watching: m2m-config',
                 '[hash      ] check ready: m2m-config',
-                '[route     ] start watching',
-                '[route     ] pppstats error: Error: no response found: pppstats',
+                '[pppd      ] start watching',
+                '[pppd      ] pppstats error: Error: no response found: pppstats',
                 '[modem     ] start watching',
                 '[modem     ] start error: Error: ENOENT, no such file or directory \'/dev/ttyUSB2\'',
                 '[proxy     ] start watching',
                 '[http      ] Listening on port 3000',
                 '[redis     ] stop watching',
                 '[hash      ] stop watching: m2m-config',
-                '[route     ] stop watching',
+                '[pppd      ] stop watching',
                 '[modem     ] stop watching',
                 '[proxy     ] stop watching',
                 '[private   ] connection closed',
@@ -223,8 +223,8 @@ describe('M2mSupervisor',function() {
                     //    '[hash      ] now ready: m2m-device:testKey:settings',
                     //    '[hash      ] check ready: m2m-config',
                     //    '[hash      ] hash changed: m2m-config',
-                    //    '[route     ] start watching',
-                    //    '[route     ] add ppp route to GWaaS',
+                    //    '[pppd      ] start watching',
+                    //    '[pppd      ] add ppp route to GWaaS',
                     //    '[modem     ] start watching',
                     //    '[proxy     ] start watching',
                     //    '[heartbeat ] start watching',
@@ -232,7 +232,7 @@ describe('M2mSupervisor',function() {
                     //    '[outside   ] outgoing - size: 34 from: 192.119.183.253:3011',
                     //    '[router    ] start watching',
                     //    '[hash      ] now ready: m2m-config',
-                    //    //'[route     ] add ppp route to GWaaS',
+                    //    //'[pppd      ] add ppp route to GWaaS',
                     //    '[device    ] check ready: testKey',
                     //    '[device    ] now ready: testKey',
                     //    '[reader    ] start watching'
@@ -278,7 +278,7 @@ describe('M2mSupervisor',function() {
                         //    '[router    ] ignoring queue entry: 2',
                         //    '[redis     ] stop watching',
                         //    '[hash      ] stop watching: m2m-config',
-                        //    '[route     ] stop watching',
+                        //    '[pppd      ] stop watching',
                         //    '[modem     ] stop watching',
                         //    '[proxy     ] stop watching',
                         //    '[private   ] connection closed',
@@ -296,7 +296,7 @@ describe('M2mSupervisor',function() {
                         ]);
                         test.pp.snapshot(); // NOTE - too many race conditions
                         test.mockredis.snapshot(); // NOTE - too many race conditions
-                        test.mockshelljs.snapshot(); // NOTE - per route-watcher tests, clear ...
+                        test.mockshelljs.snapshot(); // NOTE - per pppd-watcher tests, clear ...
                         test.timekeeper.reset();
                         done();
                     });

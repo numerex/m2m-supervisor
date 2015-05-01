@@ -1,6 +1,6 @@
 {
   "name": "m2m-supervisor",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "scripts": {
     "start": "node ./bin/web-server",
     "test": "mocha test-server  --recursive",

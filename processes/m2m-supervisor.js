@@ -5,7 +5,7 @@ var RedisWatcher = require('../services/redis-watcher');
 var HashWatcher = require('../services/hash-watcher');
 var QueueRouter = require('../services/queue-router');
 var DeviceRouter = require('../services/device-router');
-var RouteWatcher = require('../services/route-watcher');
+var PppdWatcher = require('../services/pppd-watcher');
 var ModemWatcher = require('../services/modem-watcher');
 var HeartbeatGenerator = require('../services/heartbeat-generator');
 var HttpServer = require('../services/http-server');
@@ -39,12 +39,12 @@ function M2mSupervisor(config){
             RedisWatcher.instance.client.hsetnx(schema.config.key,configHashkeys.gateway.imei.key,imei).errorHint('setIMEI');
         });
 
-        self.routeWatcher   = new RouteWatcher(config);
+        self.pppdWatcher    = new PppdWatcher(config);
         self.proxy          = new GatewayProxy(config);
         self.heartbeat      = new HeartbeatGenerator(self.proxy,config);
 
         self.configWatcher
-            .addKeysetWatcher('PPP',    true,   self.routeWatcher)
+            .addKeysetWatcher('PPP',    true,   self.pppdWatcher)
             .addKeysetWatcher('modem',  true,   self.modemWatcher)
             .addKeysetWatcher('gateway',false,  self.proxy)
             .addKeysetWatcher('gateway',true,   self.heartbeat);
