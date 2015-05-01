@@ -203,9 +203,9 @@ function buildStatus(){
     if (M2mSupervisor.instance){
         status.config   = M2mSupervisor.instance.configWatcher.ready();
         status.modem    = !!M2mSupervisor.instance.modemWatcher && M2mSupervisor.instance.modemWatcher.ready();
-        status.ppp      = !!M2mSupervisor.instance.routeWatcher && M2mSupervisor.instance.routeWatcher.ready();
+        status.ppp      = !!M2mSupervisor.instance.pppdWatcher  && M2mSupervisor.instance.pppdWatcher.ready();
         status.proxy    = !!M2mSupervisor.instance.proxy        && M2mSupervisor.instance.proxy.started();
-        status.router   = !!M2mSupervisor.instance.queueRouter && M2mSupervisor.instance.queueRouter.started();
+        status.router   = !!M2mSupervisor.instance.queueRouter  && M2mSupervisor.instance.queueRouter.started();
         _.each(M2mSupervisor.instance.queueRouter && M2mSupervisor.instance.queueRouter.routes || {},function(route,key){
             status['device:' + route.deviceKey] = route.ready();
         });

@@ -28,6 +28,7 @@ PppdWatcher.prototype.checkRoutes = function(){
     var self = this;
     self.pppstatsOutput(true,function(err,pppstatsOutput){
         if (err) {
+            self.readyState = false;
             if (err == 1 && pppstatsOutput.indexOf('nonexistent interface') >= 0) {   // EXAMPLE: pppstats: nonexistent interface 'ppp0' specified
                 logger.info('starting pppd');
                 self.shell.exec('pppd');
@@ -37,16 +38,20 @@ PppdWatcher.prototype.checkRoutes = function(){
                 self.emit('note','error');
             }
         } else if (pppstatsOutput.indexOf('PACK VJCOMP  VJUNC') < 0){   // EXAMPLE: IN   PACK VJCOMP  VJUNC  VJERR  |      OUT   PACK VJCOMP  VJUNC NON-VJ
+            self.readyState = false;
             logger.error('unexpected pppstats output: ' + pppstatsOutput);
             self.emit('note','error');
         } else {
             self.routeOutput(true,function(err,routeOutput){
                 if (err) {
+                    self.readyState = false;
                     self.emit('note','error');
                 } else if (routeOutput.indexOf(self.ppp.subnet) >= 0) {
+                    self.readyState = true;
                     self.emit('note','ready');
                     self.emit('ready');
                 } else {
+                    self.readyState = true;
                     logger.info('add ppp route to GWaaS');
                     self.shell.exec('route add -net ' + self.ppp.subnet + ' netmask ' + self.ppp.mask + ' dev ' + self.ppp.interface);
                     self.emit('note','route');
