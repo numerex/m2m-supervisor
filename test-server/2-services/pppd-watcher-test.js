@@ -89,6 +89,7 @@ describe('PppdWatcher',function(){
         test.pp.snapshot().should.eql([
             '[pppd      ] start watching',
             '[pppd      ] add ppp route to GWaaS',
+            '[pppd      ] now ready',
             '[pppd      ] stop watching']);
         test.mockshelljs.snapshot(); // clear snapshot
         done();
@@ -105,6 +106,7 @@ describe('PppdWatcher',function(){
         watcher.stop();
         test.pp.snapshot().should.eql([
             '[pppd      ] start watching',
+            '[pppd      ] now ready',
             '[pppd      ] stop watching']);
         test.mockshelljs.snapshot(); // clear snapshot
         done();

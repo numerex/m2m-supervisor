@@ -156,20 +156,20 @@ describe('M2mSupervisor',function() {
                 '[redis     ] now ready',
                 '[hash      ] start watching: m2m-config',
                 '[hash      ] check ready: m2m-config',
+                '[proxy     ] start watching',
                 '[pppd      ] start watching',
                 '[pppd      ] pppstats error: Error: no response found: pppstats',
                 '[modem     ] start watching',
                 '[modem     ] start error: Error: ENOENT, no such file or directory \'/dev/ttyUSB2\'',
-                '[proxy     ] start watching',
                 '[http      ] Listening on port 3000',
                 '[redis     ] stop watching',
                 '[hash      ] stop watching: m2m-config',
-                '[pppd      ] stop watching',
-                '[modem     ] stop watching',
                 '[proxy     ] stop watching',
                 '[private   ] connection closed',
                 '[public    ] connection closed',
-                '[outside   ] connection closed'
+                '[outside   ] connection closed',
+                '[pppd      ] stop watching',
+                '[modem     ] stop watching'
             ]);
             test.mockredis.snapshot().should.eql([
                 {keys: '*'},

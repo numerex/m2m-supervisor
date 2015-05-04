@@ -63,12 +63,15 @@ HashWatcher.prototype.addChangeWatcher = function(watcher){
 
 HashWatcher.prototype.addKeysetWatcher = function(keyset,required,watcher){
     var self = this;
-    self.keysetWatchers.push({
+    var target = {
         ready: false,
         watcher: watcher,
         needs: self.hashkeys[keyset],
         requirements: required ? helpers.requirements(self.hashkeys[keyset]) : []
-    });
+    };
+    self.keysetWatchers.push(target);
+    if (self.started() && !self.checkKeysetWatcher(target))
+        self.emit('checkReady');
     return self;
 };
 
@@ -93,6 +96,7 @@ HashWatcher.prototype.checkKeysetWatcher = function(target){
         if (target.ready)
             target.watcher.start(helpers.hash2config(self.hash,target.needs),self.client);
     }
+    return target.ready;
 };
 
 module.exports = HashWatcher;

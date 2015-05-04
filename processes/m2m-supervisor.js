@@ -39,15 +39,21 @@ function M2mSupervisor(config){
             RedisWatcher.instance.client.hsetnx(schema.config.key,configHashkeys.gateway.imei.key,imei).errorHint('setIMEI');
         });
 
-        self.pppdWatcher    = new PppdWatcher(config);
+        self.heartbeat      = null;
         self.proxy          = new GatewayProxy(config);
-        self.heartbeat      = new HeartbeatGenerator(self.proxy,config);
+        self.pppdWatcher    = new PppdWatcher(config);
 
         self.configWatcher
-            .addKeysetWatcher('PPP',    true,   self.pppdWatcher)
-            .addKeysetWatcher('modem',  true,   self.modemWatcher)
             .addKeysetWatcher('gateway',false,  self.proxy)
-            .addKeysetWatcher('gateway',true,   self.heartbeat);
+            .addKeysetWatcher('PPP',    true,   self.pppdWatcher)
+            .addKeysetWatcher('modem',  true,   self.modemWatcher);
+
+        self.pppdWatcher.on('ready',function(ready){
+            if (ready && !self.heartbeat) {
+                self.heartbeat = new HeartbeatGenerator(self.proxy,config);
+                self.configWatcher.addKeysetWatcher('gateway',true,self.heartbeat);
+            }
+        });
     }
 
     if (runTransceiver || runAll) {
