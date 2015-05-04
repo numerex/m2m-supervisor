@@ -25,6 +25,7 @@ describe('PppdWatcher',function(){
 
     it('should be immediately stopped',function(done){
         var watcher = new PppdWatcher().start(ppp);
+        watcher.ready().should.not.be.ok;
         watcher.stop();
         test.pp.snapshot().should.eql([
             '[pppd      ] start watching',
@@ -65,6 +66,7 @@ describe('PppdWatcher',function(){
         var watcher = new PppdWatcher().start(function(event){
             event.should.equal('pppd');
         });
+        watcher.ready().should.not.be.ok;
         watcher.stop();
         test.pp.snapshot().should.eql([
             '[pppd      ] start watching',
@@ -82,10 +84,12 @@ describe('PppdWatcher',function(){
         var watcher = new PppdWatcher()
             .on('note',function(event){ event.should.equal('route'); })
             .start(ppp);
+        watcher.ready().should.be.ok;
         watcher.stop();
         test.pp.snapshot().should.eql([
             '[pppd      ] start watching',
             '[pppd      ] add ppp route to GWaaS',
+            '[pppd      ] now ready',
             '[pppd      ] stop watching']);
         test.mockshelljs.snapshot(); // clear snapshot
         done();
@@ -98,9 +102,11 @@ describe('PppdWatcher',function(){
         var watcher = new PppdWatcher()
             .on('note',function(event){ event.should.equal('ready'); })
             .start(ppp);
+        watcher.ready().should.be.ok;
         watcher.stop();
         test.pp.snapshot().should.eql([
             '[pppd      ] start watching',
+            '[pppd      ] now ready',
             '[pppd      ] stop watching']);
         test.mockshelljs.snapshot(); // clear snapshot
         done();
@@ -113,6 +119,7 @@ describe('PppdWatcher',function(){
         var watcher = new PppdWatcher();
         watcher.on('note',function(event){
             event.should.eql('error');
+            watcher.ready().should.not.be.ok;
             test.pp.snapshot().should.eql([]);
             test.mockshelljs.snapshot(); // clear snapshot
             done();
@@ -124,6 +131,7 @@ describe('PppdWatcher',function(){
         var count = 0;
         var watcher = new PppdWatcher().on('note',function(){
             if (count++ > 0) {
+                watcher.ready().should.not.be.ok;
                 watcher.stop();
                 test.pp.snapshot().should.eql([
                     '[pppd      ] start watching',

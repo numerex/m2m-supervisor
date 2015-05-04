@@ -5,10 +5,10 @@ alert-message(messages='globalMessages')
     ul.nav.nav-tabs
       li(ng-repeat='schedule in schedules',ng-class='{active: schedule.id == currentID}')
         a(data-toggle='tab',ng-click='makeActive(schedule)') {{ schedule.id }}
-      li(ng-class='{active: newSchedule.id == currentID}')
+      li(ng-class='{active: newSchedule.id === currentID}')
         a(data-toggle='tab',ng-click='makeActive(newSchedule)') New Schedule
     .tab-content.well
-      table.table(ng-repeat='schedule in schedules',ng-class='{active: schedule.id == currentID}',ng-show='schedule.id == currentID')
+      table.table.active(ng-repeat='schedule in schedules',ng-show='schedule.id === currentID')
         tr
           th Periods:
           td(ng-repeat='entry in schedule.periods') {{ entry.period }}
@@ -16,4 +16,5 @@ alert-message(messages='globalMessages')
           th Commands:
           td(ng-repeat='entry in schedule.periods')
             p(ng-repeat='command in entry.commands') {{ command }}
-      .alert.alert-info COMING SOON! Upload a schedule file...
+      div(ng-show='schedule.id == currentID')
+        .alert.alert-info COMING SOON! Upload a schedule file...

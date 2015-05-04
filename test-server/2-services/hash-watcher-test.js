@@ -100,10 +100,12 @@ describe('HashWatcher',function() {
         test.mockredis.lookup.hgetall['test-hash'] = null;
 
         var count = 0;
+        var events = [];
         var watcher = new HashWatcher('test-hash',{keyset: {test: {key: 'test-key',type: 'number',required: true}}},{retryInterval: 10});
         watcher.on('retry',function(){
             if (count++ > 0){
                 watcher.stop();
+                events.should.eql([]);
                 test.mockredis.snapshot().should.eql([
                     {hgetall: 'test-hash'},
                     {hgetall: 'test-hash'}
@@ -117,10 +119,11 @@ describe('HashWatcher',function() {
                 done();
             }
         });
+        var started = false;
         watcher.addKeysetWatcher('keyset',true,{
-            started: function(){ return false; },
-            start: function(hash){ false.should.be.ok; },
-            stop: function(){ false.should.be.ok; }
+            started: function(){ return started; },
+            start: function(hash){ started = true; events.push('start'); },
+            stop: function(){ started = false; events.push('start'); }
         });
         watcher.start(client);
     });
@@ -182,7 +185,6 @@ describe('HashWatcher',function() {
                     '[hash      ] now ready: test-hash',
                     '[hash      ] check ready: test-hash',
                     '[hash      ] hash changed: test-hash',
-                    '[hash      ] now ready: test-hash',
                     '[hash      ] stop watching: test-hash'
                 ]);
                 done();
