@@ -2,12 +2,21 @@
 
 var _ = require('lodash');
 
-var VERBOSE = process.argv.length > 2 && _.startsWith(process.argv[2],'v');
-var DEVICE_TYPE = 'serial';
-var PORT_FILE = '/dev/ttyUSB2';
-var COMMAND_SUFFIX = DEVICE_TYPE === 'serial' ? '\r' : '\n';
-
 var builder = require('../lib/device-builder');
+
+var VERBOSE         = process.argv.length > 2 && _.startsWith(process.argv[2],'v');
+var DEVICE_TYPE     = 'serial';
+var PORT_FILE       = '/dev/ttyUSB2';
+var COMMAND_SUFFIX  = DEVICE_TYPE === 'serial' ? '\r' : '\n';
+
+var COMMAND_LIST = [
+    ['Manufacturer:     ','AT+CGMI',''],
+    ['Product Model:    ','AT+CGMM',''],
+    ['Software Version: ','AT+CGMR',''],
+    ['Carrier IMSI:     ','AT+CIMI',''],
+    ['Radio IMEI:       ','AT+CGSN',''],
+    ['Signal Strength:  ','AT+CSQ','']
+];
 
 var callback = null;
 var device = new builder.newDevice({type: DEVICE_TYPE,inFile: PORT_FILE,outFile: PORT_FILE,serialPort: PORT_FILE,serialBaudRate: 460800});
@@ -27,22 +36,23 @@ device
         process.exit(1);
     })
     .on('ready',function(){
-        sendExpect('AT+CGMI','',function(){
-            sendExpect('AT+CGMM','',function(){
-                sendExpect('AT+CGMR','',function(){
-                    sendExpect('AT+CSQ','',function(){
-                        device.close();
-                    })
-                })
-            })
-        });
+        var index = -1;
+
+        function nextCommand(){
+            if (++index >= COMMAND_LIST.length)
+                device.close();
+            else
+                sendExpect(COMMAND_LIST[index][0],COMMAND_LIST[index][1],COMMAND_LIST[index][2],nextCommand);
+        }
+
+        nextCommand();
     })
     .open();
 
-function sendExpect(command,prefix,done){
+function sendExpect(label,command,prefix,done){
     var commandSeen = null;
     var prefixSeen = null;
-    console.log('COMMAND: ' + command);
+    if (VERBOSE) console.log('COMMAND: ' + command);
     callback = function(data){
         var check = '';
         if (!commandSeen && data === command) {
@@ -54,7 +64,8 @@ function sendExpect(command,prefix,done){
         }
         if (VERBOSE) console.log('data: ' + data + check);
         if (data === 'OK' && commandSeen && prefixSeen) {
-            console.log('RESULT:' + commandSeen + ' => ' + prefixSeen);
+            if (VERBOSE) console.log('RESULT:' + commandSeen + ' => ' + prefixSeen);
+            console.log(label + prefixSeen);
             callback = null;
             done && done();
         }
