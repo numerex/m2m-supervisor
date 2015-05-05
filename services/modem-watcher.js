@@ -53,7 +53,6 @@ ModemWatcher.prototype._onStart = function(config) {
     self.device.on('data',function(data){
         _.each(data.split('\n'),function(line){
             line = _.trim(line);
-console.log('LINE:' + line);            
             if (line.length == 0) return;
             if (self.considerLine(ModemWatcher.Reports.FLOW,line,function(data) { return self.noteFlow(data); })) return;
             if (self.considerLine(ModemWatcher.Reports.RSSI,line,function(data) { return self.noteRSSI(data); })) return;
@@ -110,7 +109,6 @@ ModemWatcher.prototype.noteRSSI = function(data){
 };
 
 ModemWatcher.prototype.considerIMEI = function(line){
-console.log('imei = ' + line + ' - ' + this.imeiCandidates);
     if (this.imei) return;
     if (this.imeiCandidates.length % 2 === 1 ? line === 'OK' : /^\d{15}$/.test(line)) this.imeiCandidates.push(line);
     if (this.imeiCandidates.length == 4)
@@ -127,7 +125,6 @@ console.log('imei = ' + line + ' - ' + this.imeiCandidates);
 };
 
 ModemWatcher.prototype.requestIMEI = function(){
-console.log('imei ->');
     this.requestInfo('AT+CGSN\r','requestIMEI1');
     this.requestInfo('AT+CGSN\r','requestIMEI2');
 };
