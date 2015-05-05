@@ -92,6 +92,13 @@ function SerialPort(port,options,arg3){
     MockSerialPort.calls.push({create: [port,options,arg3]});
 }
 
+SerialPort.prototype.open = function(callback){
+    MockSerialPort.calls.push({open: null});
+    MockSerialPort.events.open && MockSerialPort.events.open();
+    callback();
+    return this;
+};
+
 SerialPort.prototype.close = function(){
     MockSerialPort.calls.push({close: null});
     MockSerialPort.events.close && MockSerialPort.events.close();

@@ -5,7 +5,7 @@ var _ = require('lodash');
 var builder = require('../lib/device-builder');
 
 var callback = null;
-var device = new builder.newDevice({type: 'serial',serialPort: '/dev/ttyUSB2'})
+var device = new builder.newDevice({type: 'serial',serialPort: '/dev/ttyUSB2',serialBaudRate: 9600})
     .on('data',function(data){
         var result = _.trim(data.toString());
         if (result.length > 0 && callback) callback(result);
@@ -39,7 +39,10 @@ function sendExpect(command,prefix,done){
             done && done();
         }
     };
-    device.writeBuffer(command + '\n');
+console.dir(device);
+    device.writeBuffer(command + '\n',function(error){
+        if (error) console.log('error: ' + error);
+    });
 }
 
 sendExpect('AT+CSQ','+CSQ',function(){
