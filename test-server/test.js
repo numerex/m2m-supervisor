@@ -67,6 +67,52 @@ var MockNet = {
 };
 module.exports.mocknet = MockNet;
 
+// SERIALPORT ------------------------
+
+var MockSerialPort = {
+    connectException: null,
+    writeException: null,
+    calls: [],
+    events: {},
+    reset: function(){
+        MockSerialPort.connectException = null;
+        MockSerialPort.writeException = null;
+        MockSerialPort.calls = [];
+        MockSerialPort.events = {};
+    },
+    snapshot: function(){
+        var result = MockSerialPort.calls;
+        MockSerialPort.calls = [];
+        return result;
+    }
+};
+
+function SerialPort(port,options,arg3){
+    if (MockSerialPort.connectException) throw(new Error(MockSerialPort.connectException));
+    MockSerialPort.calls.push({create: [port,options,arg3]});
+}
+
+SerialPort.prototype.close = function(){
+    MockSerialPort.calls.push({close: null});
+    MockSerialPort.events.close && MockSerialPort.events.close();
+};
+
+SerialPort.prototype.on = function(event,callback){
+    MockSerialPort.events[event] = callback;
+    return this;
+};
+
+SerialPort.prototype.write = function(buffer,callback){
+    if (MockSerialPort.writeException) throw(new Error(MockSerialPort.writeException));
+    MockSerialPort.calls.push({write: buffer});
+    callback && callback();
+
+};
+
+MockSerialPort.SerialPort = SerialPort;
+
+module.exports.mockserialport = MockSerialPort;
+
 // DRAM -----------------------
 
 module.exports.mockdgram = function() {
