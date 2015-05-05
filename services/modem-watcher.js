@@ -2,7 +2,7 @@ var _ = require('lodash');
 var util = require('util');
 
 var Watcher = require('../lib/watcher');
-var FileDevice = require('../lib/file-device');
+var SerialDevice = require('../lib/serial-device');
 
 var logger = require('../lib/logger')('modem');
 
@@ -36,7 +36,7 @@ ModemWatcher.prototype._onStart = function(config) {
     self.imeiCandidates = [];
 
     self.config = config;
-    self.device = new FileDevice({inFile: self.config.reportFile,outFile: self.config.commandFile,retryInterval: self.config.retryInterval});
+    self.device = new SerialDevice({serialPort: self.config.portFile,serialBaudRate: self.config.serialBaudRate,retryInterval: self.retryInterval});
     self.device.on('ready',function(){
         self.interval = setInterval(function() { self.emit('requestRSSI'); },self.config.rssiInterval);
         self.emit('note','ready');
@@ -124,12 +124,12 @@ ModemWatcher.prototype.considerIMEI = function(line){
 };
 
 ModemWatcher.prototype.requestIMEI = function(){
-    this.requestInfo('AT+CGSN\nAT+CGSN\n','requestIMEI');
+    this.requestInfo('AT+CGSN\rAT+CGSN\r','requestIMEI');
 };
 
 ModemWatcher.prototype.requestRSSI = function(){
     // NOTE - send AT+CSQ commands instead of relying on ^RSSI events because BER is sent sometimes(?) and BER=0 is ambiguous
-    this.requestInfo('AT+CSQ\n','requestRSSI');
+    this.requestInfo('AT+CSQ\r','requestRSSI');
 };
 
 ModemWatcher.prototype.requestInfo = function(command,event){
