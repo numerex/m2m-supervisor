@@ -71,11 +71,13 @@ module.exports.mocknet = MockNet;
 
 var MockSerialPort = {
     connectException: null,
+    openException: null,
     writeException: null,
     calls: [],
     events: {},
     reset: function(){
         MockSerialPort.connectException = null;
+        MockSerialPort.openException = null;
         MockSerialPort.writeException = null;
         MockSerialPort.calls = [];
         MockSerialPort.events = {};
@@ -93,9 +95,9 @@ function SerialPort(port,options,arg3){
 }
 
 SerialPort.prototype.open = function(callback){
-    MockSerialPort.calls.push({open: null});
-    MockSerialPort.events.open && MockSerialPort.events.open();
-    callback();
+    MockSerialPort.calls.push({open: MockSerialPort.openException});
+    MockSerialPort.events.open && MockSerialPort.events.open(MockSerialPort.openException);
+    callback(MockSerialPort.openException);
     return this;
 };
 

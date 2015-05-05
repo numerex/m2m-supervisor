@@ -30,7 +30,7 @@ describe('SerialDevice',function() {
         test.expect(function(){ device.open(); }).to.throw('already open');
         device.close();
         test.mockserialport.snapshot().should.eql([
-            {create: ['/dev/tty0',{baudrate: 1234,xon: true,xoff: true},false]},
+            {create: ['/dev/tty0',{baudrate: 1234},false]},
             {open: null},
             {close: null}
         ]);
@@ -44,7 +44,7 @@ describe('SerialDevice',function() {
         device.close();
         test.expect(function(){ device.close(); }).to.throw('not open');
         test.mockserialport.snapshot().should.eql([
-            {create: ['/dev/tty0',{baudrate: 1234,xon: true,xoff: true},false]},
+            {create: ['/dev/tty0',{baudrate: 1234},false]},
             {open: null},
             {close: null}
         ]);
@@ -58,7 +58,7 @@ describe('SerialDevice',function() {
         });
     });
 
-    it('should retry if the device is not ready',function(done){
+    it('should retry if the device is not ready #1',function(done){
         test.mockserialport.connectException = 'test error';
 
         var count = 0;
@@ -67,6 +67,29 @@ describe('SerialDevice',function() {
             error.should.eql('Error: test error');
             if (count++ > 0) {
                 device.close();
+                test.mockserialport.snapshot().should.eql([]);
+                done();
+            }
+        });
+        device.open();
+    });
+
+    it('should retry if the device is not ready #2',function(done){
+        test.mockserialport.openException = 'test error';
+
+        var count = 0;
+        var device = new SerialDevice({serialPort: '/dev/tty0',serialBaudRate: '1234',retryInterval: 1});
+        device.on('retry',function(error){
+            error.should.eql('test error');
+            if (count++ > 0) {
+                device.close();
+                test.mockserialport.snapshot().should.eql([
+                    {create: ['/dev/tty0',{baudrate: 1234},false]},
+                    {open: 'test error'},
+                    {create: ['/dev/tty0',{baudrate: 1234},false]},
+                    {open: 'test error'},
+                    {close: null}
+                ]);
                 done();
             }
         });
@@ -79,7 +102,7 @@ describe('SerialDevice',function() {
             error.should.eql('Error: test error');
             device.close();
             test.mockserialport.snapshot().should.eql([
-                {create: ['/dev/tty0',{baudrate: 1234,xon: true,xoff: true},false]},
+                {create: ['/dev/tty0',{baudrate: 1234},false]},
                 {open: null},
                 {close: null}
             ]);
@@ -95,7 +118,7 @@ describe('SerialDevice',function() {
             data.should.eql('test');
             device.close();
             test.mockserialport.snapshot().should.eql([
-                {create: ['/dev/tty0',{baudrate: 1234,xon: true,xoff: true},false]},
+                {create: ['/dev/tty0',{baudrate: 1234},false]},
                 {open: null},
                 {close: null}
             ]);
@@ -117,7 +140,7 @@ describe('SerialDevice',function() {
         device.close();
         values.should.eql(['Error: test error']);
         test.mockserialport.snapshot().should.eql([
-            {create: ['/dev/tty0',{baudrate: 1234,xon: true,xoff: true},false]},
+            {create: ['/dev/tty0',{baudrate: 1234},false]},
             {open: null},
             {close: null}
         ]);
@@ -134,7 +157,7 @@ describe('SerialDevice',function() {
         device.close();
         values.should.eql([null]);
         test.mockserialport.snapshot().should.eql([
-            {create: ['/dev/tty0',{baudrate: 1234,xon: true,xoff: true},false]},
+            {create: ['/dev/tty0',{baudrate: 1234},false]},
             {open: null},
             {write: 'test'},
             {close: null}
