@@ -1,0 +1,49 @@
+#!/usr/bin/env node
+
+var _ = require('lodash');
+
+var builder = require('../lib/device-builder');
+
+var callback = null;
+var device = new builder.newDevice({type: 'serial',serialPort: '/dev/ttyUSB2'})
+    .on('data',function(data){
+        var result = _.trim(data.toString());
+        if (result.length > 0 && callback) callback(result);
+    })
+    .on('error',function(error){
+        console.log('error: ' + error);
+        process.exit(1);
+    })
+    .on('retry',function(error){
+        console.log('retry error: ' + error);
+        process.exit(1);
+    })
+    .open();
+
+function sendExpect(command,prefix,done){
+    var commandSeen = false;
+    var prefixSeen = false;
+    console.log('COMMAND: ' + command);
+    callback = function(data){
+        var check = '';
+        if (!commandSeen && data === command) {
+            commandSeen = true;
+            check = ' - command';
+        } else if (!prefixSeen && _.startsWith(data,prefix)) {
+            prefixSeen = true;
+            check = ' - match';
+        }
+        console.log('data: ' + data + check);
+        if (data === 'OK' && commandSeen && prefixSeen) {
+            callback = null;
+            done && done();
+        }
+    };
+    device.writeBuffer(command + '\n');
+}
+
+sendExpect('AT+CSQ','+CSQ',function(){
+    sendExpect('AT+CIMI',/\d/,function(){
+        device.close();
+    })
+});
