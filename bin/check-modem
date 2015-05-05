@@ -8,9 +8,9 @@ var callback = null;
 var device = new builder.newDevice({type: 'file',inFile: '/dev/ttyUSB2',outFile: '/dev/ttyUSB2',serialPort: '/dev/ttyUSB2',serialBaudRate: 460800});
 device
     .on('data',function(data){
-console.log('DATA: ' + data);
+//console.log('DATA: ' + data);
         _.each(data.toString().split('\n'),function(line){
-console.log('LINE: ' + line);
+//console.log('LINE: ' + JSON.stringify(line));
             if (line.length > 0 && callback) callback(line);
         });
     })
@@ -36,20 +36,21 @@ console.log('LINE: ' + line);
     .open();
 
 function sendExpect(command,prefix,done){
-    var commandSeen = false;
-    var prefixSeen = false;
+    var commandSeen = null;
+    var prefixSeen = null;
     console.log('COMMAND: ' + command);
     callback = function(data){
         var check = '';
         if (!commandSeen && data === command) {
-            commandSeen = true;
+            commandSeen = command;
             check = ' - command';
         } else {//if (!prefixSeen && _.startsWith(data,prefix)) {
-            prefixSeen = true;
+            prefixSeen = data;
             check = ' - match';
         }
         console.log('data: ' + data + check);
         if (data === 'OK' && commandSeen && prefixSeen) {
+            console.log('COMMAND:' + commandSeen + ' => ' + prefixSeen);
             callback = null;
             done && done();
         }
