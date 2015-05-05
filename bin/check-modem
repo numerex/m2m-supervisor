@@ -11,6 +11,7 @@ device
 //console.log('DATA: ' + data);
         _.each(data.toString().split('\n'),function(line){
 //console.log('LINE: ' + JSON.stringify(line));
+            line = _.trim(line);
             if (line.length > 0 && callback) callback(line);
         });
     })
@@ -44,18 +45,18 @@ function sendExpect(command,prefix,done){
         if (!commandSeen && data === command) {
             commandSeen = command;
             check = ' - command';
-        } else {//if (!prefixSeen && _.startsWith(data,prefix)) {
+        } else if (commandSeen && !prefixSeen && _.startsWith(data,prefix)) {
             prefixSeen = data;
             check = ' - match';
         }
-        console.log('data: ' + data + check);
+console.log('data: ' + data + check);
         if (data === 'OK' && commandSeen && prefixSeen) {
-            console.log('COMMAND:' + commandSeen + ' => ' + prefixSeen);
+            console.log('RESULT:' + commandSeen + ' => ' + prefixSeen);
             callback = null;
             done && done();
         }
     };
-    device.writeBuffer(command + '\n\n',function(error){
+    device.writeBuffer('\n' + command + '\n',function(error){
         if (error) console.log('callback error: ' + error);
     });
 }
