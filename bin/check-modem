@@ -5,7 +5,8 @@ var _ = require('lodash');
 var builder = require('../lib/device-builder');
 
 var callback = null;
-var device = new builder.newDevice({type: 'file',inFile: '/dev/ttys003',outFile: '/dev/ttys003',serialPort: '/dev/ttyUSB2',serialBaudRate: 460800});
+var portFile = '/dev/ttyUSB2';
+var device = new builder.newDevice({type: 'serial',inFile: portFile,outFile: portFile,serialPort: portFile,serialBaudRate: 460800});
 device
     .on('data',function(data){
 //console.log('DATA: ' + data);
@@ -56,7 +57,7 @@ console.log('data: ' + data + check);
             done && done();
         }
     };
-    device.writeBuffer('\n' + command + '\n',function(error){
+    device.writeBuffer(command + '\r',function(error){
         if (error) console.log('callback error: ' + error);
     });
 }
