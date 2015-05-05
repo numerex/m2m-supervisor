@@ -36,7 +36,7 @@ ModemWatcher.prototype._onStart = function(config) {
     self.imeiCandidates = [];
 
     self.config = config;
-    self.device = new SerialDevice({serialPort: self.config.portFile,serialBaudRate: self.config.serialBaudRate,retryInterval: self.retryInterval});
+    self.device = new SerialDevice(_.defaults({retryInterval: self.retryInterval},self.config));
     self.device.on('ready',function(){
         self.interval = setInterval(function() { self.emit('requestRSSI'); },self.config.rssiInterval);
         self.emit('note','ready');
@@ -52,6 +52,8 @@ ModemWatcher.prototype._onStart = function(config) {
     });
     self.device.on('data',function(data){
         _.each(data.split('\n'),function(line){
+            line = _.trim(line);
+console.log('LINE:' + line);            
             if (line.length == 0) return;
             if (self.considerLine(ModemWatcher.Reports.FLOW,line,function(data) { return self.noteFlow(data); })) return;
             if (self.considerLine(ModemWatcher.Reports.RSSI,line,function(data) { return self.noteRSSI(data); })) return;
@@ -108,6 +110,7 @@ ModemWatcher.prototype.noteRSSI = function(data){
 };
 
 ModemWatcher.prototype.considerIMEI = function(line){
+console.log('imei = ' + line + ' - ' + this.imeiCandidates);
     if (this.imei) return;
     if (this.imeiCandidates.length % 2 === 1 ? line === 'OK' : /^\d{15}$/.test(line)) this.imeiCandidates.push(line);
     if (this.imeiCandidates.length == 4)
@@ -124,7 +127,9 @@ ModemWatcher.prototype.considerIMEI = function(line){
 };
 
 ModemWatcher.prototype.requestIMEI = function(){
-    this.requestInfo('AT+CGSN\rAT+CGSN\r','requestIMEI');
+console.log('imei ->');
+    this.requestInfo('AT+CGSN\r','requestIMEI1');
+    this.requestInfo('AT+CGSN\r','requestIMEI2');
 };
 
 ModemWatcher.prototype.requestRSSI = function(){
