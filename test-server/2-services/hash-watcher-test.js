@@ -211,6 +211,51 @@ describe('HashWatcher',function() {
         watcher.start(client);
     });
 
+    it('should re-start retrying if a keyset watcher is added whose requirements are not met',function(done){
+        test.mockredis.lookup.hgetall['test-hash'] = null;
+
+        var readySeen = false;
+        var events = [];
+        var lastHash = null;
+        var watcher = new HashWatcher('test-hash',{keyset: {test: {key: 'test-key',type: 'number',required: true}}},{retryInterval: 10});
+        watcher
+            .on('ready',function(ready){
+                if (ready)
+                    _.defer(function(){
+                        readySeen = true;
+                        watcher.addKeysetWatcher('keyset',true,{
+                            started: function(){ return !!lastHash; },
+                            start: function(hash){
+                                lastHash = hash;
+                                events.push({start: hash});
+                            },
+                            stop: function(){
+                                events.push({stop: null});
+                            }
+                        });
+                    });
+            })
+            .on('retry',function(event){
+                if (readySeen) {
+                    watcher.stop();
+                    test.mockredis.snapshot().should.eql([
+                        {hgetall: 'test-hash'},
+                        {hgetall: 'test-hash'}
+                    ]);
+                    test.pp.snapshot().should.eql([
+                        '[hash      ] start watching: test-hash',
+                        '[hash      ] check ready: test-hash',
+                        '[hash      ] now ready: test-hash',
+                        '[hash      ] check ready: test-hash',
+                        '[hash      ] no longer ready: test-hash',
+                        '[hash      ] stop watching: test-hash'
+                    ]);
+                    done();
+                }
+            });
+        watcher.start(client);
+    });
+
     it('should throw an error if start called twice',function(done){
         test.mockredis.lookup.hgetall['test'] = {test: 'test'};
 
