@@ -13,6 +13,7 @@ function ModemWatcher(config) {
     self.on('requestIMEI',function(){ if (self.ready()) self.requestIMEI(); });
     self.on('requestRSSI',function(){ if (self.ready())  self.requestRSSI(); });
     self.on('ready',function() {
+        self.device.writeBuffer('AT E1\r'); // NOTE - this will ensure AT commands are echoed
         self.emit('requestIMEI');
         self.emit('requestRSSI');
     });
@@ -53,6 +54,7 @@ ModemWatcher.prototype._onStart = function(config) {
     self.device.on('data',function(data){
         _.each(data.split('\n'),function(line){
             line = _.trim(line);
+console.log('LINE:' + line);
             if (line.length == 0) return;
             if (self.considerLine(ModemWatcher.Reports.FLOW,line,function(data) { return self.noteFlow(data); })) return;
             if (self.considerLine(ModemWatcher.Reports.RSSI,line,function(data) { return self.noteRSSI(data); })) return;

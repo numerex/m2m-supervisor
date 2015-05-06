@@ -38,6 +38,8 @@ device
     .on('ready',function(){
         var index = -1;
 
+        device.writeBuffer('AT E1\r');
+
         function nextCommand(){
             if (++index >= COMMAND_LIST.length)
                 device.close();
