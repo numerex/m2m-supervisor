@@ -87,8 +87,7 @@ describe('SerialDevice',function() {
                     {create: ['/dev/tty0',{baudrate: 1234},false]},
                     {open: 'test error'},
                     {create: ['/dev/tty0',{baudrate: 1234},false]},
-                    {open: 'test error'},
-                    {close: null}
+                    {open: 'test error'}
                 ]);
                 done();
             }
