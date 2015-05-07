@@ -10,14 +10,11 @@ function ModemWatcher(config) {
     var self = this;
     Watcher.apply(self,[logger,config,true]);
 
-    self.on('requestRSSI',function(){ if (self.ready())  self.requestRSSI(); });
-    self.on('ready',function(ready) {
-        if (!ready) return;
-
+    self.on('requestRSSI',_.bind(self.requestRSSI,self));
+    self.on('ready',function() {
         self.device.writeBuffer('AT E1\r'); // NOTE - this will ensure AT commands are echoed
         self.emit('requestRSSI');
     });
-
 }
 
 util.inherits(ModemWatcher,Watcher);
@@ -35,7 +32,7 @@ ModemWatcher.prototype._onStart = function(config) {
     self.config = config;
     self.device = new SerialDevice(_.defaults({retryInterval: self.retryInterval},self.config));
     self.device.on('ready',function(){
-        self.interval = setInterval(function() { self.emit('requestRSSI'); },self.config.rssiInterval);
+        self.interval = setInterval(_.bind(self.emit,self,'requestRSSI'),self.config.rssiInterval);
         self.emit('note','ready');
         self.emit('ready');
     });
@@ -51,7 +48,7 @@ ModemWatcher.prototype._onStart = function(config) {
         _.each(data.split('\n'),function(line){
             line = _.trim(line);
             if (line.length == 0) return;
-            if (self.considerLine(ModemWatcher.Reports.RSSI,line,function(data) { return self.noteRSSI(data); })) return;
+            if (self.considerLine(ModemWatcher.Reports.RSSI,line,_.bind(self.noteRSSI,self,_))) return;
         });
     });
 

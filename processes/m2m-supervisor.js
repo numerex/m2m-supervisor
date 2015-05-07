@@ -35,13 +35,10 @@ function M2mSupervisor(config){
     self.redisWatcher   = new RedisWatcher(config);
 
     if (runBridge || runAll) {
-        self.modemWatcher   = new ModemWatcher(config).on('imei',function(imei){
-            RedisWatcher.instance.client.hsetnx(schema.config.key,configHashkeys.gateway.imei.key,imei).errorHint('setIMEI');
-        });
-
         self.heartbeat      = null;
         self.proxy          = new GatewayProxy(config);
         self.pppdWatcher    = new PppdWatcher(config);
+        self.modemWatcher   = new ModemWatcher(config);
 
         self.configWatcher
             .addKeysetWatcher('gateway',false,  self.proxy)
