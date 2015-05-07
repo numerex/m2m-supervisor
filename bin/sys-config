@@ -1,0 +1,41 @@
+#!/usr/bin/env node
+
+var _ = require('lodash');
+var redis = require('then-redis');
+
+var SystemChecker = require('../lib/system-checker');
+
+var schema = require('../lib/redis-schema');
+var hashkeys = require('../lib/config-hashkeys');
+
+var checker = new SystemChecker(process.argv.length > 2 && _.startsWith(process.argv[2],'v'))
+    .on('ready',function(){
+        if (!checker.exists.redis)
+            console.log('unable to configure redis ... please install');
+        else {
+            var ready = true;
+
+            if (!checker.info.imei) {
+                ready = false;
+                console.log('no IMEI found');
+            }
+
+            if (!checker.choices.controlPort) {
+                ready = false;
+                console.log('no modem serial port found');
+            }
+
+            if (ready) {
+                var client = redis.createClient();
+                client.hmset(schema.config.key,
+                    hashkeys.gateway.imei.key,      checker.info.imei,
+                    hashkeys.modem.vendor.key,      checker.info.vendor,
+                    hashkeys.modem.model.key,       checker.info.model,
+                    hashkeys.modem.version.key,     checker.info.version,
+                    hashkeys.modem.imsi.key,        checker.info.imsi,
+                    hashkeys.modem.serialPort.key,  checker.choices.controlPort);
+                client.quit();
+            }
+        }
+    })
+    .checkNow();

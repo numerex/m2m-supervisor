@@ -34,6 +34,30 @@ describe('FileDevice',function() {
         });
     });
 
+    it('should note a write error',function(done){
+        var device = new FileDevice({inFile: '/dev/null'});
+        device
+            .on('ready',function() {
+                device.writeBuffer('test', function (err) {
+                    [err].should.eql(['TypeError: path must be a string']);
+                    done();
+                });
+            })
+            .open();
+    });
+
+    it('should allow a successful write',function(done){
+        var device = new FileDevice({inFile: '/dev/null',outFile: '/dev/null'});
+        device
+            .on('ready',function() {
+                device.writeBuffer('test', function (err) {
+                    [err].should.eql([null]);
+                    done();
+                });
+            })
+            .open();
+    });
+
     it('should be created by DeviceBuilder',function(){
         var builder = require(process.cwd() + '/lib/device-builder');
         var device = builder.newDevice({type: 'file',inFile: 'a',outFile: 'b',retryInterval: 1});
