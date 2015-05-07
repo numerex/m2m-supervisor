@@ -147,6 +147,8 @@ describe('M2mSupervisor',function() {
     });
 
     it('should start/stop with all available services, but no devices',function(done){
+        test.mockredis.lookup.hgetall['m2m-config'] = {'modem:port-file':'/dev/ttyUSB2'};
+
         var supervisor = new M2mSupervisor({retryInterval: 100}).start();
         test.mockhttp.events.listening();
         _.defer(function(){
@@ -200,8 +202,7 @@ describe('M2mSupervisor',function() {
         test.mockredis.lookup.keys['*'] = ['m2m-device:testKey:settings'];
         test.mockredis.lookup.hgetall['m2m-config'] = {
             'gateway:imei': '352214046337094',
-            'modem:report-file': 'test-server/data/modem-imei.txt',
-            'modem:command-file': '/dev/null'
+            'modem:port-file': '/dev/ttyUSB2'
         };
         test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
             'connection:type': 'telnet',
