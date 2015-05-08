@@ -5,21 +5,24 @@ var commander = require('commander');
 var shell = require('shelljs');
 var net = require('net');
 
-var DEFAULT_PORT = 10001;
+var DEFAULT_PORT    = 10001;
+var DEFAULT_TIMEOUT = 1;
 
 commander
     .option('-v --verbose','verbose mode',true)
     .option('-p --port <port>','telnet port (default: ' + DEFAULT_PORT + ')',parseInt,DEFAULT_PORT)
+    .option('-t --timeout <timeout>','telnet timeout (default: ' + DEFAULT_TIMEOUT + ' seconds)',parseInt,DEFAULT_TIMEOUT)
     .parse(process.argv);
 
 console.log(commander.port);
+console.log(commander.timeout);
 console.log(commander.verbose);
 
-findTelnets(commander.port || DEFAULT_PORT,function(telnets){
+findTelnets(commander.port || DEFAULT_PORT,(commander.timeout || DEFAULT_TIMEOUT) * 1000,function(telnets){
     console.dir(telnets);
 });
 
-function findTelnets(port,callback){
+function findTelnets(port,timeout,callback){
     shell.exec('ifconfig',{silent: true},function(code,result){
         if (code !== 0) return console.log('ifconfig error: ' + code + ' ' + result);
 
@@ -73,7 +76,7 @@ function findTelnets(port,callback){
                 if (commander.verbose) console.log('error(' + address + '):' + error);
                 done();
             });
-            socket.setTimeout(1000,function(){
+            socket.setTimeout(timeout,function(){
                 if (commander.verbose) console.log('timeout(' + address + ')');
                 done();
             });
