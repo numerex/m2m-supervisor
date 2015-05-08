@@ -8,21 +8,27 @@ var net = require('net');
 var DEFAULT_PORT    = 10001;
 var DEFAULT_TIMEOUT = 1;
 
+function safeParseInt(string){ return parseInt(string); }
+
 commander
     .option('-v --verbose','verbose mode',true)
-    .option('-p --port <port>','telnet port (default: ' + DEFAULT_PORT + ')',parseInt,DEFAULT_PORT)
-    .option('-t --timeout <timeout>','telnet timeout (default: ' + DEFAULT_TIMEOUT + ' seconds)',parseInt,DEFAULT_TIMEOUT)
+    .option('-p --port <port>','telnet port (default: ' + DEFAULT_PORT + ')',safeParseInt,DEFAULT_PORT)
+    .option('-t --timeout <timeout>','telnet timeout (default: ' + DEFAULT_TIMEOUT + ' seconds)',safeParseInt,DEFAULT_TIMEOUT)
     .parse(process.argv);
 
-console.log(commander.port);
-console.log(commander.timeout);
-console.log(commander.verbose);
-
 findTelnets(commander.port || DEFAULT_PORT,(commander.timeout || DEFAULT_TIMEOUT) * 1000,function(telnets){
-    console.dir(telnets);
+    if (telnets.length > 0)
+        console.dir(telnets);
+    else {
+	console.log('2nd attempt');
+        findTelnets(commander.port,(commander.timeout) * 1000,function(telnets){
+            console.dir(telnets);
+        });
+    }
 });
 
 function findTelnets(port,timeout,callback){
+
     shell.exec('ifconfig',{silent: true},function(code,result){
         if (code !== 0) return console.log('ifconfig error: ' + code + ' ' + result);
 
@@ -73,8 +79,6 @@ function findTelnets(port,timeout,callback){
                 }
             }
 
-            if (commander.verbose) console.log('consider:' + address);
-
             socket.on('error',function(error){
                 if (commander.verbose) console.log('error(' + address + '):' + error);
                 done();
@@ -90,6 +94,7 @@ function findTelnets(port,timeout,callback){
             });
         });
     });
+
 }
 
 function num2ip(addrNum){
