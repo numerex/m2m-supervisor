@@ -5,8 +5,10 @@ var commander = require('commander');
 var shell = require('shelljs');
 var net = require('net');
 
-var DEFAULT_PORT    = 10001;
-var DEFAULT_TIMEOUT = 1;
+var hashkeys = require('../lib/device-hashkeys');
+
+var DEFAULT_PORT    = hashkeys.connection.telnetPort.default;
+var DEFAULT_TIMEOUT = 2;
 
 function safeParseInt(string){ return parseInt(string); }
 
