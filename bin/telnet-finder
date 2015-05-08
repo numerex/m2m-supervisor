@@ -1,0 +1,123 @@
+#!/usr/bin/env node
+
+var _ = require('lodash');
+var commander = require('commander');
+var shell = require('shelljs');
+var net = require('net');
+
+var hashkeys = require('../lib/device-hashkeys');
+
+var DEFAULT_PORT    = hashkeys.connection.telnetPort.default;
+var DEFAULT_TIMEOUT = 2;
+
+function safeParseInt(string){ return parseInt(string); }
+
+commander
+    .option('-v --verbose','verbose mode',true)
+    .option('-p --port <port>','telnet port (default: ' + DEFAULT_PORT + ')',safeParseInt,DEFAULT_PORT)
+    .option('-t --timeout <timeout>','telnet timeout (default: ' + DEFAULT_TIMEOUT + ' seconds)',safeParseInt,DEFAULT_TIMEOUT)
+    .parse(process.argv);
+
+findTelnets(commander.port || DEFAULT_PORT,(commander.timeout || DEFAULT_TIMEOUT) * 1000,function(telnets){
+    if (telnets.length > 0)
+        console.dir(telnets);
+    else {
+	console.log('2nd attempt');
+        findTelnets(commander.port,(commander.timeout) * 1000,function(telnets){
+            console.dir(telnets);
+        });
+    }
+});
+
+function findTelnets(port,timeout,callback){
+
+    shell.exec('ifconfig',{silent: true},function(code,result){
+        if (code !== 0) return console.log('ifconfig error: ' + code + ' ' + result);
+
+        var lastName = null;
+        var interfaces = [];
+        _.each(result.split('\n'),function(line){
+            var match = null;
+            if (match = /^(\w+)/.exec(line))
+                lastName = match[1];
+            else if (lastName && (match = /\s+inet\s+(\w+:|)(\d+\.\d+.\d+.\d+)\s+(netmask |)(.*Mask:|)([\w+\.]+)/.exec(line))) {
+                var address = match[2];
+                if (address === '127.0.0.1') return; // skip localhost...
+
+                var addrNum = ip2num(address);
+                if (address === 0) return; // skip invalid addresses...
+
+                var maskNum = ip2num(match[5]);
+                if (maskNum === 0 || maskNum >= 0xffffffff) return; // skip singletons and other aberrations...
+
+                var range = 0xffffffff ^ maskNum;
+                if (range < 2 || range > 255) return; // skip suspiciously small or large subnets...
+
+                var base = Math.floor(addrNum / (range + 1)) * (range + 1);
+                interfaces.push({name: lastName,addr: address,mask: match[5],base: base,range: range});
+            }
+        });
+
+        if (commander.verbose) console.dir(interfaces);
+
+        var possibleAddresses = [];
+        _.each(interfaces,function(subnet) {
+            for (var offset = 2; offset < subnet.range; offset++)
+                possibleAddresses.push(num2ip(subnet.base + offset));
+        });
+
+        var resultCount = 0;
+        var activeAddresses = [];
+        _.each(possibleAddresses,function(address){
+
+            var socket = new net.Socket();
+
+            function done(){
+                socket.end();
+                socket.destroy();
+                socket = null;
+                if (++resultCount >= possibleAddresses.length) {
+                    callback(activeAddresses);
+                }
+            }
+
+            socket.on('error',function(error){
+                if (commander.verbose) console.log('error(' + address + '):' + error);
+                done();
+            });
+            socket.setTimeout(timeout,function(){
+                if (commander.verbose) console.log('timeout(' + address + ')');
+                done();
+            });
+            socket.connect(port,address,function(){
+                if (commander.verbose) console.log('connected(' + address + ')');
+                activeAddresses.push(address);
+                done();
+            });
+        });
+    });
+
+}
+
+function num2ip(addrNum){
+    var original = addrNum;
+    var parts = [];
+    _.times(4,function(){
+        parts.unshift(addrNum % 256);
+        addrNum = Math.floor(addrNum / 256);
+    });
+    if (addrNum !== 0) throw(new Error('invalid address: 0x' + original.toString(16)));
+    return parts.join('.');
+}
+
+function ip2num(string){
+    if (_.startsWith(string,'0x')) return parseInt(string);
+
+    var match = /(\d+)\.(\d+).(\d+).(\d+)/.exec(string);
+    if (!match) return 0;
+
+    var parts = _.map(_.slice(match,1,5),function(value){ return parseInt(value); });
+    if (_.max(parts) > 255 || _.min(parts) < 0) return 0;
+
+    return parts[0] * 0x1000000 + parts[1] * 0x10000 + parts[2] * 0x100 + parts[3];
+}
