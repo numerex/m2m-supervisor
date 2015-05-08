@@ -61,6 +61,7 @@ function findTelnets(port,timeout,callback){
         var resultCount = 0;
         var activeAddresses = [];
         _.each(possibleAddresses,function(address){
+
             var socket = new net.Socket();
 
             function done(){
@@ -71,6 +72,8 @@ function findTelnets(port,timeout,callback){
                     callback(activeAddresses);
                 }
             }
+
+            if (commander.verbose) console.log('consider:' + address);
 
             socket.on('error',function(error){
                 if (commander.verbose) console.log('error(' + address + '):' + error);
