@@ -27,7 +27,7 @@ function DeviceRouter(deviceKey){
     };
 
     self.on('status',function(status){
-        if (!status || !self.device || !self.routeConfig || self.reader) return;
+        if (!status || !self.device || !self.commands || self.reader) return;
 
         self.reader = new DataReader(self.device)
             .on('error',self.noteErrorStatus)
@@ -59,15 +59,15 @@ function DeviceRouter(deviceKey){
         .on('change',function(hash){
             if (!hash) return;
             
-            var config = helpers.hash2config(hash,hashkeys.route);
-            if (JSON.stringify(config) !== JSON.stringify(self.routeConfig)) {
+            var config = helpers.hash2config(hash,hashkeys.commands);
+            if (JSON.stringify(config) !== JSON.stringify(self.commands)) {
                 if (self.ready()) self.resetReader();
-                switch(config.type){
+                switch(config.routing){
                     case 'none':
                         return self.noteStatus('off');
                     case 'ad-hoc':
-                        self.routeConfig = config;
-                        self.noteStatus('route');
+                        self.commands = config;
+                        self.noteStatus('commands');
                         break;
                     case 'scheduled':
                         if (!config.schedule)
@@ -77,14 +77,14 @@ function DeviceRouter(deviceKey){
                                 if (!hash || _.keys(hash).length == 0)
                                     self.noteErrorStatus('empty schedule');
                                 else {
-                                    self.routeConfig = config;
+                                    self.commands = config;
                                     self.schedule = new CommandScheduler(self.queueKey,hash);
-                                    self.noteStatus('route');
+                                    self.noteStatus('commands');
                                 }
                             });
                         break;
                     default:
-                        self.noteErrorStatus('unavailable route type: ' + config.type);
+                        self.noteErrorStatus('unavailable command routing: ' + config.routing);
                 }
             }
         })
@@ -110,7 +110,7 @@ DeviceRouter.prototype._onStop = function(){
 
 DeviceRouter.prototype.reset = function(){
     this.device = null;
-    this.routeConfig = null;
+    this.commands = null;
     this.resetReader();
 };
 

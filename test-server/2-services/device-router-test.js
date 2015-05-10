@@ -48,7 +48,7 @@ describe('DeviceRouter',function() {
             router.ready().should.not.be.ok;
             router.settingsWatcher.started().should.not.be.ok;
             router.settingsWatcher.ready().should.not.be.ok;
-            events.should.eql(['route',null]);
+            events.should.eql(['commands',null]);
             test.mockredis.snapshot().should.eql([
                 {hgetall: 'm2m-device:testKey:settings'}
             ]);
@@ -69,7 +69,7 @@ describe('DeviceRouter',function() {
             'connection:type': 'telnet',
             'connection:telnet:address': 'host',
             'connection:telnet:port': '1234',
-            'route:type': 'scheduled'
+            'command:routing': 'scheduled'
         };
 
         var events = [];
@@ -107,8 +107,8 @@ describe('DeviceRouter',function() {
             'connection:type': 'telnet',
             'connection:telnet:address': 'host',
             'connection:telnet:port': '1234',
-            'route:type': 'scheduled',
-            'route:schedule': 'test-schedule'
+            'command:routing': 'scheduled',
+            'command:schedule': 'test-schedule'
         };
         //test.mockredis.lookup.hgetall['m2m-schedule:test-schedule:periods'] = {};
 
@@ -148,8 +148,8 @@ describe('DeviceRouter',function() {
             'connection:type': 'telnet',
             'connection:telnet:address': 'host',
             'connection:telnet:port': '1234',
-            'route:type': 'scheduled',
-            'route:schedule': 'test-schedule'
+            'command:routing': 'scheduled',
+            'command:schedule': 'test-schedule'
         };
         test.mockredis.lookup.hgetall['m2m-schedule:test-schedule:periods'] = {"100": '["TEST1","TEST2"]',"200": '["TEST3"]'};
 
@@ -161,7 +161,7 @@ describe('DeviceRouter',function() {
 
                 router.ready().should.be.ok;
                 router.stop();
-                events.should.eql(['device','route','ready',null]);
+                events.should.eql(['device','commands','ready',null]);
                 test.mockredis.snapshot().should.eql([
                     {hgetall: 'm2m-device:testKey:settings'},
                     {hgetall: 'm2m-schedule:test-schedule:periods'},
@@ -196,12 +196,12 @@ describe('DeviceRouter',function() {
         router.start(client);
     });
 
-    it('should allow a defined device to have a route type of none',function(done){
+    it('should allow a defined device to have a command routing of none',function(done){
         test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
             'connection:type': 'telnet',
             'connection:telnet:address': 'host',
             'connection:telnet:port': '1234',
-            'route:type': 'none'
+            'command:routing': 'none'
         };
 
         var events = [];
@@ -239,12 +239,12 @@ describe('DeviceRouter',function() {
         router.start(client);
     });
 
-    it('should allow a defined device to have a route type of none',function(done){
+    it('should allow a defined device to have a command routing of none',function(done){
         test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
             'connection:type': 'telnet',
             'connection:telnet:address': 'host',
             'connection:telnet:port': '1234',
-            'route:type': 'unknown'
+            'command:routing': 'unknown'
         };
 
         var events = [];
@@ -258,7 +258,7 @@ describe('DeviceRouter',function() {
                 _.defer(function(){
                     events.should.eql([
                         ['device',null],
-                        ['error','error(testKey): unavailable route type: unknown'],
+                        ['error','error(testKey): unavailable command routing: unknown'],
                         [null,null]
                     ]);
                     test.mockredis.snapshot().should.eql([
@@ -272,7 +272,7 @@ describe('DeviceRouter',function() {
                         '[device    ] start watching: testKey',
                         '[device    ] check ready: testKey',
                         '[device    ] now ready: testKey',
-                        '[dev-route ] error(testKey): unavailable route type: unknown',
+                        '[dev-route ] error(testKey): unavailable command routing: unknown',
                         '[dev-route ] stop watching: testKey',
                         '[hash      ] stop watching: m2m-device:testKey:settings',
                         '[device    ] stop watching: testKey'
@@ -338,7 +338,7 @@ describe('DeviceRouter',function() {
 
                 router.ready().should.be.ok;
                 router.stop();
-                events.should.eql(['device','route','ready',null]);
+                events.should.eql(['device','commands','ready',null]);
                 test.mockredis.snapshot().should.eql([
                     {hgetall: 'm2m-device:testKey:settings'}
                 ]);
@@ -383,7 +383,7 @@ describe('DeviceRouter',function() {
                     'connection:type': 'telnet',
                     'connection:telnet:address': 'host',
                     'connection:telnet:port': '1234',
-                    'route:type': 'none'
+                    'command:routing': 'none'
                 };
 
                 if (!checked) {
@@ -391,7 +391,7 @@ describe('DeviceRouter',function() {
                     checked = true;
                 } else {
                     router.stop();
-                    events.should.eql(['device','route','ready','off','ready',null]);
+                    events.should.eql(['device','commands','ready','off','ready',null]);
                     test.mockredis.snapshot().should.eql([
                         {hgetall: 'm2m-device:testKey:settings'},
                         {hgetall: 'm2m-device:testKey:settings'}
@@ -448,7 +448,7 @@ describe('DeviceRouter',function() {
                 router.settingsWatcher.checkReady();
                 _.defer(function(){
                     router.stop();
-                    events.should.eql(['device','route','ready',null]);
+                    events.should.eql(['device','commands','ready',null]);
                     test.mockredis.snapshot().should.eql([
                         {hgetall: 'm2m-device:testKey:settings'},
                         {hgetall: 'm2m-device:testKey:settings'}
@@ -500,7 +500,7 @@ describe('DeviceRouter',function() {
                 router.processQueueEntry({command: 'test command'});
 
                 router.stop();
-                events.should.eql(['device','route','ready',null]);
+                events.should.eql(['device','commands','ready',null]);
                 test.mockredis.snapshot().should.eql([
                     {hgetall: 'm2m-device:testKey:settings'},
                     {lpush: ['m2m-transmit:queue','{"10":"test command","11":"\\u0001test\\u0003","12":null,"routeKey":"m2m-device:testKey:queue"}']},
