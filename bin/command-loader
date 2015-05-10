@@ -1,0 +1,35 @@
+#!/usr/bin/env node
+
+var commander = require('commander');
+
+var CommandFactory = require('../lib/command-factory');
+var RedisWatcher = require('../services/redis-watcher');
+
+commander
+    .usage('[options] <file>')
+    .option('-k --key <key>','command key (default: base filename)')
+    .parse(process.argv);
+
+switch(commander.args.length){
+    case 0:
+        console.log('no file given');
+        break;
+    case 1:
+        var redisWatcher = new RedisWatcher()
+            .on('retry',function(){ emitter.emit('stop','Redis is not ready')})
+            .on('ready',function(client){
+                if (!client) return;
+
+                var factory = new CommandFactory(client);
+                factory.loadCommandsTSV(commander.args[0],commander.key,function(result){
+                    redisWatcher.stop();
+                    console.log(result ? 'load successful' : 'load failure');
+                });
+            })
+            .start();
+        break;
+    default:
+        console.log('only one file accepted');
+}
+
+

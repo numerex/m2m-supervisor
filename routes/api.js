@@ -47,27 +47,19 @@ function updateHash(updates,callback){
 }
 
 function changeHash(req,res,hashKey,callback){
-    var deletes = [hashKey];
-    var updates = [hashKey];
-    _.each(req.body,function(value,key){
-        if (value === null)
-            deletes.push(key);
-        else {
-            updates.push(key);
-            updates.push(value);
-        }
+    helpers.hash2sets(hashKey,req.body,function(updates,deletes){
+        if (!updates && !deletes)
+            res.send({error: 'No changes requested'});
+        else if (!deletes)
+            updateHash(updates,callback);
+        else
+            RedisWatcher.instance.client.send('hdel',deletes).thenHint('deleteHash',function(){
+                if (updates)
+                    updateHash(updates,callback);
+                else
+                    callback();
+            });
     });
-    if (updates.length <= 1 && deletes.length <= 1)
-        res.send({error: 'No changes requested'});
-    else if (deletes.length <= 1)
-        updateHash(updates,callback);
-    else
-        RedisWatcher.instance.client.send('hdel',deletes).thenHint('deleteHash',function(){
-            if (updates.length <= 1)
-                callback();
-            else
-                updateHash(updates,callback);
-        });
 }
 
 // CONFIG ----------------

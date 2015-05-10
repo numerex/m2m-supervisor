@@ -59,7 +59,7 @@ describe('API router',function() {
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.match(/^\{"config":\{"Gateway":/)
+                res.text.should.match(/^\{"config":\{"Gateway":/);
                 // NOTE - drop through to next test to allow existing redisCheck to be used... facilitates test coverage
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
@@ -258,7 +258,7 @@ describe('API router',function() {
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
                     {keys: 'm2m-device:*:settings'},
-                    {hmset: ['m2m-device:test-abc-123:settings','connection:telnet:address','localhost','connection:telnet:port',10002]},
+                    {hmset: ['m2m-device:test-abc-123:settings','connection:telnet:address','localhost','connection:telnet:port','10002']},
                     {hgetall: 'm2m-device:test-abc-123:settings'},
                     {quit: null}
                 ]);
