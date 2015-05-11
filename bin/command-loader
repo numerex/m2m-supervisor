@@ -6,8 +6,7 @@ var CommandFactory = require('../lib/command-factory');
 var RedisWatcher = require('../services/redis-watcher');
 
 commander
-    .usage('[options] <file>')
-    .option('-k --key <key>','command key (default: base filename)')
+    .usage('<file>')
     .parse(process.argv);
 
 switch(commander.args.length){
@@ -21,7 +20,7 @@ switch(commander.args.length){
                 if (!client) return;
 
                 var factory = new CommandFactory(client);
-                factory.loadCommandsTSV(commander.args[0],commander.key,function(result){
+                factory.loadCommandsTSV(commander.args[0],function(result){
                     redisWatcher.stop();
                     console.log(result ? 'load successful' : 'load failure');
                 });

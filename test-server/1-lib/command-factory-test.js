@@ -24,8 +24,7 @@ describe('CommandFactory',function() {
     it('should detect problems in column headers',function(){
         var factory = new CommandFactory(client);
         test.expect(function() { factory.parseHeader(''); }).to.throw('no key column found');
-        test.expect(function() { factory.parseHeader('key\ttypes'); }).to.throw('invalid column name: types');
-        test.expect(function() { factory.parseHeader('key\tperiods'); }).to.throw('invalid column name: periods');
+        test.expect(function() { factory.parseHeader('key\tattr:command'); }).to.throw('invalid attribute type: command');
         test.expect(function() { factory.parseHeader('key\tattr:test:test'); }).to.throw('too many column name parts: attr:test:test');
         test.expect(function() { factory.parseHeader('key\ttest:test'); }).to.throw('invalid multi-part column name: test:test');
         test.expect(function() { factory.parseHeader('key\tread\tread'); }).to.throw('duplicate column name: read');
@@ -33,14 +32,14 @@ describe('CommandFactory',function() {
 
     it('should set the label column to the key column if not found',function(){
         var factory = new CommandFactory(client);
-        factory.parseHeader('key').should.eql({indices: {key: 0,label: 0},types: {read: {},write: {},attr: {}},options: {},periods: {}});
+        factory.parseHeader('key').should.eql({indices: {key: 0,label: 0},options: {},periods: {}});
     });
 
     it('should handle basic fields',function(){
         var factory = new CommandFactory(client);
 
         var columns = factory.parseHeader('key\tlabel\tread\tperiod\twrite');
-        columns.should.eql({indices: {key: 0,label: 1,read: 2,period: 3,write: 4},types: {read: {},write: {},attr: {}},options: {},periods: {period: 3}});
+        columns.should.eql({indices: {key: 0,label: 1,read: 2,period: 3,write: 4},options: {},periods: {period: 3}});
 
         var definition = factory.parseDefinition('100\tVALUE\tAT+VALUE?\t60\tAT+VALUE={value:S}\textra',columns);
         definition.should.eql({key: '100',label: 'VALUE',read: 'AT+VALUE?',period: '60',write: 'AT+VALUE={value:S}',periods: {60: ['AT+VALUE?']}});
@@ -58,13 +57,12 @@ describe('CommandFactory',function() {
         var columns = factory.parseHeader('key\tlabel\tread:display\tread:computer\tperiod:computer\twrite:display\twrite:computer\tattr:first\tattr:second');
         columns.should.eql({
             indices: {key: 0,label: 1,'read:display': 2,'read:computer': 3,'period:computer': 4,'write:display': 5,'write:computer': 6,'attr:first': 7,'attr:second': 8},
-            types: {read: {display: 2,computer: 3},write: {display: 5,computer: 6},attr: {first: 7,second: 8}},
-            options: {first: [],second: []},
+            options: {command: ['display','computer'],first: [],second: []},
             periods: {'period:computer': 4}});
 
         var definition = factory.parseDefinition('100\tVALUE\tVALUE?\tAT+VALUE?\t60\tVALUE={value:S}\tAT+VALUE={value:S}\t1\t2\textra',columns);
         definition.should.eql({key: '100',label: 'VALUE','read:display': 'VALUE?','read:computer': 'AT+VALUE?','period:computer': '60','write:display': 'VALUE={value:S}','write:computer': 'AT+VALUE={value:S}','attr:first':'1','attr:second':'2',periods: {60: ['AT+VALUE?']}});
-        columns.options.should.eql({first: ['1'],second: ['2']});
+        columns.options.should.eql({command: ['display','computer'],first: ['1'],second: ['2']});
 
         definition = factory.parseDefinition('100\tVALUE\tVALUE?\tAT+VALUE?\t\tVALUE={value:S}\tAT+VALUE={value:S}',columns);
         definition.should.eql({key: '100',label: 'VALUE','read:display': 'VALUE?','read:computer': 'AT+VALUE?','write:display': 'VALUE={value:S}','write:computer': 'AT+VALUE={value:S}',periods: {}});
@@ -77,7 +75,7 @@ describe('CommandFactory',function() {
 
     it('should detect an missing file',function(done){
         var factory = new CommandFactory(client);
-        factory.loadCommandsTSV('unknown.file1','test');
+        factory.loadCommandsTSV('unknown.file1');
         factory.loadCommandsTSV('unknown.file2',function(){
             test.pp.snapshot().should.eql([
                 '[cmd-fact  ] load file: unknown.file1',
@@ -94,7 +92,6 @@ describe('CommandFactory',function() {
         factory.loadCommandsTSV('test-server/data/empty-commands.tsv');
         test.pp.snapshot().should.eql([
             '[cmd-fact  ] load file: test-server/data/empty-commands.tsv',
-            '[cmd-fact  ] load commands: empty-commands',
             '[cmd-fact  ] empty-commands - no rows defined'
         ]);
     });
@@ -128,31 +125,44 @@ describe('CommandFactory',function() {
         });
     });
 
+    it('should process profile entries',function(done){
+        var factory = new CommandFactory(client);
+        factory.loadCommandRows('duplicateKey',['#name\treplacementKey','#commandPrefix\t\\u0001','#skip','key'],function(){
+            test.pp.snapshot().should.eql(['[cmd-fact  ] load commands: replacementKey']);
+            test.mockredis.snapshot().should.eql([
+                {del:'m2m-command:replacementKey:profile'},
+                {del:'m2m-command:replacementKey:options'},
+                {del:'m2m-command:replacementKey:definitions'},
+                {hmset:['m2m-command:replacementKey:profile','name','replacementKey','commandPrefix','\\u0001']},
+                {del:'m2m-schedule:replacementKey:periods'},
+                {hgetall:'m2m-schedule:replacementKey:periods'}
+            ]);
+            done();
+        });
+    });
+
     it('should process a basic commands file',function(done){
         var factory = new CommandFactory(client);
-        factory.loadCommandsTSV('test-server/data/basic-commands.tsv','testKey',function(){
+        factory.loadCommandsTSV('test-server/data/basic-commands.tsv',function(){
             test.mockredis.snapshot().should.eql([
-                {del:'m2m-command:testKey:columns'},
-                {del:'m2m-command:testKey:definitions'},
-                {hmset:['m2m-command:testKey:columns',
-                    'indices',  '{"key":0,"read":1,"period":2,"write":3,"attr:show":4,"label":0}',
-                    'types',    '{"read":{},"write":{},"attr":{"show":4}}',
-                    'options',  '{"show":["X"]}',
-                    'periods',  '{"period":2}'
-                ]},
-                {hmset:['m2m-command:testKey:definitions',
+                {del:'m2m-command:basic-commands:profile'},
+                {del:'m2m-command:basic-commands:options'},
+                {del:'m2m-command:basic-commands:definitions'},
+                {hmset:['m2m-command:basic-commands:profile','name','basic-commands']},
+                {hmset:['m2m-command:basic-commands:options','show','["X"]']},
+                {hmset:['m2m-command:basic-commands:definitions',
                     'first',    '{"periods":{"60":["abc"]},"key":"first","read":"abc","period":"60","write":"ABC","attr:show":"X","label":"first"}',
                     'second',   '{"periods":{"60":["def"]},"key":"second","read":"def","period":"60","attr:show":"X","label":"second"}',
                     'third',    '{"periods":{"30":["ghi"]},"key":"third","read":"ghi","period":"30","label":"third"}',
                     'fourth',   '{"periods":{},"key":"fourth","read":"jkl","label":"fourth"}'
                 ]},
-                {del:'m2m-schedule:testKey:periods'},
-                {hmset:['m2m-schedule:testKey:periods','30','["ghi"]','60','["abc","def"]']},
-                {hgetall:'m2m-schedule:testKey:periods'}
+                {del:'m2m-schedule:basic-commands:periods'},
+                {hmset:['m2m-schedule:basic-commands:periods','30','["ghi"]','60','["abc","def"]']},
+                {hgetall:'m2m-schedule:basic-commands:periods'}
             ]);
             test.pp.snapshot().should.eql([
                 '[cmd-fact  ] load file: test-server/data/basic-commands.tsv',
-                '[cmd-fact  ] load commands: testKey'
+                '[cmd-fact  ] load commands: basic-commands'
             ]);
             done();
         });
