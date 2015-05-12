@@ -126,10 +126,45 @@ router.post('/device/:id',function(req,res,next){
 
 router.get('/device',function(req,res,next){
     requireRedis(res,function(){
-        var defaults = _.defaults(helpers.hash2groups({},deviceTemplate));
-        res.send({'new-device': defaults});
+        var profileKeys = _.select(_.collect(RedisWatcher.instance.keys,_.bind(schema.command.profile.getParam,schema.command.profile,_)));
+        var scheduleKeys = _.select(_.collect(RedisWatcher.instance.keys,_.bind(schema.schedule.periods.getParam,schema.schedule.periods,_)));
+        if (profileKeys.length !== 1) {
+            var defaults = _.defaults(helpers.hash2groups({},deviceTemplate));
+            makeOptionEditable(defaults['Connection']);
+            makeOptionEditable(defaults['Commands']);
+            res.send({'new-device': defaults});
+        } else {
+            var profileKey = profileKeys[0];
+            var scheduleKey = _.indexOf(scheduleKeys,profileKey) >= 0 ? profileKey : null;
+            RedisWatcher.instance.client.hgetall(schema.command.profile.useParam(profileKey)).thenHint('requestHash - ' + profileKey,function(hash){
+                hash[deviceTemplate.commands.profile.key] = profileKey;
+                hash[deviceTemplate.commands.schedule.key] = scheduleKey;
+                var defaults = _.defaults(helpers.hash2groups(hash,deviceTemplate));
+
+                if (scheduleKey) {
+                    var routingOption = _.detect(defaults['Commands'],function(option){ return option.key === 'command:routing'});
+                    routingOption.options.push('scheduled');
+                    routingOption.default = 'scheduled';
+                    routingOption.status = 'editable';
+                }
+
+                makeOptionEditable(defaults['Connection']);
+                deleteOptionExists(defaults['Connection']);
+                deleteOptionExists(defaults['Commands']); // TODO figure out how to allow profile & schedule options
+
+                res.send({'new-device': defaults});
+            });
+        }
     });
 });
+
+function makeOptionEditable(options){
+    _.each(options,function(option){ option.status = 'editable'; });
+}
+
+function deleteOptionExists(options){
+    _.each(options,function(option){ delete option.exists; });
+}
 
 router.post('/device',function(req,res,next){
     requireRedis(res,function(){

@@ -13,6 +13,7 @@ app.controller('DevicesController',['$scope','$rootScope','$http',function($scop
         value: null,
         exists: true,
         required: true,
+        status: 'editable',
         success: function(){
             $rootScope.globalValues[$scope.newDevice.valuesKey].id = null;
             $rootScope.globalMessages = {success: 'New device added'};

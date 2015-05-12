@@ -49,7 +49,7 @@ app.directive('hashEditor',function(){
             function buildDirtyList(dirty,entry) {
                 var value = $scope.hashValues[entry.key];
                 if (!_.isUndefined(value) && entry.type === 'number') value = +value;
-                if (value !== entry.value) dirty[entry.key] = value || null;
+                if (value !== entry.value || (!entry.exists && value !== entry.default)) dirty[entry.key] = value || null;
             }
 
             $scope.submitChanges = function(){
