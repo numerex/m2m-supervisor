@@ -9,7 +9,7 @@ app.directive('hashInput',function(){
         link: function(scope){
             scope.showAction = false;
             scope.disableAction = false;
-            scope.isDisabled = scope.model.status === 'locked';
+            scope.isDisabled = scope.model.status !== 'editable';
             scope.isSelect = !!scope.model.options;
             scope.isText = !scope.isSelect;
             if (scope.isSelect && _.isUndefined(scope.hashValues[scope.model.key]))
