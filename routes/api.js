@@ -32,10 +32,11 @@ function requireRedis(res,callback){
     });
 }
 
-function requestHash(res,hashKey,resultKey,template){
+function requestHash(res,hashKey,resultKey,template,filter){
     RedisWatcher.instance.client.hgetall(hashKey).thenHint('requestHash - ' + resultKey,function(hash){
         var result = {};
         result[resultKey] = template ? helpers.hash2groups(hash || {},template) : hash;
+        filter && filter(result[resultKey]);
         res.send(result);
     });
 }
@@ -189,7 +190,11 @@ router.post('/device',function(req,res,next){
 });
 
 function requestDevice(res,id){
-    requestHash(res,schema.device.settings.useParam(id),'device:' + id,deviceTemplate);
+    requestHash(res,schema.device.settings.useParam(id),'device:' + id,deviceTemplate,function(groups){
+        var routingOption = _.detect(groups['Commands'],function(option){ return option.key === 'command:routing'});
+        var scheduleOption = _.detect(groups['Commands'],function(option){ return option.key === 'command:schedule'});
+        if (routingOption && scheduleOption && scheduleOption.value) routingOption.options.push('scheduled');
+    });
 }
 
 // SCHEDULES ----------------
