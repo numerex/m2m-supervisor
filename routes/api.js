@@ -90,9 +90,7 @@ function declareRouteGetByID(model,responder){
 // CONFIG ----------------
 
 router.get('/config',function(req,res,next){
-    requireRedis(res,function(){
-        requestConfig(res);
-    });
+    requireRedis(res,_.bind(requestConfig,this,res));
 });
 
 router.post('/config',function(req,res,next){
@@ -119,9 +117,7 @@ declareRouteGetByID('device',requestDevice);
 router.post('/device/:id',function(req,res,next){
     requireRedis(res,function(){
         logger.info('device changes(' + req.params.id + '): ' + JSON.stringify(req.body));
-        changeHash(req,res,schema.device.settings.useParam(req.params.id),function(){
-            requestDevice(res,req.params.id);
-        });
+        changeHash(req,res,schema.device.settings.useParam(req.params.id),_.bind(requestDevice,this,res,req.params.id));
     });
 });
 
@@ -181,9 +177,7 @@ router.post('/device',function(req,res,next){
                     res.send({error: 'Device ID already used'});
                 else {
                     logger.info('device creation(' + id + '): ' + JSON.stringify(req.body));
-                    changeHash(req,res,newKey,function(){
-                        requestDevice(res,id);
-                    });
+                    changeHash(req,res,newKey,_.bind(requestDevice,this,res,id));
                 }
             });
     });
