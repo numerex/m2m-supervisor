@@ -21,6 +21,7 @@ describe('M2mSupervisor',function() {
         test.mockery.registerMock('shelljs',test.mockshelljs);
         test.mockery.registerMock('net', test.mocknet);
         test.mockery.registerMock('serialport', test.mockserialport);
+        test.mockery.registerMock('os',test.mockos);
         test.mockery.warnOnUnregistered(false);
         test.mockserialport.reset();
         test.mockredis.reset();
@@ -28,9 +29,11 @@ describe('M2mSupervisor',function() {
         test.mocksocketio.reset();
         test.mockshelljs.reset();
         test.mocknet.reset();
+        test.mockos.reset();
     });
 
     afterEach(function () {
+        test.mockery.deregisterMock('os');
         test.mockery.deregisterMock('net');
         test.mockery.deregisterMock('shelljs');
         test.mockery.deregisterMock('socket.io');
@@ -196,7 +199,7 @@ describe('M2mSupervisor',function() {
     });
 
     it('should start/stop with all available services and a device',function(done){
-        test.mockshelljs.lookup['pppstats'] = [0,'IN   PACK VJCOMP  VJUNC  VJERR  |      OUT   PACK VJCOMP  VJUNC NON-VJ'];
+        test.mockos.interfaces = {ppp0: {}};
         test.mockshelljs.lookup['route -n'] = [0,fs.readFileSync('test-server/data/route-no-ppp.txt').toString()];
         test.mockshelljs.lookup['route add -net 172.29.12.0 netmask 255.255.255.0 dev ppp0'] = [0,''];
         test.mockredis.lookup.keys['*'] = ['m2m-device:testKey:settings'];

@@ -9,6 +9,7 @@ function PppdWatcher(config) {
     Watcher.apply(this,[logger,config,true]);
     this.outputs = {};
     this.shell = require('shelljs');    // NOTE - delay 'require' for mocking
+    this.os = require('os');            // NOTE - delay 'require' for mocking
 }
 
 util.inherits(PppdWatcher,Watcher);
@@ -26,42 +27,42 @@ PppdWatcher.prototype._onStop = function() {
 
 PppdWatcher.prototype.checkRoutes = function(){
     var self = this;
-    self.pppstatsOutput(true,function(err,pppstatsOutput){
-        if (err) {
-            if (err == 1 && pppstatsOutput.indexOf('nonexistent interface') >= 0) {   // EXAMPLE: pppstats: nonexistent interface 'ppp0' specified
+    var pppInterface = _.detect(_.keys(self.os.networkInterfaces()),function(iface){ return _.startsWith(iface,'ppp')});
+    if (pppInterface)
+        self.routeOutput(true,function(err,output){
+            if (err) {
+                logger.error('route error: ' + err);
+                self.emit('note','error');
+                self.noteReady(false);
+            } else if (output.indexOf(self.ppp.subnet) >= 0) {
+                self.emit('note','ready');
+                self.noteReady(true);
+            } else {
+                logger.info('add ppp route to GWaaS');
+                self.shell.exec('route add -net ' + self.ppp.subnet + ' netmask ' + self.ppp.mask + ' dev ' + pppInterface);
+                self.emit('note','route');
+                self.noteReady(true);
+            }
+        });
+     else
+        self.psauxOutput(true,function(err,output){
+            if (output && !/pppd/.test(output)) {
                 logger.info('starting pppd');
                 self.shell.exec('pppd');
                 self.emit('note','pppd');
-            } else {
-                logger.error('pppstats error: ' + err);
+            } else if (err) {
+                logger.error('ps aux error: ' + err);
                 self.emit('note','error');
+                self.noteReady(false);
+            } else {
+                logger.error('waiting for pppd');
+                self.emit('note','waiting');
             }
-            self.noteReady(false);
-        } else if (pppstatsOutput.indexOf('PACK VJCOMP  VJUNC') < 0){   // EXAMPLE: IN   PACK VJCOMP  VJUNC  VJERR  |      OUT   PACK VJCOMP  VJUNC NON-VJ
-            logger.error('unexpected pppstats output: ' + pppstatsOutput);
-            self.emit('note','error');
-            self.noteReady(false);
-        } else {
-            self.routeOutput(true,function(err,routeOutput){
-                if (err) {
-                    self.emit('note','error');
-                    self.noteReady(false);
-                } else if (routeOutput.indexOf(self.ppp.subnet) >= 0) {
-                    self.emit('note','ready');
-                    self.noteReady(true);
-                } else {
-                    logger.info('add ppp route to GWaaS');
-                    self.shell.exec('route add -net ' + self.ppp.subnet + ' netmask ' + self.ppp.mask + ' dev ' + self.ppp.interface);
-                    self.emit('note','route');
-                    self.noteReady(true);
-                }
-            });
-        }
-    });
+        });
 };
 
-PppdWatcher.prototype.pppstatsOutput = function(refresh,callback){
-    this.getShellOutput('pppstats','pppstats',refresh,callback);
+PppdWatcher.prototype.psauxOutput = function(refresh,callback){
+    this.getShellOutput('psaux','ps aux',refresh,callback);
 };
 
 PppdWatcher.prototype.routeOutput = function(refresh,callback){

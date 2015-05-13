@@ -480,5 +480,16 @@ var MockHTTP = {
 
 module.exports.mockhttp = MockHTTP;
 
+// OS -----------------------
+
+var MockOS = {
+    reset: function(){
+        MockOS.interfaces = {};
+    },
+    networkInterfaces: function(){ return MockOS.interfaces; }
+};
+
+module.exports.mockos = MockOS;
+
 process.env.testing = true;
 
