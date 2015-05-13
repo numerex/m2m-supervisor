@@ -12,12 +12,15 @@ describe('PppdWatcher',function(){
     beforeEach(function() {
         test.mockery.enable();
         test.mockery.registerMock('shelljs',test.mockshelljs);
+        test.mockery.registerMock('os',test.mockos);
         test.mockshelljs.reset();
+        test.mockos.reset();
         test.mockery.warnOnUnregistered(false);
     });
 
     afterEach(function() {
         test.mockery.deregisterMock('shelljs');
+        test.mockery.deregisterMock('os');
         test.mockery.disable();
         test.mockshelljs.snapshot().should.eql([]);
         test.pp.snapshot().should.eql([]);
@@ -29,7 +32,7 @@ describe('PppdWatcher',function(){
         watcher.stop();
         test.pp.snapshot().should.eql([
             '[pppd      ] start watching',
-            '[pppd      ] pppstats error: Error: no response found: pppstats',
+            '[pppd      ] ps aux error: Error: no response found: ps aux',
             '[pppd      ] stop watching']);
         test.mockshelljs.snapshot().should.eql([]);
         done();
@@ -45,7 +48,7 @@ describe('PppdWatcher',function(){
         watcher.stop();
         test.pp.snapshot().should.eql([
             '[pppd      ] start watching',
-            '[pppd      ] pppstats error: Error: no response found: pppstats',
+            '[pppd      ] ps aux error: Error: no response found: ps aux',
             '[pppd      ] stop watching']);
         test.mockshelljs.snapshot().should.eql([]);
         done();
@@ -60,14 +63,18 @@ describe('PppdWatcher',function(){
     });
 
     it('should start pppd if it is not found',function(done){
-        test.mockshelljs.lookup['pppstats'] = [1,"pppstats: nonexistent interface 'ppp0' specified"];
-        test.mockshelljs.lookup['pppd']     = [0,''];
+        test.mockshelljs.lookup['ps aux'] = [0,'something'];
+        test.mockshelljs.lookup['pppd']   = [0,''];
 
-        var watcher = new PppdWatcher().start(function(event){
-            event.should.equal('pppd');
-        });
+        var events = [];
+        var watcher = new PppdWatcher()
+            .on('note',function(event){ events.push(event); })
+            .start(ppp);
+
+        events.should.eql(['pppd']);
         watcher.ready().should.not.be.ok;
         watcher.stop();
+        events.should.eql(['pppd']);
         test.pp.snapshot().should.eql([
             '[pppd      ] start watching',
             '[pppd      ] starting pppd',
@@ -77,7 +84,7 @@ describe('PppdWatcher',function(){
     });
 
     it('should add ppp route if it is not found',function(done){
-        test.mockshelljs.lookup['pppstats'] = [0,'IN   PACK VJCOMP  VJUNC  VJERR  |      OUT   PACK VJCOMP  VJUNC NON-VJ'];
+        test.mockos.interfaces = {ppp0: {}};
         test.mockshelljs.lookup['route -n'] = [0,fs.readFileSync('test-server/data/route-no-ppp.txt').toString()];
         test.mockshelljs.lookup['route add -net 172.29.12.0 netmask 255.255.255.0 dev ppp0'] = [0,''];
 
@@ -96,7 +103,7 @@ describe('PppdWatcher',function(){
     });
 
     it('should detect an existing ppp route and do nothing',function(done){
-        test.mockshelljs.lookup['pppstats'] = [0,'IN   PACK VJCOMP  VJUNC  VJERR  |      OUT   PACK VJCOMP  VJUNC NON-VJ'];
+        test.mockos.interfaces = {ppp0: {}};
         test.mockshelljs.lookup['route -n'] = [0,fs.readFileSync('test-server/data/route-includes-ppp.txt').toString()];
 
         var watcher = new PppdWatcher()
@@ -113,14 +120,14 @@ describe('PppdWatcher',function(){
     });
 
     it('should detect failed response from route',function(done){
-        test.mockshelljs.lookup['pppstats'] = [0,'IN   PACK VJCOMP  VJUNC  VJERR  |      OUT   PACK VJCOMP  VJUNC NON-VJ'];
+        test.mockos.interfaces = {ppp0: {}};
         test.mockshelljs.lookup['route -n'] = [1,null];
 
         var watcher = new PppdWatcher();
         watcher.on('note',function(event){
             event.should.eql('error');
             watcher.ready().should.not.be.ok;
-            test.pp.snapshot().should.eql([]);
+            test.pp.snapshot().should.eql(['[pppd      ] route error: 1']);
             test.mockshelljs.snapshot(); // clear snapshot
             done();
         });
@@ -128,17 +135,59 @@ describe('PppdWatcher',function(){
     });
 
     it('should check routes at intervals',function(done){
+        test.mockshelljs.lookup['ps aux'] = [0,'something'];
+        test.mockshelljs.lookup['pppd']   = [0,''];
+
         var count = 0;
-        var watcher = new PppdWatcher().on('note',function(){
+        var watcher = new PppdWatcher().on('note',function(event){
             if (count++ > 0) {
                 watcher.ready().should.not.be.ok;
                 watcher.stop();
                 test.pp.snapshot().should.eql([
                     '[pppd      ] start watching',
-                    '[pppd      ] pppstats error: Error: no response found: pppstats',
-                    '[pppd      ] pppstats error: Error: no response found: pppstats',
+                    '[pppd      ] starting pppd',
+                    '[pppd      ] starting pppd',
                     '[pppd      ] stop watching']);
-                test.mockshelljs.snapshot().should.eql([]);
+                test.mockshelljs.snapshot(); // clear snapshot
+                done();
+            }
+        }).start(_.defaults({routeInterval: 1},ppp));
+    });
+
+    it('should detect the (unlikely) event of ps failure',function(done){
+        test.mockshelljs.lookup['ps aux'] = [1,null];
+        test.mockshelljs.lookup['pppd']   = [0,''];
+
+        var count = 0;
+        var watcher = new PppdWatcher().on('note',function(event){
+            if (count++ > 0) {
+                watcher.ready().should.not.be.ok;
+                watcher.stop();
+                test.pp.snapshot().should.eql([
+                    '[pppd      ] start watching',
+                    '[pppd      ] ps aux error: 1',
+                    '[pppd      ] ps aux error: 1',
+                    '[pppd      ] stop watching']);
+                test.mockshelljs.snapshot(); // clear snapshot
+                done();
+            }
+        }).start(_.defaults({routeInterval: 1},ppp));
+    });
+
+    it('should detect pppd running but no interface yet',function(done){
+        test.mockshelljs.lookup['ps aux'] = [0,'pppd'];
+
+        var count = 0;
+        var watcher = new PppdWatcher().on('note',function(event){
+            if (count++ > 0) {
+                watcher.ready().should.not.be.ok;
+                watcher.stop();
+                test.pp.snapshot().should.eql([
+                    '[pppd      ] start watching',
+                    '[pppd      ] waiting for pppd',
+                    '[pppd      ] waiting for pppd',
+                    '[pppd      ] stop watching']);
+                test.mockshelljs.snapshot(); // clear snapshot
                 done();
             }
         }).start(_.defaults({routeInterval: 1},ppp));
@@ -169,19 +218,6 @@ describe('PppdWatcher',function(){
         count.should.equal(3);
         test.pp.snapshot().should.eql([]);
         test.mockshelljs.snapshot(); // clear snapshot
-    });
-
-    it('should detect unexpected responses for pppstats',function(done){
-        var watcher = new PppdWatcher();
-
-        test.mockshelljs.lookup['pppstats'] = [0,'unexpected'];
-        watcher.on('note',function(event){
-            event.should.eql('error');
-            test.pp.snapshot().should.eql(['[pppd      ] unexpected pppstats output: unexpected']);
-            test.mockshelljs.snapshot(); // clear snapshot
-            done();
-        });
-        watcher.checkRoutes();
     });
 
     it('should detect failed shell responses',function(done){

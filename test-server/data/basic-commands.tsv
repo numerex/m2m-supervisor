@@ -1,0 +1,5 @@
+key	read	period	write	attr:show
+first	abc	60	ABC	X
+second	def	60		X
+third	ghi	30		
+fourth	jkl			

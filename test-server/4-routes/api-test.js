@@ -59,7 +59,7 @@ describe('API router',function() {
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.match(/^\{"config":\{"Gateway":/)
+                res.text.should.match(/^\{"config":\{"Gateway":/);
                 // NOTE - drop through to next test to allow existing redisCheck to be used... facilitates test coverage
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
@@ -160,8 +160,7 @@ describe('API router',function() {
             });
     });
 
-
-    it('GET /device should return the default settings for a new device',function(done){
+    it('GET /device should return the default settings for a new device when no device profile exists',function(done){
         var request = require('supertest');
         request(app).get('/api/device')
             .expect('Content-Type',/json/)
@@ -174,6 +173,74 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 res.text.should.match(/^\{"new-device":\{"Connection":/);
+                test.matchArrays(test.pp.snapshot(),[
+                    /^\[express   \] \S+ --> GET \/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    '[redis     ] instance created',
+                    '[redis     ] start watching',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
+                    /^\[express   \] \S+ <-- GET \/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    '[redis     ] stop watching'
+                ]);
+                done();
+            });
+    });
+
+    it('GET /device should return the default settings for a new device when a device profile exists without a schedule',function(done){
+        test.mockredis.lookup.keys['*'] = ['m2m-command:testKey:profile'];
+        test.mockredis.lookup.hgetall['m2m-command:testKey:profile'] = {'command:command-prefix': 'TESTPATTERN'};
+        //require(process.cwd() + '/routes/api').resetRedisWatcher();
+
+        var request = require('supertest');
+        request(app).get('/api/device')
+            .expect('Content-Type',/json/)
+            .expect(200)
+            .end(function(err,res){
+                test.should.not.exist(err);
+                require(process.cwd() + '/routes/api').resetRedisWatcher();
+                test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
+                    {hgetall: 'm2m-command:testKey:profile'},
+                    {quit: null}
+                ]);
+                res.text.should.match(/^\{"new-device":\{"Connection":/);
+                res.text.should.match(/{"key":"command:profile","label":"Profile","type":"string","default":null,"value":"testKey"}/);
+                res.text.should.match(/{"key":"command:routing","label":"Routing","options":\["ad-hoc","none"\],"type":"string","status":"editable","default":"ad-hoc"},{"key":"command:schedule","label":"Schedule","type":"string","default":null,"value":null}/);
+                res.text.should.match(/{"key":"command:command-prefix","label":"Command Prefix","type":"string","default":null,"value":"TESTPATTERN"}/);
+                test.matchArrays(test.pp.snapshot(),[
+                    /^\[express   \] \S+ --> GET \/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    '[redis     ] instance created',
+                    '[redis     ] start watching',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
+                    /^\[express   \] \S+ <-- GET \/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    '[redis     ] stop watching'
+                ]);
+                done();
+            });
+    });
+
+    it('GET /device should return the default settings for a new device when a device profile exists with a schedule',function(done){
+        test.mockredis.lookup.keys['*'] = ['m2m-command:testKey:profile','m2m-schedule:testKey:periods'];
+        test.mockredis.lookup.hgetall['m2m-command:testKey:profile'] = {'command:command-prefix': 'TESTPATTERN'};
+        //require(process.cwd() + '/routes/api').resetRedisWatcher();
+
+        var request = require('supertest');
+        request(app).get('/api/device')
+            .expect('Content-Type',/json/)
+            .expect(200)
+            .end(function(err,res){
+                test.should.not.exist(err);
+                require(process.cwd() + '/routes/api').resetRedisWatcher();
+                test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
+                    {hgetall: 'm2m-command:testKey:profile'},
+                    {quit: null}
+                ]);
+                res.text.should.match(/^\{"new-device":\{"Connection":/);
+                res.text.should.match(/{"key":"command:profile","label":"Profile","type":"string","default":null,"value":"testKey"}/);
+                res.text.should.match(/{"key":"command:routing","label":"Routing","options":\["ad-hoc","none","scheduled"\],"type":"string","status":"editable","default":"scheduled"},{"key":"command:schedule","label":"Schedule","type":"string","default":null,"value":"testKey"}/);
+                res.text.should.match(/{"key":"command:command-prefix","label":"Command Prefix","type":"string","default":null,"value":"TESTPATTERN"}/);
                 test.matchArrays(test.pp.snapshot(),[
                     /^\[express   \] \S+ --> GET \/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
@@ -258,7 +325,7 @@ describe('API router',function() {
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
                     {keys: 'm2m-device:*:settings'},
-                    {hmset: ['m2m-device:test-abc-123:settings','connection:telnet:address','localhost','connection:telnet:port',10002]},
+                    {hmset: ['m2m-device:test-abc-123:settings','connection:telnet:address','localhost','connection:telnet:port','10002']},
                     {hgetall: 'm2m-device:test-abc-123:settings'},
                     {quit: null}
                 ]);
@@ -276,7 +343,7 @@ describe('API router',function() {
             });
     });
 
-    it('GET /device/:id should return device settings',function(done){
+    it('GET /device/:id should return device settings without a profile or schedule',function(done){
         test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:test-abc-123:settings'];
         test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
 
@@ -287,6 +354,70 @@ describe('API router',function() {
             .end(function(err,res){
                 test.should.not.exist(err);
                 res.text.should.match(/^\{"device:test-abc-123":\{"Connection":/);
+                require(process.cwd() + '/routes/api').resetRedisWatcher();
+                test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
+                    {hgetall: 'm2m-device:test-abc-123:settings'},
+                    {quit: null}
+                ]);
+                test.matchArrays(test.pp.snapshot(),[
+                    /^\[express   \] \S+ --> GET \/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    '[redis     ] instance created',
+                    '[redis     ] start watching',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
+                    /^\[express   \] \S+ <-- GET \/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    '[redis     ] stop watching'
+                ]);
+                done();
+            });
+    });
+
+    it('GET /device/:id should return device settings with a profile but no schedule',function(done){
+        test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:test-abc-123:settings'];
+        test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'command:profile':'test-profile','connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
+
+        var request = require('supertest');
+        request(app).get('/api/device/test-abc-123')
+            .expect('Content-Type',/json/)
+            .expect(200)
+            .end(function(err,res){
+                test.should.not.exist(err);
+                res.text.should.match(/^\{"device:test-abc-123":\{"Connection":/);
+                res.text.should.match(/{"key":"command:profile","label":"Profile","type":"string","default":null,"value":"test-profile","exists":true}/);
+                res.text.should.match(/{"key":"command:routing","label":"Routing","options":\["ad-hoc","none"\],"type":"string","status":"editable","default":"ad-hoc"},{"key":"command:schedule","label":"Schedule","type":"string","default":null}/);
+                require(process.cwd() + '/routes/api').resetRedisWatcher();
+                test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
+                    {hgetall: 'm2m-device:test-abc-123:settings'},
+                    {quit: null}
+                ]);
+                test.matchArrays(test.pp.snapshot(),[
+                    /^\[express   \] \S+ --> GET \/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    '[redis     ] instance created',
+                    '[redis     ] start watching',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
+                    /^\[express   \] \S+ <-- GET \/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    '[redis     ] stop watching'
+                ]);
+                done();
+            });
+    });
+
+    it('GET /device/:id should return device settings with a profile and schedule',function(done){
+        test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:test-abc-123:settings'];
+        test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'command:profile':'test-profile','command:schedule':'test-profile','connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
+
+        var request = require('supertest');
+        request(app).get('/api/device/test-abc-123')
+            .expect('Content-Type',/json/)
+            .expect(200)
+            .end(function(err,res){
+                test.should.not.exist(err);
+                res.text.should.match(/^\{"device:test-abc-123":\{"Connection":/);
+                res.text.should.match(/{"key":"command:profile","label":"Profile","type":"string","default":null,"value":"test-profile","exists":true}/);
+                res.text.should.match(/{"key":"command:routing","label":"Routing","options":\["ad-hoc","none","scheduled"\],"type":"string","status":"editable","default":"ad-hoc"},{"key":"command:schedule","label":"Schedule","type":"string","default":null,"value":"test-profile","exists":true}/);
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
@@ -464,7 +595,6 @@ describe('API router',function() {
     });
 
     it('GET /schedule/:id should return schedule settings',function(done){
-        test.mockredis.lookup.keys['m2m-schedule:*:settings'] = ['m2m-schedule:test:settings'];
         test.mockredis.lookup.hgetall['m2m-schedule:test:periods'] = {"100": '["TEST1","TEST2"]',"200": '["TEST3"]'};
 
         var request = require('supertest');
@@ -487,6 +617,66 @@ describe('API router',function() {
                     '[redis     ] check ready',
                     '[redis     ] now ready',
                     /^\[express   \] \S+ <-- GET \/api\/schedule\/test HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    '[redis     ] stop watching'
+                ]);
+                done();
+            });
+    });
+
+    it('GET /profile/:id should return a device profile',function(done){
+        test.mockredis.lookup.keys['m2m-command:*:profile'] = ['m2m-command:test:profile'];
+        test.mockredis.lookup.hgetall['m2m-command:test:profile'] = {"command:command-prefix":"ABC"};
+
+        var request = require('supertest');
+        request(app).get('/api/profile/test')
+            .expect('Content-Type',/json/)
+            .expect(200)
+            .end(function(err,res){
+                test.should.not.exist(err);
+                res.text.should.eql('{"profile:test":{"command:command-prefix":"ABC"}}');
+                require(process.cwd() + '/routes/api').resetRedisWatcher();
+                test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
+                    {hgetall: 'm2m-command:test:profile'},
+                    {quit: null}
+                ]);
+                test.matchArrays(test.pp.snapshot(),[
+                    /^\[express   \] \S+ --> GET \/api\/profile\/test HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    '[redis     ] instance created',
+                    '[redis     ] start watching',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
+                    /^\[express   \] \S+ <-- GET \/api\/profile\/test HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    '[redis     ] stop watching'
+                ]);
+                done();
+            });
+    });
+
+    it('GET /option/:id should return a device option',function(done){
+        test.mockredis.lookup.keys['m2m-command:*:option'] = ['m2m-command:test:option'];
+        test.mockredis.lookup.hgetall['m2m-command:test:options'] = {test: '["X"]'};
+
+        var request = require('supertest');
+        request(app).get('/api/option/test')
+            .expect('Content-Type',/json/)
+            .expect(200)
+            .end(function(err,res){
+                test.should.not.exist(err);
+                res.text.should.eql('{"option:test":{"test":"[\\"X\\"]"}}');
+                require(process.cwd() + '/routes/api').resetRedisWatcher();
+                test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
+                    {hgetall: 'm2m-command:test:options'},
+                    {quit: null}
+                ]);
+                test.matchArrays(test.pp.snapshot(),[
+                    /^\[express   \] \S+ --> GET \/api\/option\/test HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    '[redis     ] instance created',
+                    '[redis     ] start watching',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
+                    /^\[express   \] \S+ <-- GET \/api\/option\/test HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();

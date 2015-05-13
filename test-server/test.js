@@ -285,14 +285,14 @@ MockRedis.createClient = function () {
             if (!MockRedis.clientException){
                 var result = MockRedis.results;
                 MockRedis.results = null;
-                callback(result);
+                callback && callback(result);
             }
             return client;
         },
         error: function(callback){
             if (MockRedis.clientException){
                 MockRedis.events.error && MockRedis.events.error(MockRedis.clientException);
-                callback(MockRedis.clientException);
+                callback && callback(MockRedis.clientException);
             }
             return client;
         },
@@ -479,6 +479,17 @@ var MockHTTP = {
 };
 
 module.exports.mockhttp = MockHTTP;
+
+// OS -----------------------
+
+var MockOS = {
+    reset: function(){
+        MockOS.interfaces = {};
+    },
+    networkInterfaces: function(){ return MockOS.interfaces; }
+};
+
+module.exports.mockos = MockOS;
 
 process.env.testing = true;
 

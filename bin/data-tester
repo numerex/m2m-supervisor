@@ -27,8 +27,8 @@ emitter
     .once('start',function(){ RedisWatcher.instance.start(); })
     .once('stop',function(message){
         if (cli) cli.close();
-        if (reader) reader.stop();
-        if (configWatcher) configWatcher.stop();
+        if (reader && reader.started()) reader.stop();
+        if (configWatcher && configWatcher.started()) configWatcher.stop();
         RedisWatcher.instance.stop();
         console.log(message);
     })
@@ -63,13 +63,13 @@ emitter
                 .on('ready',function(){
                     emitter.emit('cli');
                 })
-                .on('retry',function(){
+                .on('retry',function(reason){
                     reader.stop();
-                    emitter.emit('stop','Device not ready: ' + deviceKey);
+                    emitter.emit('stop','Device not ready: ' + deviceKey + ' - ' + reason);
                 })
-                .on('error',function(){
+                .on('error',function(error){
                     reader.stop();
-                    emitter.emit('stop','Device error: ' + deviceKey);
+                    emitter.emit('stop','Device error: ' + deviceKey + ' - ' + error);
                 })
                 .start();
         }
