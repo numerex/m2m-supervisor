@@ -69,7 +69,11 @@ describe('DeviceRouter',function() {
             'connection:type': 'telnet',
             'connection:telnet:address': 'host',
             'connection:telnet:port': '1234',
-            'command:routing': 'scheduled'
+            'command:routing': 'scheduled',
+            'command:command-prefix': '\\u0001',
+            'command:command-suffix': '\\u0003',
+            'command:response-prefix': '\\u0001',
+            'command:response-suffix': '\\u0003'
         };
 
         var events = [];
@@ -108,7 +112,11 @@ describe('DeviceRouter',function() {
             'connection:telnet:address': 'host',
             'connection:telnet:port': '1234',
             'command:routing': 'scheduled',
-            'command:schedule': 'test-schedule'
+            'command:schedule': 'test-schedule',
+            'command:command-prefix': '\\u0001',
+            'command:command-suffix': '\\u0003',
+            'command:response-prefix': '\\u0001',
+            'command:response-suffix': '\\u0003'
         };
         //test.mockredis.lookup.hgetall['m2m-schedule:test-schedule:periods'] = {};
 
@@ -149,7 +157,11 @@ describe('DeviceRouter',function() {
             'connection:telnet:address': 'host',
             'connection:telnet:port': '1234',
             'command:routing': 'scheduled',
-            'command:schedule': 'test-schedule'
+            'command:schedule': 'test-schedule',
+            'command:command-prefix': '\\u0001',
+            'command:command-suffix': '\\u0003',
+            'command:response-prefix': '\\u0001',
+            'command:response-suffix': '\\u0003'
         };
         test.mockredis.lookup.hgetall['m2m-schedule:test-schedule:periods'] = {"100": '["TEST1","TEST2"]',"200": '["TEST3"]'};
 
@@ -201,7 +213,11 @@ describe('DeviceRouter',function() {
             'connection:type': 'telnet',
             'connection:telnet:address': 'host',
             'connection:telnet:port': '1234',
-            'command:routing': 'none'
+            'command:routing': 'none',
+            'command:command-prefix': '\\u0001',
+            'command:command-suffix': '\\u0003',
+            'command:response-prefix': '\\u0001',
+            'command:response-suffix': '\\u0003'
         };
 
         var events = [];
@@ -244,7 +260,11 @@ describe('DeviceRouter',function() {
             'connection:type': 'telnet',
             'connection:telnet:address': 'host',
             'connection:telnet:port': '1234',
-            'command:routing': 'unknown'
+            'command:routing': 'unknown',
+            'command:command-prefix': '\\u0001',
+            'command:command-suffix': '\\u0003',
+            'command:response-prefix': '\\u0001',
+            'command:response-suffix': '\\u0003'
         };
 
         var events = [];
@@ -287,7 +307,11 @@ describe('DeviceRouter',function() {
         test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
             'connection:type': 'unknown',
             'connection:telnet:address': 'host',
-            'connection:telnet:port': '1234'
+            'connection:telnet:port': '1234',
+            'command:command-prefix': '\\u0001',
+            'command:command-suffix': '\\u0003',
+            'command:response-prefix': '\\u0001',
+            'command:response-suffix': '\\u0003'
         };
 
         var events = [];
@@ -327,7 +351,11 @@ describe('DeviceRouter',function() {
         test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
             'connection:type': 'telnet',
             'connection:telnet:address': 'host',
-            'connection:telnet:port': '1234'
+            'connection:telnet:port': '1234',
+            'command:command-prefix': '\\u0001',
+            'command:command-suffix': '\\u0003',
+            'command:response-prefix': '\\u0001',
+            'command:response-suffix': '\\u0003'
         };
 
         var events = [];
@@ -369,7 +397,11 @@ describe('DeviceRouter',function() {
         test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
             'connection:type': 'telnet',
             'connection:telnet:address': 'host',
-            'connection:telnet:port': '1234'
+            'connection:telnet:port': '1234',
+            'command:command-prefix': '\\u0001',
+            'command:command-suffix': '\\u0003',
+            'command:response-prefix': '\\u0001',
+            'command:response-suffix': '\\u0003'
         };
 
         var checked = false;
@@ -430,7 +462,11 @@ describe('DeviceRouter',function() {
         test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
             'connection:type': 'telnet',
             'connection:telnet:address': 'host',
-            'connection:telnet:port': '1234'
+            'connection:telnet:port': '1234',
+            'command:command-prefix': '\\u0001',
+            'command:command-suffix': '\\u0003',
+            'command:response-prefix': '\\u0001',
+            'command:response-suffix': '\\u0003'
         };
 
         var events = [];
@@ -442,6 +478,10 @@ describe('DeviceRouter',function() {
                     'connection:type': 'telnet',
                     'connection:telnet:address': 'host',
                     'connection:telnet:port': '1234',
+                    'command:command-prefix': '\\u0001',
+                    'command:command-suffix': '\\u0003',
+                    'command:response-prefix': '\\u0001',
+                    'command:response-suffix': '\\u0003',
                     other: 'test'
                 };
 
@@ -483,7 +523,11 @@ describe('DeviceRouter',function() {
         test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
             'connection:type': 'telnet',
             'connection:telnet:address': 'host',
-            'connection:telnet:port': '1234'
+            'connection:telnet:port': '1234',
+            'command:command-prefix': '\\u0001',
+            'command:command-suffix': '\\u0003',
+            'command:response-prefix': '\\u0001',
+            'command:response-suffix': '\\u0003'
         };
 
         var events = [];

@@ -30,7 +30,7 @@ function DeviceRouter(deviceKey){
     self.on('status',function(status){
         if (!status || !self.device || !self.commands || self.reader) return;
 
-        self.reader = new DataReader(self.device)
+        self.reader = new DataReader(self.device,self.commands)
             .on('error',self.noteErrorStatus)
             .start();
         _.defer(function(){

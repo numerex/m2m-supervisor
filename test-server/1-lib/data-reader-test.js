@@ -28,11 +28,23 @@ describe('DataReader',function() {
         var reader = new DataReader(testDevice);
         reader.device.should.eql(testDevice);
         reader.config.should.eql({
-            commandPrefix: '\x01',
-            commandSuffix: '\x03',
-            responsePrefix: '\x01',
-            responseSuffix: '\x03'
+            commandPrefix: '',
+            commandSuffix: '',
+            responsePrefix: '',
+            responseSuffix: ''
         });
+    });
+
+    it('should detect invalid eval strings',function(){
+        var reader = new DataReader(testDevice,{commandPrefix: '"'});
+        reader.device.should.eql(testDevice);
+        reader.config.should.eql({
+            commandPrefix: '',
+            commandSuffix: '',
+            responsePrefix: '',
+            responseSuffix: ''
+        });
+        test.pp.snapshot().should.eql(['[reader    ] JSON string contents expected: "'])
     });
 
     it('should properly initialize data with all arguments, started, and stopped',function(){
