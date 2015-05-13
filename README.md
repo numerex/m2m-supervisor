@@ -68,6 +68,22 @@ Testing
 This project is committed to maintaining full coverage for test suites of the operational code.
 In addition, it includes simulation tools to aid development and on-device testing:
 
+* **bin/command-loader** -- This tool will take a TSV file containing device profile settings and a set of command definitions, including schedule periods for "read" commands.
+    * Current the valid profile settings are as follows:
+        * `name` -- This will be an optional name of the device profile; if not provided, the profile name will be the base file name.
+        * `description` -- This is an optional description.
+        * `command:command-prefix` -- This is an optional JSON-encoded string (e.g., "\u0001") that will be added before each command when submitted to the device.
+        * `command:command-suffix` -- This is an optional JSON-encoded string (e.g., "\u0003") that will be added after each command when submitted to the device.
+        * `command:response-prefix` -- This is a required JSON-encoded string expected to begin a serial or telnet response from the device.
+        * `command:response-suffix` -- This is a required JSON-encoded string expected to terminate a serial or telnet response from the device.
+    * After any profile definitions, the TSV file must have a single header row that will determine how the following rows defining commands will be interpretted:
+        * `key` -- This is a required field and values must be unique in the subsequent rows.
+        * `label` -- This is an optional field and if not provided, or if the values below are blank, the `key` will be used as the `label`.
+        * `read(:<command-type>)` -- This is an expected field whose values are assumed to inquire data from the device; an optional <command-type> may be appended to distinguish different types of commands (e.g., "display" or "computer").
+        * `write(:<command-type)` -- This is an optional field whose values are assumed to change data on the device; an optional <command-type> is also possible.
+        * `period(:<command-type)` -- This is an optional field whose integer values, if provided, are assumed to indicate that the associated `read(:<command-type>)` command should be submitted to the device ever so-many seconds.
+        * `attr:<keyword>` -- This is an optional field that may repeat with different values for <keyword> to allow user-defined attributes to be associated with individual commands; the unique list of values will be available for categorizing the commands in the web application.
+
 * **bin/data-tester** -- This tool will take a device key on the command line -- none will assume a single device configured -- and, if it exists in Redis, will allow commands to be entered, displaying the response on the console.
 
 * **bin/m2m-sys-check** -- This tool will check to ensure that key dependencies are installed on the device and will collect key information like modem data/control ports, along with vendor, model, and version.
