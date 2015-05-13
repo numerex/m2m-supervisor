@@ -151,7 +151,7 @@ describe('PppdWatcher',function(){
                 test.mockshelljs.snapshot(); // clear snapshot
                 done();
             }
-        }).start(_.defaults({routeInterval: 1},ppp));
+        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},ppp));
     });
 
     it('should detect the (unlikely) event of ps failure',function(done){
@@ -171,7 +171,7 @@ describe('PppdWatcher',function(){
                 test.mockshelljs.snapshot(); // clear snapshot
                 done();
             }
-        }).start(_.defaults({routeInterval: 1},ppp));
+        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},ppp));
     });
 
     it('should detect pppd running but no interface yet',function(done){
@@ -190,7 +190,7 @@ describe('PppdWatcher',function(){
                 test.mockshelljs.snapshot(); // clear snapshot
                 done();
             }
-        }).start(_.defaults({routeInterval: 1},ppp));
+        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},ppp));
     });
 
     it('should allow caching of shell responses',function() {

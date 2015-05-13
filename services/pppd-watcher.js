@@ -5,6 +5,8 @@ var Watcher = require('../lib/watcher');
 
 var logger = require('../lib/logger')('pppd');
 
+var MILLIS_PER_SEC = 1000;
+
 function PppdWatcher(config) {
     Watcher.apply(this,[logger,config,true]);
     this.outputs = {};
@@ -14,11 +16,14 @@ function PppdWatcher(config) {
 
 util.inherits(PppdWatcher,Watcher);
 
+PppdWatcher.MILLIS_PER_SEC = MILLIS_PER_SEC;
+
+
 PppdWatcher.prototype._onStart = function(ppp) {
     var self = this;
     self.ppp = ppp;
     self.checkRoutes();
-    self.interval = setInterval(function(){ self.checkRoutes(); },self.ppp.routeInterval);
+    self.interval = setInterval(function(){ self.checkRoutes(); },self.ppp.checkInterval * MILLIS_PER_SEC);
 };
 
 PppdWatcher.prototype._onStop = function() {

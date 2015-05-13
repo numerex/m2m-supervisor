@@ -1,9 +1,10 @@
 .form-group
   label.input-sm.col-lg-4.control-label(for='{{ model.key }}') {{ model.label }}:
-  .col-lg-8
+  .col-lg-7
     div(ng-class='{"input-group": showAction}')
       select.input-sm.form-control(ng-disabled='isDisabled',ng-model='hashValues[model.key]',ng-options='value for value in model.options',ng-if='isSelect')
       input.input-sm.form-control(ng-disabled='isDisabled',ng-model='hashValues[model.key]',type='text',placeholder='{{ placeholder }}',ng-if='isText')
       span.input-group-btn(ng-if='showAction')
         button.btn.btn-default.btn-sm(ng-click='executeAction()',ng-disabled='disableAction') {{ actionName }}
-
+  .col-lg-1.control-label.form-units
+    | {{ model.units || '' }}
