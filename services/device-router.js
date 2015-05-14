@@ -11,7 +11,7 @@ var logger = require('../lib/logger')('dev-route');
 var helpers = require('../lib/hash-helpers');
 var schema = require('../lib/redis-schema');
 var hashkeys = require('../lib/device-hashkeys');
-var m2m = require('../lib/m2m-settings');
+var settings = require('../lib/m2m-settings');
 
 function DeviceRouter(deviceKey){
     var self = this;
@@ -150,9 +150,9 @@ DeviceRouter.prototype.processQueueEntry = function(entry){
             else
                 logger.info('response(' + self.deviceKey + '): ' + JSON.stringify(response));
             var results = {};
-            results[m2m.ObjectTypes.deviceCommand]  = command;
-            results[m2m.ObjectTypes.deviceResponse] = response;
-            results[m2m.ObjectTypes.deviceError]    = error;
+            results[settings.ObjectTypes.deviceCommand]  = command;
+            results[settings.ObjectTypes.deviceResponse] = response;
+            results[settings.ObjectTypes.deviceError]    = error;
             self.client.lpush(schema.transmit.queue.key,JSON.stringify(_.defaults({},self.messageBase,results))).errorHint('lpush');
         });
     }

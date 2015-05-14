@@ -146,19 +146,19 @@ QueueRouter.prototype.processPendingMessage = function(ackState){
 };
 
 QueueRouter.prototype.processQueueEntry = function(queueKey,rawEntry,ackState){
-    var queueEntry = this.safeParseJSON(rawEntry);
     if (queueKey === schema.ack.queue.key)
-        this.processAck(queueEntry,rawEntry,ackState);
+        this.processAck(rawEntry,ackState);
     else if (queueKey === schema.command.queue.key)
-        this.processCommand(queueEntry,rawEntry,ackState);
+        this.processCommand(rawEntry,ackState);
     else if (queueKey === schema.transmit.queue.key)
-        this.processTransmit(queueEntry,rawEntry,ackState);
+        this.processTransmit(rawEntry,ackState);
     else
-        this.processRoute(queueKey,queueEntry,rawEntry,ackState);
+        this.processRoute(queueKey,rawEntry,ackState);
 };
 
-QueueRouter.prototype.processAck = function(queueEntry,rawEntry,ackState){
+QueueRouter.prototype.processAck = function(rawEntry,ackState){
     var self = this;
+    var queueEntry = this.safeParseJSON(rawEntry);
     if (ackState.message && +queueEntry === +ackState.sequenceNumber) {
         logger.info('acked: ' + ackState.sequenceNumber);
         self.client.send('del', ACK_STATE_KEYS).thenHint('clearAckState', function () {
@@ -167,16 +167,35 @@ QueueRouter.prototype.processAck = function(queueEntry,rawEntry,ackState){
             self.noteQueueResult('ack');
         });
     } else {
-        logger.warn('ignoring queue entry: ' + rawEntry);
-        self.noteQueueResult('ignore');
+        logger.warn('ignoring ack: ' + rawEntry);
+        self.noteQueueResult('ignoreAck');
     }
 };
 
-QueueRouter.prototype.processCommand = function(queueEntry,rawEntry,ackState) {
-
+QueueRouter.prototype.processCommand = function(rawEntry,ackState) {
+    var self = this;
+    var message = new m2m.Message({json: rawEntry});
+    switch (message.eventCode){
+        case settings.EventCodes.deviceCommand:
+            var command = message.find(settings.ObjectTypes.deviceCommand,null);
+            var routeID = message.find(settings.ObjectTypes.deviceRoute,1);
+            var queueKey = self.queues[routeID];
+            var route = self.routes[queueKey];
+            if (!route)
+                logger.warn('route not found: ' + rawEntry);
+            else if (!command)
+                logger.warn('command not found: ' + rawEntry);
+            else
+                self.client.lpush(queueKey,JSON.stringify({command: command,requestID: message.sequenceNumber}));
+            break;
+        default:
+            logger.warn('ignoring command: ' + rawEntry);
+            self.noteQueueResult('ignoreCommand');
+    }
 };
 
-QueueRouter.prototype.processTransmit = function(queueEntry,rawEntry,ackState) {
+QueueRouter.prototype.processTransmit = function(rawEntry,ackState) {
+    var queueEntry = this.safeParseJSON(rawEntry);
     if (queueEntry) {
         logger.error('valid message received: ' + rawEntry);
         this.generateMessage(queueEntry);
@@ -186,11 +205,12 @@ QueueRouter.prototype.processTransmit = function(queueEntry,rawEntry,ackState) {
     }
 };
 
-QueueRouter.prototype.processRoute = function(queueKey,queueEntry,rawEntry,ackState) {
+QueueRouter.prototype.processRoute = function(queueKey,rawEntry,ackState) {
+    var queueEntry = this.safeParseJSON(rawEntry);
     logger.info('route(' + queueKey + '): ' + rawEntry);
     var route = this.routes[queueKey];
     route && route.processQueueEntry(queueEntry);
-    this.noteQueueResult('command');
+    this.noteQueueResult('route');
 };
 
 QueueRouter.prototype.generateMessage = function(attributes) {

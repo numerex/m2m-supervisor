@@ -119,7 +119,7 @@ describe('QueueRouter',function() {
 
         var router = new QueueRouter().on('note',function(event){
             router.stop();
-            event.should.eql('ignore');
+            event.should.eql('ignoreAck');
             test.mockredis.snapshot().should.eql([
                 {mget: QueueRouter.ACK_STATE_KEYS},
                 {brpop: router.transmitArgs},
@@ -127,7 +127,7 @@ describe('QueueRouter',function() {
             ]);
             test.pp.snapshot().should.eql([
                 '[router    ] start watching',
-                '[router    ] ignoring queue entry: 1',
+                '[router    ] ignoring ack: 1',
                 '[router    ] stop watching'
             ]);
             done();
