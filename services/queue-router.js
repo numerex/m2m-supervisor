@@ -181,12 +181,16 @@ QueueRouter.prototype.processCommand = function(rawEntry,ackState) {
             var routeID = message.find(settings.ObjectTypes.deviceRoute,1);
             var queueKey = self.queues[routeID];
             var route = self.routes[queueKey];
-            if (!route)
+            if (!route) {
                 logger.warn('route not found: ' + rawEntry);
-            else if (!command)
+                self.noteQueueResult('routeNoteFound');
+            } else if (!command) {
                 logger.warn('command not found: ' + rawEntry);
-            else
+                self.noteQueueResult('commandNotFound');
+            } else {
                 self.client.lpush(queueKey,JSON.stringify({command: command,requestID: message.sequenceNumber}));
+                self.noteQueueResult('command');
+            }
             break;
         default:
             logger.warn('ignoring command: ' + rawEntry);

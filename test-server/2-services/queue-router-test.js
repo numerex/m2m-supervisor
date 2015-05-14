@@ -329,6 +329,90 @@ describe('QueueRouter',function() {
             .start(testGateway);
     });
 
+    it('should ignore an unexpected eventCode on the command queue',function(done){
+        test.mockredis.lookup.brpop = [['m2m-command:queue','{"messageType":204,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}']];
+
+        var router = new QueueRouter();
+        router.on('note',function(event){
+            router.stop();
+            test.mockredis.snapshot().should.eql([
+                {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                {quit: null}
+            ]);
+            test.pp.snapshot().should.eql([
+                '[router    ] start watching',
+                '[router    ] ignoring command: {"messageType":204,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                '[router    ] stop watching'
+            ]);
+            done();
+        });
+        router.start(testGateway);
+    });
+
+    it('should ignore command when no route is found',function(done){
+        test.mockredis.lookup.brpop = [['m2m-command:queue','{"messageType":204,"majorVersion":1,"minorVersion":0,"eventCode":11,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}']];
+
+        var router = new QueueRouter();
+        router.on('note',function(event){
+            router.stop();
+            test.mockredis.snapshot().should.eql([
+                {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                {quit: null}
+            ]);
+            test.pp.snapshot().should.eql([
+                '[router    ] start watching',
+                '[router    ] route not found: {"messageType":204,"majorVersion":1,"minorVersion":0,"eventCode":11,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                '[router    ] stop watching'
+            ]);
+            done();
+        });
+        router.start(testGateway);
+    });
+
+    it('should ignore command when no command is found',function(done){
+        test.mockredis.lookup.brpop = [['m2m-command:queue','{"messageType":204,"majorVersion":1,"minorVersion":0,"eventCode":11,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}']];
+
+        var router = new QueueRouter();
+        router.addRoute(1,mockRoute);
+        router.on('note',function(event){
+            router.stop();
+            test.mockredis.snapshot().should.eql([
+                {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                {quit: null}
+            ]);
+            test.pp.snapshot().should.eql([
+                '[router    ] add route(testQueue): 1',
+                '[router    ] start watching',
+                '[router    ] command not found: {"messageType":204,"majorVersion":1,"minorVersion":0,"eventCode":11,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                '[router    ] stop watching'
+            ]);
+            done();
+        });
+        router.start(testGateway);
+    });
+
+    it('should route a command',function(done){
+        test.mockredis.lookup.brpop = [['m2m-command:queue','{"messageType":204,"majorVersion":1,"minorVersion":0,"eventCode":11,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":2,"id":10,"value":"test command"}]}']];
+
+        var router = new QueueRouter();
+        router.addRoute(1,mockRoute);
+        router.on('note',function(event){
+            router.stop();
+            test.mockredis.snapshot().should.eql([
+                {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                {lpush: [mockRoute.queueKey,'{"command":"test command","requestID":2}']},
+                {quit: null}
+            ]);
+            test.pp.snapshot().should.eql([
+                '[router    ] add route(testQueue): 1',
+                '[router    ] start watching',
+                '[router    ] stop watching'
+            ]);
+            done();
+        });
+        router.start(testGateway);
+    });
+
     it('should detect a client error',function(done) {
         var router = new QueueRouter();
         router.start(testGateway);
