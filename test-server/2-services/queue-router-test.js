@@ -30,19 +30,20 @@ describe('QueueRouter',function() {
         var router = new QueueRouter();
         router.config.should.eql({idleReport: 12,maxRetries: 5,timeoutInterval: 5});
         router.routes.should.eql({});
-        router.transmitArgs.should.eql(['m2m-ack:queue','m2m-transmit:queue',5]);
+        router.transmitArgs.should.eql(['m2m-ack:queue','m2m-command:queue','m2m-transmit:queue',5]);
         test.pp.snapshot().should.eql([]);
         test.mockredis.snapshot().should.eql([]);
     });
 
     it('should properly initialize data with all arguments',function(){
         var router = new QueueRouter({idleReport: 10,maxRetries: 2,timeoutInterval: 1});
-        router.addRoute(mockRoute);
+        router.addRoute(1,mockRoute);
         router.config.should.eql({idleReport: 10,maxRetries: 2,timeoutInterval: 1});
+        router.queues.should.eql({1: mockRoute.queueKey});
         router.routes.should.eql({testQueue: mockRoute});
-        router.transmitArgs.should.eql(['m2m-ack:queue','m2m-transmit:queue','testQueue',1]);
+        router.transmitArgs.should.eql(['m2m-ack:queue','m2m-command:queue','m2m-transmit:queue','testQueue',1]);
         test.pp.snapshot().should.eql([
-            '[router    ] add route: testQueue'
+            '[router    ] add route(testQueue): 1'
         ]);
         test.mockredis.snapshot().should.eql([]);
     });
@@ -118,7 +119,7 @@ describe('QueueRouter',function() {
 
         var router = new QueueRouter().on('note',function(event){
             router.stop();
-            event.should.eql('ignore');
+            event.should.eql('ignoreAck');
             test.mockredis.snapshot().should.eql([
                 {mget: QueueRouter.ACK_STATE_KEYS},
                 {brpop: router.transmitArgs},
@@ -126,7 +127,7 @@ describe('QueueRouter',function() {
             ]);
             test.pp.snapshot().should.eql([
                 '[router    ] start watching',
-                '[router    ] ignoring queue entry: 1',
+                '[router    ] ignoring ack: 1',
                 '[router    ] stop watching'
             ]);
             done();
@@ -243,7 +244,7 @@ describe('QueueRouter',function() {
                         {quit: null}
                     ]);
                     test.pp.snapshot().should.eql([
-                        '[router    ] add route: testQueue',
+                        '[router    ] add route(testQueue): 1',
                         '[router    ] start watching',
                         '[router    ] retry: 2',
                         '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
@@ -268,7 +269,7 @@ describe('QueueRouter',function() {
                     done();
                 }
             })
-            .addRoute(mockRoute)
+            .addRoute(1,mockRoute)
             .start(testGateway);
     });
 
@@ -290,7 +291,7 @@ describe('QueueRouter',function() {
                         {quit: null}
                     ]);
                     test.pp.snapshot().should.eql([
-                        '[router    ] add route: testQueue',
+                        '[router    ] add route(testQueue): 1',
                         '[router    ] start watching',
                         '[router    ] acked: 2',
                         '[test-route] ack: 2',
@@ -300,7 +301,7 @@ describe('QueueRouter',function() {
                     done();
                 }
             })
-            .addRoute(mockRoute)
+            .addRoute(1,mockRoute)
             .start(testGateway);
     });
 
@@ -315,7 +316,7 @@ describe('QueueRouter',function() {
                     {quit: null}
                 ]);
                 test.pp.snapshot().should.eql([
-                    '[router    ] add route: testQueue',
+                    '[router    ] add route(testQueue): 1',
                     '[router    ] start watching',
                     '[router    ] route(testQueue): "test command"',
                     '[test-route] command: test command',
@@ -324,8 +325,92 @@ describe('QueueRouter',function() {
                 mockRoute.snapshot().should.eql([{command: 'test command'}]);
                 done();
             })
-            .addRoute(mockRoute)
+            .addRoute(1,mockRoute)
             .start(testGateway);
+    });
+
+    it('should ignore an unexpected eventCode on the command queue',function(done){
+        test.mockredis.lookup.brpop = [['m2m-command:queue','{"messageType":204,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}']];
+
+        var router = new QueueRouter();
+        router.on('note',function(event){
+            router.stop();
+            test.mockredis.snapshot().should.eql([
+                {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                {quit: null}
+            ]);
+            test.pp.snapshot().should.eql([
+                '[router    ] start watching',
+                '[router    ] ignoring command: {"messageType":204,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                '[router    ] stop watching'
+            ]);
+            done();
+        });
+        router.start(testGateway);
+    });
+
+    it('should ignore command when no route is found',function(done){
+        test.mockredis.lookup.brpop = [['m2m-command:queue','{"messageType":204,"majorVersion":1,"minorVersion":0,"eventCode":11,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}']];
+
+        var router = new QueueRouter();
+        router.on('note',function(event){
+            router.stop();
+            test.mockredis.snapshot().should.eql([
+                {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                {quit: null}
+            ]);
+            test.pp.snapshot().should.eql([
+                '[router    ] start watching',
+                '[router    ] route not found: {"messageType":204,"majorVersion":1,"minorVersion":0,"eventCode":11,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                '[router    ] stop watching'
+            ]);
+            done();
+        });
+        router.start(testGateway);
+    });
+
+    it('should ignore command when no command is found',function(done){
+        test.mockredis.lookup.brpop = [['m2m-command:queue','{"messageType":204,"majorVersion":1,"minorVersion":0,"eventCode":11,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}']];
+
+        var router = new QueueRouter();
+        router.addRoute(1,mockRoute);
+        router.on('note',function(event){
+            router.stop();
+            test.mockredis.snapshot().should.eql([
+                {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                {quit: null}
+            ]);
+            test.pp.snapshot().should.eql([
+                '[router    ] add route(testQueue): 1',
+                '[router    ] start watching',
+                '[router    ] command not found: {"messageType":204,"majorVersion":1,"minorVersion":0,"eventCode":11,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                '[router    ] stop watching'
+            ]);
+            done();
+        });
+        router.start(testGateway);
+    });
+
+    it('should route a command',function(done){
+        test.mockredis.lookup.brpop = [['m2m-command:queue','{"messageType":204,"majorVersion":1,"minorVersion":0,"eventCode":11,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":2,"id":10,"value":"test command"}]}']];
+
+        var router = new QueueRouter();
+        router.addRoute(1,mockRoute);
+        router.on('note',function(event){
+            router.stop();
+            test.mockredis.snapshot().should.eql([
+                {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                {lpush: [mockRoute.queueKey,'{"command":"test command","requestID":2}']},
+                {quit: null}
+            ]);
+            test.pp.snapshot().should.eql([
+                '[router    ] add route(testQueue): 1',
+                '[router    ] start watching',
+                '[router    ] stop watching'
+            ]);
+            done();
+        });
+        router.start(testGateway);
     });
 
     it('should detect a client error',function(done) {

@@ -16,7 +16,7 @@ describe('HeartbeatGenerator',function() {
         test.mockredis.reset();
         redis = test.mockredis.createClient();
         mockProxy = {
-            config: {imei: '123456789012345',heartbeatInterval: 10},
+            config: {imei: '123456789012345',heartbeatInterval: 10 / HeartbeatGenerator.MILLIS_PER_MIN},
             messages: []
         };
         mockProxy.sendPrivate = function(buffer,ignoreAckHint){

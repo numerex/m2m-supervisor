@@ -45,21 +45,22 @@ emitter
                 .on('change',function(hash){
                     if (!hash) return;
 
-                    var config = configWatcher.validateRequirements(hashkeys.connection,helpers.requirements(hashkeys.connection));
-                    if (config)
-                        emitter.emit('reader',config);
+                    var connection = configWatcher.validateRequirements(hashkeys.connection,helpers.requirements(hashkeys.connection));
+                    var commands = configWatcher.validateRequirements(hashkeys.commands,helpers.requirements(hashkeys.commands));
+                    if (connection && commands)
+                        emitter.emit('reader',connection,commands);
                     else
                         emitter.emit('stop','Device not ready: ' + deviceKey);
                 })
                 .start(client);
         });
     })
-    .once('reader',function(config){
-        var device = builder.newDevice(config);
+    .once('reader',function(connection,commands){
+        var device = builder.newDevice(connection);
         if (!device)
             emitter.emit('stop','Device not configured: ' + deviceKey);
         else {
-            reader = new DataReader(device)
+            reader = new DataReader(device,commands)
                 .on('ready',function(){
                     emitter.emit('cli');
                 })

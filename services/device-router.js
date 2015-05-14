@@ -11,6 +11,7 @@ var logger = require('../lib/logger')('dev-route');
 var helpers = require('../lib/hash-helpers');
 var schema = require('../lib/redis-schema');
 var hashkeys = require('../lib/device-hashkeys');
+var settings = require('../lib/m2m-settings');
 
 function DeviceRouter(deviceKey){
     var self = this;
@@ -29,7 +30,7 @@ function DeviceRouter(deviceKey){
     self.on('status',function(status){
         if (!status || !self.device || !self.commands || self.reader) return;
 
-        self.reader = new DataReader(self.device)
+        self.reader = new DataReader(self.device,self.commands)
             .on('error',self.noteErrorStatus)
             .start();
         _.defer(function(){
@@ -148,11 +149,17 @@ DeviceRouter.prototype.processQueueEntry = function(entry){
                 logger.error('error(' + self.deviceKey + '): ' + error);
             else
                 logger.info('response(' + self.deviceKey + '): ' + JSON.stringify(response));
-            self.client.lpush(schema.transmit.queue.key,JSON.stringify(_.defaults({},self.messageBase,{
-                10: command,
-                11: response,
-                12: error
-            }))).errorHint('lpush');
+            var results = {};
+            results[settings.ObjectTypes.deviceCommand]  = command;
+            results[settings.ObjectTypes.deviceResponse] = response;
+            results[settings.ObjectTypes.deviceError]    = error;
+            if (!entry.requestID)
+                results.eventCode = settings.EventCodes.deviceSchedule;
+            else {
+                results.eventCode = settings.EventCodes.deviceCommand;
+                results[settings.ObjectTypes.requestID] = entry.requestID;
+            }
+            self.client.lpush(schema.transmit.queue.key,JSON.stringify(_.defaults({},self.messageBase,results))).errorHint('lpush');
         });
     }
 };

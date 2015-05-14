@@ -6,6 +6,8 @@ var SerialDevice = require('../lib/serial-device');
 
 var logger = require('../lib/logger')('modem');
 
+var MILLIS_PER_SEC = 1000;
+
 function ModemWatcher(config) {
     var self = this;
     Watcher.apply(self,[logger,config,true]);
@@ -18,6 +20,8 @@ function ModemWatcher(config) {
 }
 
 util.inherits(ModemWatcher,Watcher);
+
+ModemWatcher.MILLIS_PER_SEC = MILLIS_PER_SEC;
 
 ModemWatcher.Reports = Object.freeze({
     RSSI: '+CSQ:'           // format: +CSQ: <rssi>,<ber>
@@ -32,7 +36,7 @@ ModemWatcher.prototype._onStart = function(config) {
     self.config = config;
     self.device = new SerialDevice(_.defaults({retryInterval: self.retryInterval},self.config));
     self.device.on('ready',function(){
-        self.interval = setInterval(_.bind(self.emit,self,'requestRSSI'),self.config.rssiInterval);
+        self.interval = setInterval(_.bind(self.emit,self,'requestRSSI'),self.config.rssiInterval * MILLIS_PER_SEC);
         self.emit('note','ready');
         self.emit('ready');
     });

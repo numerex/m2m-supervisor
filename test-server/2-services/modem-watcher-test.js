@@ -48,7 +48,7 @@ describe('ModemWatcher',function(){
         var watcher = new ModemWatcher();
         watcher.on('note',noteEvents);
         expectEvents = ['ready'];
-        watcher.start({serialPort: '/dev/ttyUSB2',rssiInterval: 100});
+        watcher.start({serialPort: '/dev/ttyUSB2',rssiInterval: 100 / ModemWatcher.MILLIS_PER_SEC});
         watcher.started().should.be.ok;
         watcher.ready().should.be.ok;
         watcher.stop();
@@ -96,7 +96,7 @@ describe('ModemWatcher',function(){
     });
 
     it('should detect a device read error',function(done){
-        var watcher = new ModemWatcher().start({serialPort: '/dev/ttyUSB2',rssiInterval: 100});
+        var watcher = new ModemWatcher().start({serialPort: '/dev/ttyUSB2',rssiInterval: 100 / ModemWatcher.MILLIS_PER_SEC});
         watcher.device.emit('error','test error');
         watcher.stop();
         test.mockserialport.snapshot().should.eql([
@@ -117,7 +117,7 @@ describe('ModemWatcher',function(){
     it('should detect a device write error',function(done){
         test.mockserialport.writeException = 'test error';
 
-        var watcher = new ModemWatcher().start({serialPort: '/dev/ttyUSB2',rssiInterval: 100});
+        var watcher = new ModemWatcher().start({serialPort: '/dev/ttyUSB2',rssiInterval: 100 / ModemWatcher.MILLIS_PER_SEC});
         watcher.requestRSSI();
         watcher.stop();
         test.mockserialport.snapshot().should.eql([
@@ -135,7 +135,7 @@ describe('ModemWatcher',function(){
     });
 
     it('should detect an RSSI format error',function(done){
-        var watcher = new ModemWatcher().start({serialPort: '/dev/ttyUSB2',rssiInterval: 100});
+        var watcher = new ModemWatcher().start({serialPort: '/dev/ttyUSB2',rssiInterval: 100 / ModemWatcher.MILLIS_PER_SEC});
         watcher.noteRSSI('abc');
         watcher.stop();
         test.mockserialport.snapshot().should.eql([
@@ -171,7 +171,7 @@ describe('ModemWatcher',function(){
                 done();
             }
         });
-        watcher.start({serialPort: '/dev/ttyUSB2',rssiInterval: 100});
+        watcher.start({serialPort: '/dev/ttyUSB2',rssiInterval: 100 / ModemWatcher.MILLIS_PER_SEC});
     });
 
     it('should check for RSSI when ready',function(done){
@@ -195,7 +195,7 @@ describe('ModemWatcher',function(){
             ]);
             done();
         });
-        watcher.start({serialPort: '/dev/ttyUSB2',rssiInterval: 100});
+        watcher.start({serialPort: '/dev/ttyUSB2',rssiInterval: 100 / ModemWatcher.MILLIS_PER_SEC});
     });
 
 });
