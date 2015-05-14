@@ -9,8 +9,14 @@ var logger = require('../lib/logger')('router');
 var schema = require('../lib/redis-schema');
 var settings = require('../lib/m2m-settings');
 
+var ACK_PENDING_QUEUE_KEYS = Object.freeze([
+    schema.ack.queue.key,
+    schema.command.queue.key
+]); 
+
 var COMMON_QUEUE_KEYS = Object.freeze([
     schema.ack.queue.key,
+    schema.command.queue.key,
     schema.transmit.queue.key
 ]);
 
@@ -50,6 +56,7 @@ function QueueRouter(config) {
         timeoutInterval:    5
     });
     self.routes = {};
+    self.queues = {};
     self.setQueueArgs();
     self.listener = new UdpListener('router',null,function(buffer) { logger.info('unexpected response: ' + JSON.stringify(buffer)); });
     self.on('queueResult',function(result){
@@ -63,6 +70,7 @@ function QueueRouter(config) {
 
 util.inherits(QueueRouter,Watcher);
 
+QueueRouter.ACK_PENDING_QUEUE_KEYS = ACK_PENDING_QUEUE_KEYS;
 QueueRouter.COMMON_QUEUE_KEYS = COMMON_QUEUE_KEYS;
 
 QueueRouter.prototype._onStart = function(gateway) {
@@ -85,8 +93,9 @@ QueueRouter.prototype._onStop = function(){
     this.client = null;
 };
 
-QueueRouter.prototype.addRoute = function(router){
-    logger.info('add route: ' + router.queueKey);
+QueueRouter.prototype.addRoute = function(routeID,router){
+    logger.info('add route(' + router.queueKey + '): ' + routeID);
+    this.queues[+routeID] = router.queueKey;
     this.routes[router.queueKey] = router;
     this.setQueueArgs();
     return this;
@@ -94,7 +103,7 @@ QueueRouter.prototype.addRoute = function(router){
 
 QueueRouter.prototype.setQueueArgs = function(){
     var routeKeys = _.keys(this.routes);
-    this.ackArgs = [schema.ack.queue.key].concat(routeKeys).concat([this.config.timeoutInterval]);
+    this.ackArgs = ACK_PENDING_QUEUE_KEYS.concat(routeKeys).concat([this.config.timeoutInterval]);
     this.transmitArgs = COMMON_QUEUE_KEYS.concat(routeKeys).concat([this.config.timeoutInterval]);
 };
 
@@ -137,34 +146,51 @@ QueueRouter.prototype.processPendingMessage = function(ackState){
 };
 
 QueueRouter.prototype.processQueueEntry = function(queueKey,rawEntry,ackState){
+    var queueEntry = this.safeParseJSON(rawEntry);
+    if (queueKey === schema.ack.queue.key)
+        this.processAck(queueEntry,rawEntry,ackState);
+    else if (queueKey === schema.command.queue.key)
+        this.processCommand(queueEntry,rawEntry,ackState);
+    else if (queueKey === schema.transmit.queue.key)
+        this.processTransmit(queueEntry,rawEntry,ackState);
+    else
+        this.processRoute(queueKey,queueEntry,rawEntry,ackState);
+};
+
+QueueRouter.prototype.processAck = function(queueEntry,rawEntry,ackState){
     var self = this;
-    var queueEntry = self.safeParseJSON(rawEntry);
-    if (queueKey === schema.ack.queue.key) {
-        if (ackState.message && +queueEntry === +ackState.sequenceNumber) {
-            logger.info('acked: ' + ackState.sequenceNumber);
-            self.client.send('del',ACK_STATE_KEYS).thenHint('clearAckState',function(){
-                var route = self.routes[ackState.routeKey];
-                route && route.noteAck(+ackState.sequenceNumber);
-                self.noteQueueResult('ack');
-            });
-        } else {
-            logger.warn('ignoring queue entry: ' + queueEntry);
-            self.noteQueueResult('ignore');
-        }
-    } else if (queueKey === schema.transmit.queue.key) {
-        if (queueEntry) {
-            logger.error('valid message received: ' + rawEntry);
-            self.generateMessage(queueEntry);
-        } else {
-            logger.error('invalid message received: ' + rawEntry);
-            self.noteQueueResult('error');
-        }
+    if (ackState.message && +queueEntry === +ackState.sequenceNumber) {
+        logger.info('acked: ' + ackState.sequenceNumber);
+        self.client.send('del', ACK_STATE_KEYS).thenHint('clearAckState', function () {
+            var route = self.routes[ackState.routeKey];
+            route && route.noteAck(+ackState.sequenceNumber);
+            self.noteQueueResult('ack');
+        });
     } else {
-        logger.info('route(' + queueKey + '): ' + rawEntry);
-        var route = self.routes[queueKey];
-        route && route.processQueueEntry(queueEntry);
-        self.noteQueueResult('command');
+        logger.warn('ignoring queue entry: ' + rawEntry);
+        self.noteQueueResult('ignore');
     }
+};
+
+QueueRouter.prototype.processCommand = function(queueEntry,rawEntry,ackState) {
+
+};
+
+QueueRouter.prototype.processTransmit = function(queueEntry,rawEntry,ackState) {
+    if (queueEntry) {
+        logger.error('valid message received: ' + rawEntry);
+        this.generateMessage(queueEntry);
+    } else {
+        logger.error('invalid message received: ' + rawEntry);
+        this.noteQueueResult('error');
+    }
+};
+
+QueueRouter.prototype.processRoute = function(queueKey,queueEntry,rawEntry,ackState) {
+    logger.info('route(' + queueKey + '): ' + rawEntry);
+    var route = this.routes[queueKey];
+    route && route.processQueueEntry(queueEntry);
+    this.noteQueueResult('command');
 };
 
 QueueRouter.prototype.generateMessage = function(attributes) {

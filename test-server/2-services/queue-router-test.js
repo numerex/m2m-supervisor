@@ -30,19 +30,20 @@ describe('QueueRouter',function() {
         var router = new QueueRouter();
         router.config.should.eql({idleReport: 12,maxRetries: 5,timeoutInterval: 5});
         router.routes.should.eql({});
-        router.transmitArgs.should.eql(['m2m-ack:queue','m2m-transmit:queue',5]);
+        router.transmitArgs.should.eql(['m2m-ack:queue','m2m-command:queue','m2m-transmit:queue',5]);
         test.pp.snapshot().should.eql([]);
         test.mockredis.snapshot().should.eql([]);
     });
 
     it('should properly initialize data with all arguments',function(){
         var router = new QueueRouter({idleReport: 10,maxRetries: 2,timeoutInterval: 1});
-        router.addRoute(mockRoute);
+        router.addRoute(1,mockRoute);
         router.config.should.eql({idleReport: 10,maxRetries: 2,timeoutInterval: 1});
+        router.queues.should.eql({1: mockRoute.queueKey});
         router.routes.should.eql({testQueue: mockRoute});
-        router.transmitArgs.should.eql(['m2m-ack:queue','m2m-transmit:queue','testQueue',1]);
+        router.transmitArgs.should.eql(['m2m-ack:queue','m2m-command:queue','m2m-transmit:queue','testQueue',1]);
         test.pp.snapshot().should.eql([
-            '[router    ] add route: testQueue'
+            '[router    ] add route(testQueue): 1'
         ]);
         test.mockredis.snapshot().should.eql([]);
     });
@@ -243,7 +244,7 @@ describe('QueueRouter',function() {
                         {quit: null}
                     ]);
                     test.pp.snapshot().should.eql([
-                        '[router    ] add route: testQueue',
+                        '[router    ] add route(testQueue): 1',
                         '[router    ] start watching',
                         '[router    ] retry: 2',
                         '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
@@ -268,7 +269,7 @@ describe('QueueRouter',function() {
                     done();
                 }
             })
-            .addRoute(mockRoute)
+            .addRoute(1,mockRoute)
             .start(testGateway);
     });
 
@@ -290,7 +291,7 @@ describe('QueueRouter',function() {
                         {quit: null}
                     ]);
                     test.pp.snapshot().should.eql([
-                        '[router    ] add route: testQueue',
+                        '[router    ] add route(testQueue): 1',
                         '[router    ] start watching',
                         '[router    ] acked: 2',
                         '[test-route] ack: 2',
@@ -300,7 +301,7 @@ describe('QueueRouter',function() {
                     done();
                 }
             })
-            .addRoute(mockRoute)
+            .addRoute(1,mockRoute)
             .start(testGateway);
     });
 
@@ -315,7 +316,7 @@ describe('QueueRouter',function() {
                     {quit: null}
                 ]);
                 test.pp.snapshot().should.eql([
-                    '[router    ] add route: testQueue',
+                    '[router    ] add route(testQueue): 1',
                     '[router    ] start watching',
                     '[router    ] route(testQueue): "test command"',
                     '[test-route] command: test command',
@@ -324,7 +325,7 @@ describe('QueueRouter',function() {
                 mockRoute.snapshot().should.eql([{command: 'test command'}]);
                 done();
             })
-            .addRoute(mockRoute)
+            .addRoute(1,mockRoute)
             .start(testGateway);
     });
 

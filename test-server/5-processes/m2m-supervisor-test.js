@@ -190,6 +190,7 @@ describe('M2mSupervisor',function() {
             ]);
             test.mockredis.snapshot().should.eql([
                 {keys: '*'},
+                {hgetall: 'm2m-command:routes'},
                 {hgetall: 'm2m-config'},
                 {quit: null}
             ]);
@@ -203,6 +204,7 @@ describe('M2mSupervisor',function() {
         test.mockshelljs.lookup['route -n'] = [0,fs.readFileSync('test-server/data/route-no-ppp.txt').toString()];
         test.mockshelljs.lookup['route add -net 172.29.12.0 netmask 255.255.255.0 dev ppp0'] = [0,''];
         test.mockredis.lookup.keys['*'] = ['m2m-device:testKey:settings'];
+        test.mockredis.lookup.hgetall['m2m-command:routes'] = {1: 'm2m-device:testKey:settings'};
         test.mockredis.lookup.hgetall['m2m-config'] = {
             'gateway:imei': '352214046337094',
             'modem:port-file': '/dev/ttyUSB2'
@@ -219,112 +221,32 @@ describe('M2mSupervisor',function() {
         test.mockhttp.events.listening();
         var count = 0;
         supervisor.queueRouter.on('queueResult',function(result){
-            switch(count++) {
-                case 0:
-                    result.should.equal('idle');
-                    //test.pp.snapshot().should.eql([
-                    //    '[redis     ] instance removed',
-                    //    '[redis     ] instance created',
-                    //    '[socket    ] register behavior: shell',
-                    //    '[redis     ] start watching',
-                    //    '[http      ] Listening on port 3000',
-                    //    '[redis     ] check ready',
-                    //    '[redis     ] now ready',
-                    //    '[dev-route ] start watching: testKey',
-                    //    '[hash      ] start watching: m2m-device:testKey:settings',
-                    //    '[hash      ] start watching: m2m-config',
-                    //    '[hash      ] check ready: m2m-device:testKey:settings',
-                    //    '[hash      ] hash changed: m2m-device:testKey:settings',
-                    //    '[device    ] start watching: testKey',
-                    //    '[hash      ] now ready: m2m-device:testKey:settings',
-                    //    '[hash      ] check ready: m2m-config',
-                    //    '[hash      ] hash changed: m2m-config',
-                    //    '[pppd      ] start watching',
-                    //    '[pppd      ] add ppp route to GWaaS',
-                    //    '[modem     ] start watching',
-                    //    '[proxy     ] start watching',
-                    //    '[heartbeat ] start watching',
-                    //    '[heartbeat ] send heartbeat: 1',
-                    //    '[outside   ] outgoing - size: 34 from: 192.119.183.253:3011',
-                    //    '[router    ] start watching',
-                    //    '[hash      ] now ready: m2m-config',
-                    //    //'[pppd      ] add ppp route to GWaaS',
-                    //    '[device    ] check ready: testKey',
-                    //    '[device    ] now ready: testKey',
-                    //    '[reader    ] start watching'
-                    //]);
-                    //test.mockredis.snapshot().should.eql([
-                    //    {keys: '*'},
-                    //    {hgetall: 'm2m-device:testKey:settings'},
-                    //    {hgetall: 'm2m-config'},
-                    //    {incr: 'm2m-transmit:last-sequence-number'},
-                    //    {set: ['m2m-transmit:last-timestamp',1000000000000]},
-                    //    {mget:['m2m-ack:message','m2m-ack:route-key','m2m-ack:retries','m2m-ack:sequence-number']},
-                    //    {brpop: ['m2m-ack:queue','m2m-transmit:queue',5]},
-                    //]);
-                    mockdgram.deliveries.should.eql([[new Buffer([170,16,1,0,1,0,0,0,232,212,165,16,0,1,0,2,0,15,51,53,50,50,49,52,48,52,54,51,51,55,48,57,52,35]),0,34,3011,'172.29.12.253']]);
-                    mockdgram.deliveries = [];
-                    var buffer = new m2m.Message({messageType: m2m.Common.MOBILE_TERMINATED_ACK,timestamp: 0,sequenceNumber: 1}).pushString(0,supervisor.proxy.config.imei).toWire();
-                    supervisor.proxy.outside.client.events.message(buffer,{address: '172.29.12.253',port: 3011});
-                    return;
-                case 1:
-                    result.should.equal('ignore');
-                    //test.pp.snapshot().should.eql([
-                    //]);
-                    //test.mockredis.snapshot().should.eql([
-                    //    {lpush: ['m2m-ack:queue',1]},
-                    //    {hsetnx: ['m2m-config','gateway:imei','352214046337094']},
-                    //    {mget:['m2m-ack:message','m2m-ack:route-key','m2m-ack:retries','m2m-ack:sequence-number']},
-                    //    {brpop: ['m2m-ack:queue','m2m-transmit:queue','m2m-device:testKey:queue',5]}
-                    //]);
-                    _.defer(function(){
-                        supervisor.stop();
-                        //test.mockredis.snapshot().should.eql([
-                        //    {mget:['m2m-ack:message','m2m-ack:route-key','m2m-ack:retries','m2m-ack:sequence-number']},
-                        //    {brpop: ['m2m-ack:queue','m2m-transmit:queue','m2m-device:testKey:queue',5]},
-                        //    {quit: null},
-                        //    {quit: null}
-                        //]);
-                        //test.pp.snapshot().should.eql([
-                        //    '[outside   ] incoming - size: 34 from: 192.119.183.253:3011',
-                        //    '[proxy     ] relay ack: 1',
-                        //    '[modem     ] RSSI: 21,99',
-                        //    '[modem     ] IMEI: 352214046337094',
-                        //    '[router    ] add route: m2m-device:testKey:queue',
-                        //    '[router    ] ignoring queue entry: 2',
-                        //    '[redis     ] stop watching',
-                        //    '[hash      ] stop watching: m2m-config',
-                        //    '[pppd      ] stop watching',
-                        //    '[modem     ] stop watching',
-                        //    '[proxy     ] stop watching',
-                        //    '[private   ] connection closed',
-                        //    '[public    ] connection closed',
-                        //    '[outside   ] connection closed',
-                        //    '[heartbeat ] stop watching',
-                        //    '[router    ] stop watching',
-                        //    '[hash      ] stop watching: m2m-device:testKey:settings',
-                        //    '[device    ] stop watching: testKey',
-                        //    '[reader    ] stop watching'
-                        //]);
-                        test.mocknet.snapshot().should.eql([
-                            {connect: {host: 'host',port: 1234}},
-                            {end: null}
-                        ]);
-                        test.mockserialport.snapshot().should.eql([
-                            {create: ['/dev/ttyUSB2',{baudrate: 460800},false]},
-                            {open: null},
-                            {write: 'AT E1\r'},
-                            {write: 'AT+CSQ\r'},
-                            {close: null}
-                        ]);
-                        test.pp.snapshot(); // NOTE - too many race conditions
-                        test.mockredis.snapshot(); // NOTE - too many race conditions
-                        test.mockshelljs.snapshot(); // NOTE - per pppd-watcher tests, clear ...
-                        test.timekeeper.reset();
-                        done();
-                    });
-                    break;
+            if (mockdgram.deliveries.length > 0) {
+                mockdgram.deliveries.should.eql([[new Buffer([170,16,1,0,1,0,0,0,232,212,165,16,0,1,0,2,0,15,51,53,50,50,49,52,48,52,54,51,51,55,48,57,52,35]),0,34,3011,'172.29.12.253']]);
+                mockdgram.deliveries = [];
+                var buffer = new m2m.Message({messageType: m2m.Common.MOBILE_TERMINATED_ACK,timestamp: 0,sequenceNumber: 1}).pushString(0,supervisor.proxy.config.imei).toWire();
+                supervisor.proxy.outside.client.events.message(buffer,{address: '172.29.12.253',port: 3011});
             }
-        });
+
+            if (++count === 3) {
+                supervisor.stop();
+                test.mocknet.snapshot().should.eql([
+                    {connect: {host: 'host',port: 1234}},
+                    {end: null}
+                ]);
+                test.mockserialport.snapshot().should.eql([
+                    {create: ['/dev/ttyUSB2',{baudrate: 460800},false]},
+                    {open: null},
+                    {write: 'AT E1\r'},
+                    {write: 'AT+CSQ\r'},
+                    {close: null}
+                ]);
+                test.pp.snapshot(); // NOTE - too many race conditions
+                test.mockredis.snapshot(); // NOTE - too many race conditions
+                test.mockshelljs.snapshot(); // NOTE - per pppd-watcher tests, clear ...
+                test.timekeeper.reset();
+                done();
+            }
+     });
     });
 });

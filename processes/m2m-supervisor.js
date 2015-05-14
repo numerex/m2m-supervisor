@@ -3,8 +3,8 @@ var _ = require('lodash');
 var GatewayProxy = require('../services/gateway-proxy');
 var RedisWatcher = require('../services/redis-watcher');
 var HashWatcher = require('../services/hash-watcher');
+var RouteWatcher = require('../services/route-watcher');
 var QueueRouter = require('../services/queue-router');
-var DeviceRouter = require('../services/device-router');
 var PppdWatcher = require('../services/pppd-watcher');
 var ModemWatcher = require('../services/modem-watcher');
 var HeartbeatGenerator = require('../services/heartbeat-generator');
@@ -57,7 +57,9 @@ function M2mSupervisor(config){
         self.queueRouter    = new QueueRouter(config);
 
         self.configWatcher.addKeysetWatcher('gateway',true,self.queueRouter);
-        self.redisWatcher.on('ready',_.bind(self.configureDevices,self));
+        self.routeWatcher = new RouteWatcher(self.queueRouter);
+
+        self.redisWatcher.addClientWatcher(self.routeWatcher);
     }
 
     self.redisWatcher.addClientWatcher(self.configWatcher);
@@ -77,24 +79,6 @@ M2mSupervisor.prototype.start = function(){
 
 M2mSupervisor.prototype.stop = function(){
     this.redisWatcher.stop();
-};
-
-M2mSupervisor.prototype.configureDevices = function(client){
-    if (!client) return;
-
-    var self = this;
-    _.each(self.redisWatcher.keys,function(key){
-        var deviceKey = schema.device.settings.getParam(key);
-        // istanbul ignore if - should never occur, but nervous about not checking...
-        if (!deviceKey) return;
-        // istanbul ignore if - TODO maybe recreate or refresh it??
-        if (self.queueRouter.routes[deviceKey]) return;
-
-        var deviceRouter = new DeviceRouter(deviceKey)
-            .on('status',function(status){ if (status == 'ready') self.queueRouter.addRoute(deviceRouter); });
-        deviceRouter.start(client);
-        self.redisWatcher.addClientWatcher(deviceRouter.settingsWatcher);
-    });
 };
 
 module.exports = M2mSupervisor;
