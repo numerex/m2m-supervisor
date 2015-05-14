@@ -62,6 +62,7 @@ describe('M2mSupervisor',function() {
             test.pp.snapshot().should.eql([
                 '[redis     ] instance created',
                 '[socket    ] register behavior: shell',
+                '[socket    ] register behavior: command',
                 '[redis     ] start watching',
                 '[redis     ] check ready',
                 '[redis     ] redis client error: test error',
@@ -134,6 +135,7 @@ describe('M2mSupervisor',function() {
                 '[redis     ] instance removed',
                 '[redis     ] instance created',
                 '[socket    ] register behavior: shell',
+                '[socket    ] register behavior: command',
                 '[redis     ] start watching',
                 '[redis     ] check ready',
                 '[redis     ] redis client error: test error',
@@ -204,7 +206,7 @@ describe('M2mSupervisor',function() {
         test.mockshelljs.lookup['route -n'] = [0,fs.readFileSync('test-server/data/route-no-ppp.txt').toString()];
         test.mockshelljs.lookup['route add -net 172.29.12.0 netmask 255.255.255.0 dev ppp0'] = [0,''];
         test.mockredis.lookup.keys['*'] = ['m2m-device:testKey:settings'];
-        test.mockredis.lookup.hgetall['m2m-command:routes'] = {1: 'm2m-device:testKey:settings'};
+        test.mockredis.lookup.hgetall['m2m-command:routes'] = {1: 'm2m-device:testKey:queue'};
         test.mockredis.lookup.hgetall['m2m-config'] = {
             'gateway:imei': '352214046337094',
             'modem:port-file': '/dev/ttyUSB2'

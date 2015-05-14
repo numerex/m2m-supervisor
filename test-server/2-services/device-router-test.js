@@ -56,7 +56,7 @@ describe('DeviceRouter',function() {
                 '[dev-route ] start watching: testKey',
                 '[hash      ] start watching: m2m-device:testKey:settings',
                 '[hash      ] check ready: m2m-device:testKey:settings',
-                //'[hash      ] hash changed: m2m-device:testKey:settings',
+                '[hash      ] missing(connection): connection:telnet:address',
                 '[dev-route ] stop watching: testKey',
                 '[hash      ] stop watching: m2m-device:testKey:settings'
             ]);
@@ -583,7 +583,7 @@ describe('DeviceRouter',function() {
         router.start(client);
     });
 
-    it('should process a queue entry for a scheduled command',function(done){
+    it('should process a queue entry for a requested command and deliver it to an alternative destination',function(done){
         test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
             'connection:type': 'telnet',
             'connection:telnet:address': 'host',
@@ -601,14 +601,14 @@ describe('DeviceRouter',function() {
 
                 router.processQueueEntry({}); // NOTE invalid entry for test coverage...
 
-                router.processQueueEntry({command: 'test command',requestID: 2});
+                router.processQueueEntry({command: 'test command',requestID: 2,destination: 'm2m-web:queue'});
                 router.reader.device.client.events.data(new Buffer('\x01test\x03'));
 
                 router.stop();
                 events.should.eql(['device','commands','ready',null]);
                 test.mockredis.snapshot().should.eql([
                     {hgetall: 'm2m-device:testKey:settings'},
-                    {lpush: ['m2m-transmit:queue','{"2":2,"10":"test command","11":"\\u0001test\\u0003","12":null,"routeKey":"m2m-device:testKey:queue","eventCode":11}']}
+                    {lpush: ['m2m-web:queue','{"2":2,"10":"test command","11":"\\u0001test\\u0003","12":null,"routeKey":"m2m-device:testKey:queue","eventCode":11}']}
                 ]);
                 test.mocknet.snapshot().should.eql([
                     {connect: {host: 'host',port: 1234}},
@@ -625,7 +625,7 @@ describe('DeviceRouter',function() {
                     '[reader    ] start watching',
                     '[hash      ] now ready: m2m-device:testKey:settings',
                     '[dev-route ] invalid queue entry(testKey): {}',
-                    '[dev-route ] queue entry(testKey): {"command":"test command","requestID":2}',
+                    '[dev-route ] queue entry(testKey): {"command":"test command","requestID":2,"destination":"m2m-web:queue"}',
                     '[reader    ] command: "test command"',
                     '[reader    ] response: "\\u0001test\\u0003"',
                     '[dev-route ] response(testKey): "\\u0001test\\u0003"',

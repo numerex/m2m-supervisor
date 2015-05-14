@@ -29,6 +29,12 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
                 controller: 'DevicesController',
                 redirectTo: 'devices'
             })
+            .state('commands',{
+                url: '#commands',
+                templateUrl: 'partials/commands',
+                controller: 'CommandsController',
+                redirectTo: 'commands'
+            })
             .state('schedules',{
                 url: '#schedules',
                 templateUrl: 'partials/schedules',

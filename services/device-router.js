@@ -159,7 +159,7 @@ DeviceRouter.prototype.processQueueEntry = function(entry){
                 results.eventCode = settings.EventCodes.deviceCommand;
                 results[settings.ObjectTypes.requestID] = entry.requestID;
             }
-            self.client.lpush(schema.transmit.queue.key,JSON.stringify(_.defaults({},self.messageBase,results))).errorHint('lpush');
+            self.client.lpush(entry.destination || schema.transmit.queue.key,JSON.stringify(_.defaults({},self.messageBase,results))).errorHint('lpush');
         });
     }
 };

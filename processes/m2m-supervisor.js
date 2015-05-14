@@ -12,6 +12,7 @@ var HttpServer = require('../services/http-server');
 
 var SocketServer = require('../sockets/socket-server');
 var ShellBehavior = require('../sockets/shell-behavior');
+var CommandBehavior = require('../sockets/command-behavior');
 
 var schema = require('../lib/redis-schema');
 var configHashkeys = require('../lib/config-hashkeys');
@@ -68,6 +69,7 @@ function M2mSupervisor(config){
         self.httpServer     = new HttpServer().start(httpPort);
         self.socketServer   = new SocketServer().start(self.httpServer);
         self.shellBehavior  = new ShellBehavior().registerSelf(self.socketServer);
+        self.commandBehavior  = new CommandBehavior().registerSelf(self.socketServer);
     }
 }
 

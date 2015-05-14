@@ -1,0 +1,13 @@
+h1 Device Commands
+form.form-horizontal
+  fieldset
+    .form-group
+      .col-lg-11
+        .input-group
+          input.form-control(type='text',ng-model='commandLine',placeholder='Enter device command')
+          span.input-group-btn
+            button.btn.btn-primary(ng-click='executeCommand()',ng-disabled='commandActive') Submit
+      .col-lg-1
+          button.btn.btn-default(ng-click='clearOutput()',ng-disabled='lineID === 0') Clear
+.shellView
+  #commandOutput
