@@ -18,17 +18,11 @@ app.controller('CommandsController',['$rootScope','$scope','$http','$location',f
         socket.on('close',function(data){
             console.log('close: ' + JSON.stringify(data));
         });
-        socket.on('exit',function(data){
-            console.log('exit: ' + JSON.stringify(data));
-            $scope.commandActive = false;
-            $scope.$apply();
-            if (data && data.signal)
-                displayOutput('stderr','Command terminated')
-        });
         socket.on('output', function (data) {
-            //console.log('output: ' + JSON.stringify(data));
+            console.log('output: ' + JSON.stringify(data));
             displayOutput('stdout',data.stdout);
             displayOutput('stderr',data.stderr);
+            $scope.commandActive = false;
         });
         socket.on('connect',function(){
             console.log('connect');

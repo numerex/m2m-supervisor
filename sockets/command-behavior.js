@@ -44,6 +44,8 @@ CommandBehavior.prototype.commandEvent = function(socket,input){
                 if (self.client) self.client._redisClient.end();
                 self.client = null;
             });
+        socket.emit('started',{id: socket.clientID,command: input.command});
+        self.client.del(schema.web.queue.key);
         self.client.lpush(queueKey,JSON.stringify({command: input.command,responseID: socket.clientID,destination: schema.web.queue.key})).errorHint('deviceQueue:' + socket.clientID);
         self.client.brpop(schema.web.queue.key,10).thenHint('webQueue:' + socket.clientID,function(result){
             if (!result)
@@ -52,8 +54,9 @@ CommandBehavior.prototype.commandEvent = function(socket,input){
                 var entry = JSON.parse(result[1]);
                 socket.emit('output',{
                     id:         socket.clientID,
-                    stdout:   entry[settings.ObjectTypes.deviceResponse.toString()] || null,
-                    stderr:      entry[settings.ObjectTypes.deviceError.toString()] || null
+                    command:    input.command,
+                    stdout:     entry[settings.ObjectTypes.deviceResponse.toString()] || null,
+                    stderr:     entry[settings.ObjectTypes.deviceError.toString()] || null
                 });
             }
             self.cleanup();
