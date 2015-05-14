@@ -153,6 +153,12 @@ DeviceRouter.prototype.processQueueEntry = function(entry){
             results[settings.ObjectTypes.deviceCommand]  = command;
             results[settings.ObjectTypes.deviceResponse] = response;
             results[settings.ObjectTypes.deviceError]    = error;
+            if (!entry.requestID)
+                results.eventCode = settings.EventCodes.deviceSchedule;
+            else {
+                results.eventCode = settings.EventCodes.deviceCommand;
+                results[settings.ObjectTypes.requestID] = entry.requestID;
+            }
             self.client.lpush(schema.transmit.queue.key,JSON.stringify(_.defaults({},self.messageBase,results))).errorHint('lpush');
         });
     }
