@@ -1,41 +1,42 @@
 app.controller('CommandsController',['$scope','$rootScope','$http',function($scope,$rootScope,$http){
+    $scope.instanceID = ++$rootScope.instanceID;
 
-    $scope.observer = {
-        socketEvent: function(event,stdio,data){
-            switch(event){
-                case 'ready':
-                    $scope.stdio = stdio;
-                    if ($scope.currentID) $scope.stdio.socket.emit('device',$scope.currentID);
-                    break;
-                case 'note':
-                    if (!_.isUndefined(data.profile)) $scope.loadProfile(data.profile);
-                    break;
-                case 'output':
-                    stdio.commandActive = false;
-                    break;
-            }
+    $rootScope.observer = $scope;
+
+    $scope.socketEvent = function(event,stdio,data){
+        switch(event){
+            case 'ready':
+                $scope.stdio = stdio;
+                if ($scope.currentID) $scope.stdio.socket.emit('device',$scope.currentID);
+                break;
+            case 'note':
+                if (!_.isUndefined(data.profile)) $scope.loadProfile(data.profile);
+                break;
+            case 'output':
+                stdio.commandActive = false;
+                break;
         }
     };
 
-    $scope.loadProfile = function(data){
-        console.log('profile: ' + data);
+
+    $scope.loadProfile = function(profile){
 
         if (!$rootScope.profileDefinitions) $rootScope.profileDefinitions = [];
-        if ($rootScope.profileDefinitions[data])
-            $scope.changeProfile(data);
+        if ($rootScope.profileDefinitions[profile])
+            $scope.changeProfile(profile);
         else
-            $http.get('/api/definitions/' + data).success(function(profileDefinitions){
-                $rootScope.profileDefinitions[data] = _.map(_.values(profileDefinitions['definitions:' + data] || {}),JSON.parse);
-                $scope.changeProfile(data);
+            $http.get('/api/definitions/' + profile).success(function(profileDefinitions){
+                $rootScope.profileDefinitions[profile] = _.map(_.values(profileDefinitions['definitions:' + profile] || {}),JSON.parse);
+                $scope.changeProfile(profile);
             });
         
         if (!$rootScope.profileOptions) $rootScope.profileOptions = [];
-        if ($rootScope.profileOptions[data])
-            $scope.changeProfile(data);
+        if ($rootScope.profileOptions[profile])
+            $scope.changeProfile(profile);
         else
-            $http.get('/api/options/' + data).success(function(profileOptions){
-                $rootScope.profileOptions[data] = _.mapValues(profileOptions['options:' + data] || {},JSON.parse);
-                $scope.changeProfile(data);
+            $http.get('/api/options/' + profile).success(function(profileOptions){
+                $rootScope.profileOptions[profile] = _.mapValues(profileOptions['options:' + profile] || {},JSON.parse);
+                $scope.changeProfile(profile);
             });
     };
     
@@ -96,7 +97,7 @@ app.controller('CommandsController',['$scope','$rootScope','$http',function($sco
                     return pair.length === 2 ? {key: pair[1],label: pair[0]} : {key: option, label: option};
                 });
 
-            $scope.inputFields.push({match: match[0], label: _.startCase(parts[0]),format: parts[1],options: options});
+            $scope.inputFields.push({match: match[0], label: _.startCase(parts[0]),format: parts[1],options: options,value: options ? options[0] : null});
         }
 
         $scope.updateCommandLine();
@@ -114,7 +115,8 @@ app.controller('CommandsController',['$scope','$rootScope','$http',function($sco
     $scope.updateCommandLine = function(){
         $scope.initialCommandLine();
         _.each($scope.inputFields,function(field){
-            $scope.stdio.commandLine = $scope.stdio.commandLine.replace(field.match,field.value || field.format);
+            var value = _.padRight((field.value && typeof field.value === 'object' ? field.value.key : field.value) || field.format,field.format.length);
+            $scope.stdio.commandLine = $scope.stdio.commandLine.replace(field.match,value);
         });
     };
 
@@ -139,4 +141,5 @@ app.controller('CommandsController',['$scope','$rootScope','$http',function($sco
     $scope.inputOptions = ['Guided','Raw'];
     $scope.inputType = $rootScope.lastInputType || $scope.inputOptions[0];
 
+    $scope.profile = null;
 }]);

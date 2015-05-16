@@ -55,6 +55,7 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
             });
     }])
     .run(['$rootScope','$http','$interval',function($rootScope,$http,$interval) {
+        $rootScope.instanceID = 0;
         $rootScope.globalMessages = {};
         $rootScope.globalValues = {};
         $rootScope.globalStatus = {label: 'Status: Pending...',css: 'label-default'};

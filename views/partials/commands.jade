@@ -20,7 +20,8 @@ stdio-socket(behavior='"command"',observer='observer')
         option(value='') Select a command
     .col-lg-1(ng-repeat='field in inputFields')
       label.control-label {{ field.label }}
-      input.input-sm.form-control(type='text',ng-model='field.value',placeholder='{{ field.format }}',ng-change='changeFieldValue(field,field.value)')
+      input.input-sm.form-control(type='text',ng-model='field.value',placeholder='{{ field.format }}',ng-change='changeFieldValue(field,field.value)',ng-if='!field.options')
+      select.input-sm.form-control(ng-model='field.value',ng-options='item.label for item in field.options',ng-change='changeFieldValue(field,field.value)',ng-if='field.options')
     .col-lg-2
       label.control-label Command Text
       .input-group

@@ -8,6 +8,8 @@ app.directive('stdioSocket',function(){
             observer: '=observer'
         },
         controller: ['$scope','$rootScope','$location',function($scope,$rootScope,$location){
+            $scope.instanceID = ++$rootScope.instanceID;
+
             var socketName = $scope.behavior + 'Socket';
             $scope.commandActive = false;
             if ($rootScope[socketName])
