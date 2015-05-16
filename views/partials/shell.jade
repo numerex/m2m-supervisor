@@ -4,7 +4,7 @@ stdio-socket(behavior='"shell"',observer='observer')
     .input-group
       input.form-control(type='text',ng-model='stdio.commandLine',placeholder='Enter shell command')
       span.input-group-btn
-        button.btn.btn-primary(ng-click='stdio.executeCommand()',ng-disabled='stdio.commandActive') Submit
+        button.btn.btn-primary(ng-click='stdio.submitCommand()',ng-disabled='stdio.commandActive') Submit
   .col-lg-1
     button.btn.btn-default(ng-click='stdio.clearOutput()',ng-disabled='stdio.lineID === 0') Clear
     | &nbsp;

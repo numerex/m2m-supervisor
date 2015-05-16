@@ -27,7 +27,7 @@ stdio-socket(behavior='"command"',observer='observer')
       .input-group
         input.input-sm.form-control(type='text',ng-model='stdio.commandLine',placeholder='None',disabled=true)
         span.input-group-btn
-          button.btn-sm.btn.btn-primary(ng-click='stdio.executeCommand()',ng-disabled='stdio.commandActive') Submit
+          button.btn-sm.btn.btn-primary(ng-click='stdio.submitCommand()',ng-disabled='stdio.commandActive') Submit
     .col-lg-1
       label.control-label &nbsp;
       br
@@ -38,7 +38,7 @@ stdio-socket(behavior='"command"',observer='observer')
       .input-group
         input.input-sm.form-control(type='text',ng-model='stdio.commandLine',placeholder='Enter device command')
         span.input-group-btn
-          button.input-sm.btn.btn-primary(ng-click='stdio.executeCommand()',ng-disabled='stdio.commandActive') Submit
+          button.input-sm.btn.btn-primary(ng-click='stdio.submitCommand()',ng-disabled='stdio.commandActive') Submit
     .col-lg-1
       label.control-label &nbsp;
       br

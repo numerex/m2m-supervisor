@@ -1,5 +1,19 @@
 app.controller('ShellController',['$scope',function($scope){
 
-    $scope.observer = { socketEvent: function(event,stdio,data){ if (event === 'ready') $scope.stdio = stdio; } };
+    $scope.observer = $scope;
+
+    $scope.socketEvent = function(event,stdio,data){
+        switch(event){
+            case 'ready':
+                $scope.stdio = stdio;
+                break;
+            case 'submit':
+                stdio.socket.emit('input',{command: stdio.commandLine});
+                break;
+            case 'kill':
+                stdio.socket.emit('kill',{signal: 'SIGTERM'});
+                break;
+        }
+    };
 
 }]);

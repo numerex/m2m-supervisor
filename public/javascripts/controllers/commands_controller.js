@@ -9,6 +9,9 @@ app.controller('CommandsController',['$scope','$rootScope','$http',function($sco
                 $scope.stdio = stdio;
                 if ($scope.currentID) $scope.stdio.socket.emit('device',$scope.currentID);
                 break;
+            case 'submit':
+                stdio.socket.emit('command',{command: stdio.commandLine});
+                break;
             case 'note':
                 if (!_.isUndefined(data.profile)) $scope.loadProfile(data.profile);
                 break;
