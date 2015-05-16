@@ -1,77 +1,142 @@
-app.controller('CommandsController',['$rootScope','$scope','$http','$location',function($rootScope,$scope,$http,$location){
-    $scope.commandActive = false;
-    if (!$rootScope.commandSocket) {
-        var socket = io($location.host() + ':' + $location.port());
-        socket.on('indentified',function(data){
-            console.log('indentified: ' + data);
-        });
-        socket.on('behavior',function(data){
-            console.log('behavior: ' + JSON.stringify(data));
-        });
-        socket.on('started',function(data){
-            console.log('started: ' + JSON.stringify(data));
-            if (data && data.command)
-                displayOutput('stdin','> ' + data.command);
-            $scope.commandActive = true;
-            $scope.$apply();
-        });
-        socket.on('close',function(data){
-            console.log('close: ' + JSON.stringify(data));
-        });
-        socket.on('output', function (data) {
-            console.log('output: ' + JSON.stringify(data));
-            displayOutput('stdout',data.stdout);
-            displayOutput('stderr',data.stderr);
-            $scope.commandActive = false;
-        });
-        socket.on('connect',function(){
-            console.log('connect');
-            socket.emit('behavior','command');
-        });
-        socket.on('disconnect',function(){
-            console.log('disconnect');
-        });
-        socket.on('error',function(error){
-            console.log('error:' + error);
-            displayOutput('socket-error',error);
-        });
-        socket.on('reconnect',function(number){
-            console.log('reconnect:' + number);
-        });
-        socket.on('reconnect_attempt',function(){
-            console.log('reconnect_attempt');
-        });
-        socket.on('reconnecting',function(number){
-            console.log('reconnecting:' + number);
-        });
-        socket.on('reconnect_failed',function(){
-            console.log('reconnect_failed');
-        });
-        $rootScope.commandSocket = socket;
-    }
+app.controller('CommandsController',['$scope','$rootScope','$http',function($scope,$rootScope,$http){
 
-    $scope.lineID = 0;
-
-    var output = $('#commandOutput');
-    $scope.clearOutput = function(){
-        $scope.lineID = 0;
-        output.children('.shell-line').empty();
+    $scope.observer = {
+        socketEvent: function(event,stdio,data){
+            switch(event){
+                case 'ready':
+                    $scope.stdio = stdio;
+                    if ($scope.currentID) $scope.stdio.socket.emit('device',$scope.currentID);
+                    break;
+                case 'note':
+                    if (!_.isUndefined(data.profile)) $scope.loadProfile(data.profile);
+                    break;
+                case 'output':
+                    stdio.commandActive = false;
+                    break;
+            }
+        }
     };
 
-    $scope.commandLine = '';
-    $scope.executeCommand = function(){
-        $rootScope.commandSocket.emit('input',{command: $scope.commandLine,device: $rootScope.currentDeviceID});
-    };
+    $scope.loadProfile = function(data){
+        console.log('profile: ' + data);
 
-    var MAX_LINES = 100;
-
-    displayOutput = function(css,text){
-        if (text)
-            _.each(text.split('\n'),function(line){
-                if (++$scope.lineID > MAX_LINES)
-                    $('#shell_line_' + ($scope.lineID - MAX_LINES)).empty();
-                output.append('<div id="shell_line_' + $scope.lineID + '" class="shell-line ' + css +'">' + _.escape(line).replace(/ /g,'&nbsp;') + '</div>');
+        if (!$rootScope.profileDefinitions) $rootScope.profileDefinitions = [];
+        if ($rootScope.profileDefinitions[data])
+            $scope.changeProfile(data);
+        else
+            $http.get('/api/definitions/' + data).success(function(profileDefinitions){
+                $rootScope.profileDefinitions[data] = _.map(_.values(profileDefinitions['definitions:' + data] || {}),JSON.parse);
+                $scope.changeProfile(data);
+            });
+        
+        if (!$rootScope.profileOptions) $rootScope.profileOptions = [];
+        if ($rootScope.profileOptions[data])
+            $scope.changeProfile(data);
+        else
+            $http.get('/api/options/' + data).success(function(profileOptions){
+                $rootScope.profileOptions[data] = _.mapValues(profileOptions['options:' + data] || {},JSON.parse);
+                $scope.changeProfile(data);
             });
     };
+    
+    $scope.changeProfile = function(profile){
+        if ($scope.profile === profile || !$rootScope.profileOptions[profile] || !$rootScope.profileDefinitions[profile]) return;
+
+        $scope.profile = profile;
+        $scope.options = $rootScope.profileOptions[profile];
+
+        if ($scope.options.command.length === 0)
+            $scope.commandTypes = [
+                {key: 'read',label: 'Read'},
+                {key: 'write',label: 'Write'}
+            ];
+        else {
+            $scope.commandTypes = [];
+            _.each($scope.options.command,function(option){
+                $scope.commandTypes.push({key: 'read:' + option,label: 'Read-' + _.startCase(option)});
+                $scope.commandTypes.push({key: 'write:' + option,label: 'Write-' + _.startCase(option)});
+            })
+        }
+        $scope.commandType = $scope.commandTypes[0];
+
+        $scope.commandFilters = _.map(_.select(_.map($scope.options,function(value,key){ return _.isArray(value) && value.length === 1 ? key : null; })),function(option){
+            return {key: option,label: _.startCase(option) };
+        });
+
+        $scope.changeCommandFilter($scope.commandFilters[0] || null);
+    };
+
+    $scope.changeCommandType = function(value){
+        $scope.commandType = value;
+        $scope.changeCurrentCommand($scope.currentCommand);
+    };
+
+    $scope.changeCommandFilter = function(value){
+        $scope.commandFilter = value;
+        $scope.definitions = $rootScope.profileDefinitions[$scope.profile];
+        if (value) $scope.definitions = _.select($scope.definitions,function(definition) { return definition['attr:' + value.key]; });
+    };
+
+    $scope.changeCurrentCommand = function(value){
+        $scope.inputFields = [];
+        $scope.currentCommand = value;
+        $scope.initialCommandLine();
+
+        if (_.indexOf($scope.stdio.commandLine || '','{') < 0) return;
+
+        var match = null;
+        var regex = /{([^}]*)}/g;
+        while (match = regex.exec($scope.stdio.commandLine)) {
+            var parts = match[1].split(':');
+
+            var options = null;
+            if (parts[2])
+                options = _.map(parts[2].split(','),function(option){
+                    var pair = option.split('=');
+                    return pair.length === 2 ? {key: pair[1],label: pair[0]} : {key: option, label: option};
+                });
+
+            $scope.inputFields.push({match: match[0], label: _.startCase(parts[0]),format: parts[1],options: options});
+        }
+
+        $scope.updateCommandLine();
+    };
+
+    $scope.changeFieldValue = function(field,value){
+        field.value = value;
+        $scope.updateCommandLine();
+    };
+
+    $scope.initialCommandLine = function(){
+        $scope.stdio.commandLine = $scope.currentCommand && $scope.commandType ? $scope.currentCommand[$scope.commandType.key] : null;
+    };
+
+    $scope.updateCommandLine = function(){
+        $scope.initialCommandLine();
+        _.each($scope.inputFields,function(field){
+            $scope.stdio.commandLine = $scope.stdio.commandLine.replace(field.match,field.value || field.format);
+        });
+    };
+
+    $scope.changeInputType = function(value){
+        $rootScope.lastInputType = $scope.inputType = value;
+    };
+
+    $scope.changeCurrentID = function(value){
+        if ($scope.currentID === value) return;
+
+        $rootScope.currentDeviceID = $scope.currentID = value;
+        if ($scope.stdio) $scope.stdio.socket.emit('device',value);
+    };
+
+    $scope.devices = [];
+    $scope.currentID = $rootScope.currentDeviceID;
+    $http.get('/api/devices').success(function(result){
+        $scope.devices = result.devices || [];
+        $scope.changeCurrentID($scope.devices[0]);
+    });
+
+    $scope.inputOptions = ['Guided','Raw'];
+    $scope.inputType = $rootScope.lastInputType || $scope.inputOptions[0];
 
 }]);

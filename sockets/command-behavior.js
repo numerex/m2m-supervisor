@@ -1,16 +1,19 @@
+var M2mSupervisor = null;
 var RedisWatcher = require('../services/redis-watcher');
 
 var schema = require('../lib/redis-schema');
 var settings = require('../lib/m2m-settings');
+var hashkeys = require('../lib/device-hashkeys');
 
 var logger = require('../lib/logger')('command');
 
 function CommandBehavior(){
     var self = this;
-    self.client = null;
     self.eventHandlers = [
+        {event: 'device',callback: function(socket,data){ self.deviceEvent(socket,data); }},
         {event: 'input',callback: function(socket,data){ self.commandEvent(socket,data); }}
     ];
+    M2mSupervisor = require('../processes/m2m-supervisor'); // delay for instance to exist
 }
 
 CommandBehavior.prototype.registerSelf = function(socketServer){
@@ -20,34 +23,52 @@ CommandBehavior.prototype.registerSelf = function(socketServer){
 
 CommandBehavior.prototype.closeEvent = function(socket) {
     logger.info('close(' + socket.clientID + ')');
-    this.cleanup();
+    this.cleanupDeviceContext(socket);
 };
 
 CommandBehavior.prototype.disconnectEvent = function(socket) {
     logger.info('disconnect(' + socket.clientID + ')');
-    this.cleanup();
+    this.cleanupDeviceContext(socket);
+};
+
+CommandBehavior.prototype.deviceEvent = function(socket,device){
+    var commandQueueKey = schema.device.queue.useParam(device);
+    if (!RedisWatcher.instance || !RedisWatcher.instance.started())
+        socket.emit('output',{id: socket.clientID,stderr: 'Redis not ready'});
+    else if (!M2mSupervisor.instance || !M2mSupervisor.instance.queueRouter || !M2mSupervisor.instance.queueRouter.started() || !M2mSupervisor.instance.queueRouter.routes[commandQueueKey])
+        socket.emit('output',{id: socket.clientID,stderr: 'Device not ready: ' + device});
+    else {
+        logger.info('device(' + socket.clientID + '): ' + JSON.stringify(device));
+        socket.webQueueKey = schema.web.queue.useParam(socket.clientID);
+        if (!socket.redisClient) {
+            socket.redisClient = require('../lib/hinted-redis').createClient().on('error',function(error){
+                logger.error('redis client error(' + socket.clientID + '): ' + error);
+
+                // istanbul ignore else - this shouldn't occur, but just nervous about assuming it won't
+                if (socket.redisClient) socket.redisClient._redisClient.end();
+                socket.redisClient = null;
+            });
+        }
+        socket.commandQueueKey = commandQueueKey;
+        socket.redisClient.del(socket.webQueueKey);
+        socket.emit('output',{id: socket.clientID,stdin: 'Device ready: ' + device});
+
+        socket.redisClient.hgetall(schema.device.settings.useParam(device)).thenHint('getSettings',function(settings){
+            socket.emit('note',{profile: settings[hashkeys.commands.profile.key] || null});
+        });
+    }
 };
 
 CommandBehavior.prototype.commandEvent = function(socket,input){
     var self = this;
-    try {
+    if (!socket.commandQueueKey)
+        socket.emit('output',{id: socket.clientID,stderr: 'Device not ready'});
+    else {
         logger.info('input(' + socket.clientID + '): ' + JSON.stringify(input));
 
-        if (!RedisWatcher.instance || !RedisWatcher.instance.started()) throw(new Error('Redis not started'));
-
-        var queueKey = schema.device.queue.useParam(input.device);
-        self.client = require('../lib/hinted-redis').createClient()
-            .on('error',function(error){
-                logger.error('redis client error: ' + error);
-
-                // istanbul ignore else - this shouldn't occur, but just nervous about assuming it won't
-                if (self.client) self.client._redisClient.end();
-                self.client = null;
-            });
         socket.emit('started',{id: socket.clientID,command: input.command});
-        self.client.del(schema.web.queue.key);
-        self.client.lpush(queueKey,JSON.stringify({command: input.command,responseID: socket.clientID,destination: schema.web.queue.key})).errorHint('deviceQueue:' + socket.clientID);
-        self.client.brpop(schema.web.queue.key,10).thenHint('webQueue:' + socket.clientID,function(result){
+        socket.redisClient.lpush(socket.commandQueueKey,JSON.stringify({command: input.command,responseID: socket.clientID,destination: socket.webQueueKey})).errorHint('deviceQueue:' + socket.clientID);
+        socket.redisClient.brpop(socket.webQueueKey,10).thenHint('webQueue:' + socket.clientID,function(result){
             if (!result)
                 socket.emit('output',{id: socket.clientID,command: input.command,stderr: 'timeout'});
             else {
@@ -59,18 +80,17 @@ CommandBehavior.prototype.commandEvent = function(socket,input){
                     stderr:     entry[settings.ObjectTypes.deviceError.toString()] || null
                 });
             }
-            self.cleanup();
         })
-
-    } catch(e) {
-        logger.error('command error: ' + e);
-        socket.emit('output',{id: socket.clientID,stderr: e.message});
     }
 };
 
-CommandBehavior.prototype.cleanup = function(){
-    if (this.client) this.client.quit();
-    this.client = null;
+CommandBehavior.prototype.cleanupDeviceContext = function(socket){
+    socket.commandQueueKey = null;
+    if (socket.redisClient) {
+        socket.redisClient.del(socket.webQueueKey);
+        socket.redisClient.quit();
+    }
+    socket.redisClient = null;
 };
 
 module.exports = CommandBehavior;
