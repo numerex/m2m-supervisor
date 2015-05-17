@@ -19,19 +19,14 @@ function RedisWatcher(config){
 
 util.inherits(RedisWatcher,Watcher);
 
-RedisWatcher.prototype._onStart = function() {
-    this.redis = require('../lib/hinted-redis'); // NOTE - delay require for mockery testing
-};
-
 RedisWatcher.prototype._onStop = function(){
     if (this.client) this.client.quit();
     this.client = null;
-    this.redis = null;
 };
 
 RedisWatcher.prototype._onCheckReady = function(callback){
     var self = this;
-    self.client = self.redis.createClient().on('error',function(error){
+    self.client = require('../lib/hinted-redis').createClient().on('error',function(error){
         logger.error('redis client error: ' + error);
 
         // istanbul ignore else - this shouldn't occur, but just nervous about assuming it won't

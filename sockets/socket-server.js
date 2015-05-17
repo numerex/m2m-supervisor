@@ -45,8 +45,9 @@ SocketServer.prototype.applyBehavior = function(type,socket) {
     logger.info('behavior(' + socket.clientID + '): ' + type);
 
     var self = this;
-    var behavior = self.behaviors[type];
+    var behavior = null;
     if (!socket.behaviors[type]) {
+        behavior = self.behaviors[type];
         socket.behaviors[type] = behavior;
         _.each((behavior && behavior.eventHandlers) || [],function(handler){
             socket.on(handler.event,function(data) {

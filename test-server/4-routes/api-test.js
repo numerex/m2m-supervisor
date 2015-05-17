@@ -41,6 +41,7 @@ describe('API router',function() {
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
                     /^\[express   \] \S+ --> GET \/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] redis client error: test error',

@@ -40,21 +40,19 @@ CommandBehavior.prototype.deviceEvent = function(socket,device){
     else {
         logger.info('device(' + socket.clientID + '): ' + JSON.stringify(device));
         socket.webQueueKey = schema.web.queue.useParam(socket.clientID);
-        if (!socket.redisClient) {
+        if (!socket.redisClient)
+            // istanbul ignore next - TODO find a way to DRY this up w/ others like it...
             socket.redisClient = require('../lib/hinted-redis').createClient().on('error',function(error){
                 logger.error('redis client error(' + socket.clientID + '): ' + error);
-
-                // istanbul ignore else - this shouldn't occur, but just nervous about assuming it won't
                 if (socket.redisClient) socket.redisClient._redisClient.end();
                 socket.redisClient = null;
             });
-        }
         socket.commandQueueKey = commandQueueKey;
         socket.redisClient.del(socket.webQueueKey);
         socket.emit('output',{id: socket.clientID,stdin: 'Device ready: ' + device});
 
         socket.redisClient.hgetall(schema.device.settings.useParam(device)).thenHint('getSettings',function(settings){
-            socket.emit('note',{profile: settings[hashkeys.commands.profile.key] || null});
+            socket.emit('note',{id: socket.clientID,profile: (settings && settings[hashkeys.commands.profile.key]) || null});
         });
     }
 };
@@ -64,7 +62,7 @@ CommandBehavior.prototype.commandEvent = function(socket,input){
     if (!socket.commandQueueKey)
         socket.emit('output',{id: socket.clientID,stderr: 'Device not ready'});
     else {
-        logger.info('input(' + socket.clientID + '): ' + JSON.stringify(input));
+        logger.info('command(' + socket.clientID + '): ' + JSON.stringify(input));
 
         socket.emit('started',{id: socket.clientID,command: input.command});
         socket.redisClient.lpush(socket.commandQueueKey,JSON.stringify({command: input.command,responseID: socket.clientID,destination: socket.webQueueKey})).errorHint('deviceQueue:' + socket.clientID);

@@ -16,7 +16,7 @@ describe('SocketServer',function() {
         test.mocksocketio.snapshot().calls.should.eql([]);
     });
 
-    it('should be successfully started and a socket connected with a simple behavior applied',function(){
+    it('should be successfully started and a socket connected with a simple behavior applied but only once',function(){
         var socketServer = new SocketServer();
         socketServer.started().should.not.be.ok;
         socketServer.start('test http').should.equal(socketServer);
@@ -39,14 +39,19 @@ describe('SocketServer',function() {
         ]);
 
         mockSocket.eventHandlers.behavior('mock');
+        mockSocket.eventHandlers.behavior('mock');
         mockSocket.eventHandlers.disconnect(null);
         mockSocket.eventHandlers.close(null);
         test.mocksocketio.snapshot().should.eql({
             events: ['connection'],
             sockets: [{id: 0,events: ['behavior','disconnect','close']}],
-            calls: [{emit: {socket: 0,behavior: {id: 1,result: true}}}]
+            calls: [
+                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,behavior: {id: 1,result: false}}}
+            ]
         });
         test.pp.snapshot().should.eql([
+            '[socket    ] behavior(1): mock',
             '[socket    ] behavior(1): mock',
             '[socket    ] disconnect(1)',
             '[socket    ] close(1)'
