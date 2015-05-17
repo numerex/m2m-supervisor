@@ -1,4 +1,4 @@
-.shellView { /* TODO figure out how to make the shell output scroll inside the shell view */
+.stdioView { /* TODO figure out how to make the shell output scroll inside the shell view */
     overflow: auto;
     position: relative;
     height: 100%;
@@ -7,7 +7,7 @@
 #shellOutput {
 }
 
-.shell-line {
+.stdio-line {
 }
 
 .stdin, .stdout, .stderr {

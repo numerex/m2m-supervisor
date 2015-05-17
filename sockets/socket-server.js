@@ -15,6 +15,7 @@ SocketServer.prototype.start = function (httpServer) {
     self.lastID = 0;
     self.io = require('socket.io')(httpServer); // NOTE delay require for testability
     self.io.on('connection',function (socket) {
+        socket.behaviors = {};
         socket.clientID = ++self.lastID;
         logger.info('connection(' + socket.clientID + ')');
         socket.emit('identified',{id: socket.clientID});
@@ -23,11 +24,11 @@ SocketServer.prototype.start = function (httpServer) {
         });
         socket.on('disconnect', function () {
             logger.info('disconnect(' + socket.clientID + ')');
-            if (self.behavior && self.behavior.disconnectEvent) self.behavior.disconnectEvent(socket);
+            _.each(socket.behaviors,function(behavior) { behavior && behavior.disconnectEvent && behavior.disconnectEvent(socket); })
         });
         socket.on('close', function () {
             logger.info('close(' + socket.clientID + ')');
-            if (self.behavior && self.behavior.closeEvent) self.behavior.closeEvent(socket);
+            _.each(socket.behaviors,function(behavior) { behavior && behavior.closeEvent && behavior.closeEvent(socket); })
         });
     });
     return this;
@@ -44,13 +45,17 @@ SocketServer.prototype.applyBehavior = function(type,socket) {
     logger.info('behavior(' + socket.clientID + '): ' + type);
 
     var self = this;
-    self.behavior = self.behaviors[type];
-    _.each(self.behavior && self.behavior.eventHandlers ? self.behavior.eventHandlers : [],function(handler){
-        socket.on(handler.event,function(data) {
-            handler.callback(socket,data);
+    var behavior = null;
+    if (!socket.behaviors[type]) {
+        behavior = self.behaviors[type];
+        socket.behaviors[type] = behavior;
+        _.each((behavior && behavior.eventHandlers) || [],function(handler){
+            socket.on(handler.event,function(data) {
+                handler.callback(socket,data);
+            });
         });
-    });
-    socket.emit('behavior',{id: socket.clientID,result: !!self.behavior});
+    }
+    socket.emit('behavior',{id: socket.clientID,result: !!behavior});
 };
 
 module.exports = SocketServer;

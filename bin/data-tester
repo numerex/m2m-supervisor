@@ -45,8 +45,8 @@ emitter
                 .on('change',function(hash){
                     if (!hash) return;
 
-                    var connection = configWatcher.validateRequirements(hashkeys.connection,helpers.requirements(hashkeys.connection));
-                    var commands = configWatcher.validateRequirements(hashkeys.commands,helpers.requirements(hashkeys.commands));
+                    var connection = configWatcher.validateRequirements('connection',hashkeys.connection,helpers.requirements(hashkeys.connection));
+                    var commands = configWatcher.validateRequirements('commands',hashkeys.commands,helpers.requirements(hashkeys.commands));
                     if (connection && commands)
                         emitter.emit('reader',connection,commands);
                     else

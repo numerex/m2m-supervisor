@@ -29,6 +29,12 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
                 controller: 'DevicesController',
                 redirectTo: 'devices'
             })
+            .state('commands',{
+                url: '#commands',
+                templateUrl: 'partials/commands',
+                controller: 'CommandsController',
+                redirectTo: 'commands'
+            })
             .state('schedules',{
                 url: '#schedules',
                 templateUrl: 'partials/schedules',
@@ -48,10 +54,12 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
                 redirectTo: 'shell'
             });
     }])
-    .run(['$rootScope','$http','$interval',function($rootScope,$http,$interval) {
+    .run(['$rootScope','$http','$interval','$location',function($rootScope,$http,$interval,$location) {
+        $rootScope.instanceID = 0;
         $rootScope.globalMessages = {};
         $rootScope.globalValues = {};
         $rootScope.globalStatus = {label: 'Status: Pending...',css: 'label-default'};
+
         $rootScope.checkStatus = function(){
             $http.get('/api/status')
                 .success(function(result){
@@ -73,5 +81,46 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
         };
         $rootScope.checkStatus();
         $interval($rootScope.checkStatus,15*1000);
+
+        $rootScope.setupSocket = function(flavor,callback) {
+            if (!$rootScope.socket) {
+                $rootScope.socket = io($location.host() + ':' + $location.port());
+                $rootScope.socket.flavors = {};
+
+                $rootScope.socket.on('identified',function(data){
+                    console.log('identified: ' + JSON.stringify(data));
+                });
+                $rootScope.socket.on('close',function(data){
+                    console.log('close: ' + JSON.stringify(data));
+                });
+                $rootScope.socket.on('connect',function(){
+                    console.log('connect');
+                });
+                $rootScope.socket.on('disconnect',function(){
+                    console.log('disconnect');
+                });
+                $rootScope.socket.on('error',function(error){
+                    console.log('error:' + error);
+                });
+                $rootScope.socket.on('reconnect',function(number){
+                    console.log('reconnect:' + number);
+                });
+                $rootScope.socket.on('reconnect_attempt',function(){
+                    console.log('reconnect_attempt');
+                });
+                $rootScope.socket.on('reconnecting',function(number){
+                    console.log('reconnecting:' + number);
+                });
+                $rootScope.socket.on('reconnect_failed',function(){
+                    console.log('reconnect_failed');
+                });
+            }
+            if (!$rootScope.socket.flavors[flavor]) {
+                $rootScope.socket.flavors[flavor] = true;
+                callback && callback($rootScope.socket);
+            }
+            return $rootScope.socket;
+        }
+
 
     }]);

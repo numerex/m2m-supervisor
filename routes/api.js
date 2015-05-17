@@ -212,12 +212,12 @@ declareRouteGetByID('profile',function(res,id){
     requestHash(res,schema.command.profile.useParam(id),'profile:' + id,null);
 });
 
-// OPTIONS ----------------
+declareRouteGetByID('options',function(res,id){
+    requestHash(res,schema.command.options.useParam(id),'options:' + id,null);
+});
 
-declareRouteList('options',schema.schedule.periods);
-
-declareRouteGetByID('option',function(res,id){
-    requestHash(res,schema.command.options.useParam(id),'option:' + id,null);
+declareRouteGetByID('definitions',function(res,id){
+    requestHash(res,schema.command.definitions.useParam(id),'definitions:' + id,null);
 });
 
 // STATUS ----------------

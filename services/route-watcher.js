@@ -16,7 +16,7 @@ function RouteWatcher(queueRouter,config) {
         if (!routes) return;
 
         _.each(routes,function(routeKey,routeID){
-            var deviceKey = schema.device.settings.getParam(routeKey);
+            var deviceKey = schema.device.queue.getParam(routeKey);
             // istanbul ignore if - should never occur, but nervous about not checking...
             if (!deviceKey) return;
             // istanbul ignore if - TODO maybe recreate or refresh it??

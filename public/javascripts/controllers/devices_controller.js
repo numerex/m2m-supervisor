@@ -35,7 +35,7 @@ app.controller('DevicesController',['$scope','$rootScope','$http',function($scop
                 if (result.error)
                     $rootScope.globalMessages = {error: result.error};
                 else
-                    $scope.currentID = ($scope.devices[0] || $scope.newDevice).id;
+                    $rootScope.currentDeviceID = $scope.currentID = ($scope.devices[0] || $scope.newDevice).id;
             })
             .error(function (error){
                 $scope.error = error;
@@ -44,7 +44,7 @@ app.controller('DevicesController',['$scope','$rootScope','$http',function($scop
 
     $scope.makeActive = function(device){
         $rootScope.globalMessages = {};
-        $scope.currentID = device.id;
+        $rootScope.currentDeviceID = $scope.currentID = device.id;
     };
 
     $scope.setupDevices();

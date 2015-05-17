@@ -64,6 +64,7 @@ HashWatcher.prototype.addChangeWatcher = function(watcher){
 HashWatcher.prototype.addKeysetWatcher = function(keyset,required,watcher){
     var self = this;
     var target = {
+        keyset: keyset,
         ready: false,
         watcher: watcher,
         needs: self.hashkeys[keyset],
@@ -75,15 +76,17 @@ HashWatcher.prototype.addKeysetWatcher = function(keyset,required,watcher){
     return self;
 };
 
-HashWatcher.prototype.validateRequirements = function(needs,requirements){
-    return _.difference(requirements,_.intersection(requirements,_.keys(this.hash))).length > 0 ?
-        null :
-        helpers.hash2config(this.hash,needs);
+HashWatcher.prototype.validateRequirements = function(keyset,needs,requirements){
+    var misses = _.difference(requirements,_.intersection(requirements,_.keys(this.hash)));
+    if (misses.length == 0) return helpers.hash2config(this.hash,needs);
+
+    logger.info('missing(' + keyset + '): ' + misses);
+    return null;
 };
 
 HashWatcher.prototype.checkKeysetWatcher = function(target){
     var self = this;
-    var result = self.validateRequirements(target.needs,target.requirements);
+    var result = self.validateRequirements(target.keyset,target.needs,target.requirements);
     if (result)
         target.ready = true;
     else

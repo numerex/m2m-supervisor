@@ -113,6 +113,7 @@ describe('HashWatcher',function() {
                 test.pp.snapshot().should.eql([
                     '[hash      ] start watching: test-hash',
                     '[hash      ] check ready: test-hash',
+                    '[hash      ] missing(keyset): test-key',
                     '[hash      ] check ready: test-hash',
                     '[hash      ] stop watching: test-hash'
                 ]);
@@ -246,6 +247,7 @@ describe('HashWatcher',function() {
                         '[hash      ] start watching: test-hash',
                         '[hash      ] check ready: test-hash',
                         '[hash      ] now ready: test-hash',
+                        '[hash      ] missing(keyset): test-key',
                         '[hash      ] check ready: test-hash',
                         '[hash      ] no longer ready: test-hash',
                         '[hash      ] stop watching: test-hash'
