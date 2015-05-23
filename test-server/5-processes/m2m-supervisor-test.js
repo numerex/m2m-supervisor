@@ -227,7 +227,7 @@ describe('M2mSupervisor',function() {
                 mockdgram.deliveries.should.eql([[new Buffer([170,16,1,0,1,0,0,0,232,212,165,16,0,1,0,2,0,15,51,53,50,50,49,52,48,52,54,51,51,55,48,57,52,35]),0,34,3011,'172.29.12.253']]);
                 mockdgram.deliveries = [];
                 var buffer = new m2m.Message({messageType: m2m.Common.MOBILE_TERMINATED_ACK,timestamp: 0,sequenceNumber: 1}).pushString(0,supervisor.proxy.config.imei).toWire();
-                supervisor.proxy.outside.client.events.message(buffer,{address: '172.29.12.253',port: 3011});
+                supervisor.proxy.outsideListener.client.events.message(buffer,{address: '172.29.12.253',port: 3011});
             }
 
             if (++count === 3) {

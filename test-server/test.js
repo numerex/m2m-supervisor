@@ -471,11 +471,16 @@ var MockHTTP = {
         MockHTTP.app = null;
         MockHTTP.addressResult = null;
         MockHTTP.events = {};
+        MockHTTP.statusCode = 200;
+        MockHTTP.written = [];
     },
     createServer: function(app){ MockHTTP.app = app; return MockHTTP; },
     listen: function(port){ MockHTTP.port = port; },
     address: function(){ return MockHTTP.addressResult || {addr: 'host',port: MockHTTP.port || 1234}; },
-    on: function(event,callback){ MockHTTP.events[event] = callback; return MockHTTP; }
+    on: function(event,callback){ MockHTTP.events[event] = callback; return MockHTTP; },
+    request: function(options,callback){ MockHTTP.callback = callback; return MockHTTP; },
+    write: function(data) { MockHTTP.written.push(data); },
+    end: function() { MockHTTP.written.push(null); MockHTTP.callback && MockHTTP.callback({statusCode: MockHTTP.statusCode}); MockHTTP.callback = null; }
 };
 
 module.exports.mockhttp = MockHTTP;
