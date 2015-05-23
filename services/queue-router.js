@@ -128,7 +128,8 @@ QueueRouter.prototype.checkQueue = function(){
 
 QueueRouter.prototype.processPendingMessage = function(ackState){
     var self = this;
-    if (+ackState.retries >= self.config.maxRetries) {
+    var retries = +ackState.retries;
+    if (retries >= self.config.maxRetries) {
         logger.error('too many retries: ' + ackState.sequenceNumber);
         self.client.send('del',ACK_STATE_KEYS).thenHint('tooManyRetries',function(){
             var route = self.routes[ackState.routeKey];
@@ -138,7 +139,7 @@ QueueRouter.prototype.processPendingMessage = function(ackState){
     } else {
         logger.info('retry: ' + ackState.sequenceNumber);
         self.client.incr(schema.ack.retries.key).thenHint('incrRetries',function(){
-            self.transmitMessage(new m2m.Message({json: ackState.message}));
+            self.transmitMessage(new m2m.Message({json: ackState.message}),retries % 2 == 1);
             self.noteQueueResult('retry');
         });
     }
@@ -269,10 +270,11 @@ QueueRouter.prototype.assembleMessage = function(routeKey,eventCode,timestamp,se
     });
 };
 
-QueueRouter.prototype.transmitMessage = function(message){
+QueueRouter.prototype.transmitMessage = function(message,toggleRelay){
+    var relay = !toggleRelay ? this.gateway.primary : this.gateway.primary === 'public' ? 'private' : 'public';
     logger.info('transmit: ' + JSON.stringify(message));
     this.idleCount = 0;
-    this.listener.send(message.toWire(),'localhost',+this.gateway[this.gateway.primary + 'Relay']); // TODO which relay to use?
+    this.listener.send(message.toWire(),'localhost',+this.gateway[relay + 'Relay']); // TODO which relay to use?
 };
 
 QueueRouter.prototype.noteQueueResult = function(result){

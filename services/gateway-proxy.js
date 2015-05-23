@@ -79,11 +79,10 @@ GatewayProxy.prototype.sendPublic = function(buffer,ignoreAckHint){
 };
 
 GatewayProxy.prototype.sendPrimary = function(buffer,ignoreAckHint){
-    var self = this;
-    if (self.config.primary == 'private')
-        self.sendPrivate(buffer,ignoreAckHint);
+    if (this.config.primary === 'private')
+        this.sendPrivate(buffer,ignoreAckHint);
     else
-        self.sendPublic(buffer,ignoreAckHint);
+        this.sendPublic(buffer,ignoreAckHint);
 };
 
 GatewayProxy.prototype.routeCommand = function(message){

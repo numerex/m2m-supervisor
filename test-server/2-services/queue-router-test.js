@@ -1,3 +1,4 @@
+var _ = require('lodash');
 var test = require('../test');
 var QueueRouter = require(process.cwd() + '/services/queue-router');
 
@@ -222,7 +223,7 @@ describe('QueueRouter',function() {
         }).start(testGateway);
     });
 
-    it('should retry several times and then discard a message that is not acked',function(done){
+    it('should retry several times and then discard a message that is not acked where primary is private',function(done){
         test.mockredis.lookup.get['m2m-ack:message'] = '{"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}';
         test.mockredis.lookup.get['m2m-ack:sequence-number'] = '2';
         test.mockredis.lookup.get['m2m-ack:route-key'] = 'testQueue';
@@ -251,13 +252,13 @@ describe('QueueRouter',function() {
                         "[router    ] outgoing - size: 34 from: localhost:4001",
                         '[router    ] retry: 2',
                         '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                        "[router    ] outgoing - size: 34 from: localhost:4001",
+                        "[router    ] outgoing - size: 34 from: localhost:4000",
                         '[router    ] retry: 2',
                         '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
                         "[router    ] outgoing - size: 34 from: localhost:4001",
                         '[router    ] retry: 2',
                         '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                        "[router    ] outgoing - size: 34 from: localhost:4001",
+                        "[router    ] outgoing - size: 34 from: localhost:4000",
                         '[router    ] retry: 2',
                         '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
                         "[router    ] outgoing - size: 34 from: localhost:4001",
@@ -271,6 +272,57 @@ describe('QueueRouter',function() {
             })
             .addRoute(1,mockRoute)
             .start(testGateway);
+    });
+
+    it('should retry several times and then discard a message that is not acked where primary is public',function(done){
+        test.mockredis.lookup.get['m2m-ack:message'] = '{"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}';
+        test.mockredis.lookup.get['m2m-ack:sequence-number'] = '2';
+        test.mockredis.lookup.get['m2m-ack:route-key'] = 'testQueue';
+        test.mockredis.lookup.get['m2m-transmit:retries'] = '0';
+
+        var events = [];
+        var router = new QueueRouter()
+            .on('note',function(event){
+                events.push(event);
+                if (event === 'error') {
+                    router.stop();
+                    test.mockredis.snapshot().should.eql([
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{del: QueueRouter.ACK_STATE_KEYS},
+                        {quit: null}
+                    ]);
+                    test.pp.snapshot().should.eql([
+                        '[router    ] add route(testQueue): 1',
+                        '[router    ] start watching',
+                        '[router    ] retry: 2',
+                        '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                        "[router    ] outgoing - size: 34 from: localhost:4000",
+                        '[router    ] retry: 2',
+                        '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                        "[router    ] outgoing - size: 34 from: localhost:4001",
+                        '[router    ] retry: 2',
+                        '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                        "[router    ] outgoing - size: 34 from: localhost:4000",
+                        '[router    ] retry: 2',
+                        '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                        "[router    ] outgoing - size: 34 from: localhost:4001",
+                        '[router    ] retry: 2',
+                        '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
+                        "[router    ] outgoing - size: 34 from: localhost:4000",
+                        '[router    ] too many retries: 2',
+                        '[test-route] error: 2',
+                        '[router    ] stop watching'
+                    ]);
+                    mockRoute.snapshot().should.eql([{error: 2}]);
+                    done();
+                }
+            })
+            .addRoute(1,mockRoute)
+            .start(_.defaults({primary: 'private'},testGateway));
     });
 
     it('should handle an ack of an expected message',function(done){
