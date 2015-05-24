@@ -24,6 +24,7 @@ var ACK_STATE_KEYS = Object.freeze([
     schema.ack.message.key,
     schema.ack.routeKey.key,
     schema.ack.retries.key,
+    schema.ack.ticks.key,
     schema.ack.sequenceNumber.key
 ]);
 
@@ -34,7 +35,8 @@ function getAckState(values){
         message:        values[0],
         routeKey:       values[1],
         retries:        values[2] || '0',
-        sequenceNumber: values[3] || '0'
+        ticks:          values[3] || '0',
+        sequenceNumber: values[4] || '0'
     }
 }
 
@@ -43,7 +45,8 @@ function ackStatePairs(message,routeKey) {
         ACK_STATE_KEYS[0],JSON.stringify(message),
         ACK_STATE_KEYS[1],routeKey,
         ACK_STATE_KEYS[2],0,
-        ACK_STATE_KEYS[3],message.sequenceNumber
+        ACK_STATE_KEYS[3],0,
+        ACK_STATE_KEYS[4],message.sequenceNumber
     ];
 }
 
@@ -52,7 +55,8 @@ function QueueRouter(config) {
     Watcher.apply(self,[logger,config,true]);
     self.config = _.defaults(config || {},{
         idleReport:         60 / 5,
-        maxRetries:         5,
+        maxRetries:         24 * 7,
+        maxTicks:           60 * 60 / 5,
         timeoutInterval:    5
     });
     self.routes = {};
@@ -129,6 +133,7 @@ QueueRouter.prototype.checkQueue = function(){
 QueueRouter.prototype.processPendingMessage = function(ackState){
     var self = this;
     var retries = +ackState.retries;
+    var ticks = +ackState.ticks;
     if (retries >= self.config.maxRetries) {
         logger.error('too many retries: ' + ackState.sequenceNumber);
         self.client.send('del',ACK_STATE_KEYS).thenHint('tooManyRetries',function(){
@@ -136,12 +141,19 @@ QueueRouter.prototype.processPendingMessage = function(ackState){
             route && route.noteError(+ackState.sequenceNumber);
             self.noteQueueResult('error');
         });
+    } else if (ticks < Math.min(Math.pow(2,retries) - 1,self.config.maxTicks)) {
+        if (ticks !== 0 && (ticks % self.config.idleReport) === 0) logger.info('backoff: ' + ticks);
+        self.client.incr(schema.ack.ticks.key).errorHint('incrTicks');
+        self.noteQueueResult('tick');
     } else {
         logger.info('retry: ' + ackState.sequenceNumber);
-        self.client.incr(schema.ack.retries.key).thenHint('incrRetries',function(){
-            self.transmitMessage(new m2m.Message({json: ackState.message}),retries % 2 == 1);
-            self.noteQueueResult('retry');
-        });
+        self.client
+            .set(schema.ack.ticks.key,0)
+            .incr(schema.ack.retries.key)
+            .thenHint('incrRetries',function(){
+                self.transmitMessage(new m2m.Message({json: ackState.message}),retries % 2 == 1);
+                self.noteQueueResult('retry');
+            });
     }
 };
 

@@ -29,7 +29,7 @@ describe('QueueRouter',function() {
 
     it('should properly initialize data with minimal arguments',function(){
         var router = new QueueRouter();
-        router.config.should.eql({idleReport: 12,maxRetries: 5,timeoutInterval: 5});
+        router.config.should.eql({idleReport: 12,maxRetries: 168,maxTicks: 720,timeoutInterval: 5});
         router.routes.should.eql({});
         router.transmitArgs.should.eql(['m2m-ack:queue','m2m-command:queue','m2m-transmit:queue',5]);
         test.pp.snapshot().should.eql([]);
@@ -37,9 +37,9 @@ describe('QueueRouter',function() {
     });
 
     it('should properly initialize data with all arguments',function(){
-        var router = new QueueRouter({idleReport: 10,maxRetries: 2,timeoutInterval: 1});
+        var router = new QueueRouter({idleReport: 10,maxRetries: 2,maxTicks: 16,timeoutInterval: 1});
         router.addRoute(1,mockRoute);
-        router.config.should.eql({idleReport: 10,maxRetries: 2,timeoutInterval: 1});
+        router.config.should.eql({idleReport: 10,maxRetries: 2,maxTicks: 16,timeoutInterval: 1});
         router.queues.should.eql({1: mockRoute.queueKey});
         router.routes.should.eql({testQueue: mockRoute});
         router.transmitArgs.should.eql(['m2m-ack:queue','m2m-command:queue','m2m-transmit:queue','testQueue',1]);
@@ -175,6 +175,7 @@ describe('QueueRouter',function() {
                         'm2m-ack:message','{"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":10,"sequenceNumber":1,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":1,"id":11,"value":12},{"type":2,"id":13,"value":"string"},{"type":11,"id":15,"value":{"type":"Buffer","data":[1]}}]}',
                         'm2m-ack:route-key','testQueue',
                         'm2m-ack:retries',0,
+                        'm2m-ack:ticks',0,
                         'm2m-ack:sequence-number',1
                     ]},
                     {quit: null}
@@ -207,6 +208,7 @@ describe('QueueRouter',function() {
                     'm2m-ack:message','{"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":1000000000000,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
                     'm2m-ack:route-key','testQueue',
                     'm2m-ack:retries',0,
+                    'm2m-ack:ticks',0,
                     'm2m-ack:sequence-number',2
                 ]},
                 {quit: null}
@@ -230,17 +232,17 @@ describe('QueueRouter',function() {
         test.mockredis.lookup.get['m2m-transmit:retries'] = '0';
 
         var events = [];
-        var router = new QueueRouter()
+        var router = new QueueRouter({maxRetries: 5,maxTicks: -1})
             .on('note',function(event){
                 events.push(event);
                 if (event === 'error') {
                     router.stop();
                     test.mockredis.snapshot().should.eql([
-                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
-                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
-                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
-                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
-                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{set: ['m2m-ack:ticks',0]},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{set: ['m2m-ack:ticks',0]},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{set: ['m2m-ack:ticks',0]},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{set: ['m2m-ack:ticks',0]},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{set: ['m2m-ack:ticks',0]},{incr: 'm2m-ack:retries'},
                         {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{del: QueueRouter.ACK_STATE_KEYS},
                         {quit: null}
                     ]);
@@ -281,17 +283,18 @@ describe('QueueRouter',function() {
         test.mockredis.lookup.get['m2m-transmit:retries'] = '0';
 
         var events = [];
-        var router = new QueueRouter()
+        var router = new QueueRouter({idleReport: 1,maxRetries: 3,maxTicks: 2})
             .on('note',function(event){
                 events.push(event);
                 if (event === 'error') {
                     router.stop();
                     test.mockredis.snapshot().should.eql([
-                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
-                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
-                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
-                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
-                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{set: ['m2m-ack:ticks',0]},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:ticks'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{set: ['m2m-ack:ticks',0]},{incr: 'm2m-ack:retries'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:ticks'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{incr: 'm2m-ack:ticks'},
+                        {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{set: ['m2m-ack:ticks',0]},{incr: 'm2m-ack:retries'},
                         {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.ackArgs},{del: QueueRouter.ACK_STATE_KEYS},
                         {quit: null}
                     ]);
@@ -304,12 +307,7 @@ describe('QueueRouter',function() {
                         '[router    ] retry: 2',
                         '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
                         "[router    ] outgoing - size: 34 from: localhost:4001",
-                        '[router    ] retry: 2',
-                        '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                        "[router    ] outgoing - size: 34 from: localhost:4000",
-                        '[router    ] retry: 2',
-                        '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                        "[router    ] outgoing - size: 34 from: localhost:4001",
+                        '[router    ] backoff: 1',
                         '[router    ] retry: 2',
                         '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
                         "[router    ] outgoing - size: 34 from: localhost:4000",
