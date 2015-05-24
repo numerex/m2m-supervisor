@@ -326,6 +326,8 @@ describe('API router',function() {
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
                     {keys: 'm2m-device:*:settings'},
+                    {incr: 'm2m-command:next-route'},
+                    {hset: ['m2m-command:routes','1','m2m-device:test-abc-123:queue']},
                     {hmset: ['m2m-device:test-abc-123:settings','connection:telnet:address','localhost','connection:telnet:port','10002']},
                     {hgetall: 'm2m-device:test-abc-123:settings'},
                     {quit: null}

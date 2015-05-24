@@ -337,6 +337,11 @@ MockRedis.createClient = function () {
             MockRedis.results = null;
             return client;
         },
+        hset: function(key,subkey,value){
+            MockRedis.calls.push({hset: [key,subkey,value]});
+            MockRedis.results = null;
+            return client;
+        },
         hsetnx: function(key,subkey,value){
             MockRedis.calls.push({hsetnx: [key,subkey,value]});
             MockRedis.results = null;

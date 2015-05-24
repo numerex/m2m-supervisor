@@ -172,12 +172,17 @@ router.post('/device',function(req,res,next){
         else
             findIDs(schema.device.settings.keysPattern(),function(keys){
                 id = id.replace(/[ :]/g,'-');
-                var newKey = schema.device.settings.useParam(id);
-                if (_.indexOf(keys,newKey) >= 0)
+                var queueKey = schema.device.queue.useParam(id);
+                var settingsKey = schema.device.settings.useParam(id);
+                if (_.indexOf(keys,settingsKey) >= 0)
                     res.send({error: 'Device ID already used'});
                 else {
                     logger.info('device creation(' + id + '): ' + JSON.stringify(req.body));
-                    changeHash(req,res,newKey,_.bind(requestDevice,this,res,id));
+                    RedisWatcher.instance.client.incr(schema.command.nextRouteID.key).thenHint('nextRoute',function(nextID){
+                        RedisWatcher.instance.client.hset(schema.command.routes.key,nextID,queueKey).thenHint('setRoute',function(){
+                            changeHash(req,res,settingsKey,_.bind(requestDevice,this,res,id));                   // TODO use device factory
+                        })
+                    });
                 }
             });
     });
