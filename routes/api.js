@@ -117,7 +117,14 @@ declareRouteGetByID('device',requestDevice);
 router.post('/device/:id',function(req,res,next){
     requireRedis(res,function(){
         logger.info('device changes(' + req.params.id + '): ' + JSON.stringify(req.body));
-        changeHash(req,res,schema.device.settings.useParam(req.params.id),_.bind(requestDevice,this,res,req.params.id));
+        changeHash(req,res,schema.device.settings.useParam(req.params.id),function(){
+            requestDevice(res,req.params.id);
+            var deviceRouter = null;
+            // istanbul ignore next - TODO consider how to test
+            if (M2mSupervisor.instance && M2mSupervisor.instance.queueRouter &&
+                (deviceRouter = M2mSupervisor.instance.queueRouter.routes[schema.device.queue.useParam(req.params.id)]))
+                deviceRouter.settingsWatcher.emit('checkReady');
+        });
     });
 });
 
@@ -181,6 +188,8 @@ router.post('/device',function(req,res,next){
                     RedisWatcher.instance.client.incr(schema.command.nextRouteID.key).thenHint('nextRoute',function(nextID){
                         RedisWatcher.instance.client.hset(schema.command.routes.key,nextID,queueKey).thenHint('setRoute',function(){
                             changeHash(req,res,settingsKey,_.bind(requestDevice,this,res,id));                   // TODO use device factory
+                            // istanbul ignore next - TODO consider how to test
+                            if (M2mSupervisor.instance && M2mSupervisor.instance.routeWatcher) M2mSupervisor.instance.routeWatcher.emit('checkReady');
                         })
                     });
                 }
