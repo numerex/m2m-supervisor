@@ -2,54 +2,54 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
     .config(['$stateProvider','$urlRouterProvider','$locationProvider',function($stateProvider,$urlRouterProvider,$locationProvider) {
         $locationProvider.html5Mode(true);
         $urlRouterProvider
-            .otherwise('/');
+            .otherwise('/supervisor/');
 
         $stateProvider
             .state('home',{
-                url: '/',
-                templateUrl: 'partials/home',
+                url: '/supervisor/',
+                templateUrl: 'supervisor/partials/home',
                 controller: 'HomeController',
                 redirectTo: 'home'
             })
             .state('metrics',{
-                url: '/',
-                templateUrl: 'partials/metrics',
+                url: '/supervisor/',
+                templateUrl: 'supervisor/partials/metrics',
                 controller: 'MetricsController',
                 redirectTo: 'metrics'
             })
             .state('config',{
-                url: '#config',
-                templateUrl: 'partials/config',
+                url: '/supervisor/#config',
+                templateUrl: 'supervisor/partials/config',
                 controller: 'ConfigController',
                 redirectTo: 'config'
             })
             .state('devices',{
-                url: '#devices',
-                templateUrl: 'partials/devices',
+                url: '/supervisor/#devices',
+                templateUrl: 'supervisor/partials/devices',
                 controller: 'DevicesController',
                 redirectTo: 'devices'
             })
             .state('commands',{
-                url: '#commands',
-                templateUrl: 'partials/commands',
+                url: '/supervisor/#commands',
+                templateUrl: 'supervisor/partials/commands',
                 controller: 'CommandsController',
                 redirectTo: 'commands'
             })
             .state('schedules',{
-                url: '#schedules',
-                templateUrl: 'partials/schedules',
+                url: '/supervisor/#schedules',
+                templateUrl: 'supervisor/partials/schedules',
                 controller: 'SchedulesController',
                 redirectTo: 'schedules'
             })
             .state('status',{
-                url: '#status',
-                templateUrl: 'partials/status',
+                url: '/supervisor/#status',
+                templateUrl: 'supervisor/partials/status',
                 controller: 'StatusController',
                 redirectTo: 'status'
             })
             .state('shell',{
-                url: '#shell',
-                templateUrl: 'partials/shell',
+                url: '/supervisor/#shell',
+                templateUrl: 'supervisor/partials/shell',
                 controller: 'ShellController',
                 redirectTo: 'shell'
             });
@@ -61,7 +61,7 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
         $rootScope.globalStatus = {label: 'Status: Pending...',css: 'label-default'};
 
         $rootScope.checkStatus = function(){
-            $http.get('/api/status')
+            $http.get('/api/supervisor/status')
                 .success(function(result){
                     var total = 0;
                     var success = 0;
@@ -84,7 +84,7 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
 
         $rootScope.setupSocket = function(flavor,callback) {
             if (!$rootScope.socket) {
-                $rootScope.socket = io($location.host() + ':' + $location.port());
+                $rootScope.socket = io($location.host() + ':' + $location.port(),{path: '/supervisor/socket'});
                 $rootScope.socket.flavors = {};
 
                 $rootScope.socket.on('identified',function(data){

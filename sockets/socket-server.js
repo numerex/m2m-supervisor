@@ -13,7 +13,7 @@ SocketServer.prototype.start = function (httpServer) {
     var self = this;
     self.httpServer = httpServer;
     self.lastID = 0;
-    self.io = require('socket.io')(httpServer); // NOTE delay require for testability
+    self.io = require('socket.io')(httpServer,{path: '/supervisor/socket'}); // NOTE delay require for testability
     self.io.on('connection',function (socket) {
         socket.behaviors = {};
         socket.clientID = ++self.lastID;

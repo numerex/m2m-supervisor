@@ -1,7 +1,7 @@
 app.directive('hashInput',function(){
     return {
         restrict: 'E',
-        templateUrl: 'partials/hashinput',
+        templateUrl: 'supervisor/partials/hashinput',
         scope: {
             model: '=model',
             hashValues: '=hashValues'

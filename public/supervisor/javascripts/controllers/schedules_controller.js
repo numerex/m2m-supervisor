@@ -21,14 +21,14 @@ app.controller('SchedulesController',['$rootScope','$scope','$http',function($ro
     };
 
     $scope.setupSchedules = function (){
-        $http.get('/api/schedules')
+        $http.get('/api/supervisor/schedules')
             .success(function(result){
                 if (result.schedules)
                     $scope.schedules = _.map(result.schedules || [],function(id){
                         return {
                             id: id,
                             valuesKey: 'schedule:' + id,
-                            api: '/api/schedule/' + id
+                            api: '/api/supervisor/schedule/' + id
                         };
                     });
                 if (result.error)

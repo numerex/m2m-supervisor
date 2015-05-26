@@ -16,24 +16,31 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'),{layout:false});
 app.set('view engine', 'jade');
 
-app.use(favicon(__dirname + '/public/favicon.ico'));
+app.use(favicon(__dirname + '/public/supervisor/favicon.ico'));
 app.use(statsd({prefix: 'www'}));
 app.use(logger(pretty({name: 'express',immediate: true})));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(path.join(__dirname, 'node_modules/angular')));
-app.use(express.static(path.join(__dirname, 'node_modules/angular-filter/dist')));
-app.use(express.static(path.join(__dirname, 'node_modules/angular-ui-router/release')));
-app.use(express.static(path.join(__dirname, 'node_modules/d3')));
-app.use(express.static(path.join(__dirname, 'node_modules/jquery/dist')));
+
+// TODO remove in favor of CDN?
+//app.use(express.static(path.join(__dirname, 'node_modules/angular')));
+//app.use(express.static(path.join(__dirname, 'node_modules/angular-filter/dist')));
+//app.use(express.static(path.join(__dirname, 'node_modules/angular-ui-router/release')));
+//app.use(express.static(path.join(__dirname, 'node_modules/d3')));
+//app.use(express.static(path.join(__dirname, 'node_modules/jquery/dist')));
 
 app.use('/',index);
-app.use('/api',api);
+app.use('/supervisor',index);
+app.use('/api/supervisor',api);
 
-app.use('/partials',function (req,res) {
-    res.render('partials' + req.path);
+app.use('/supervisor',function (req,res) {
+    res.render('supervisor' + req.path);
+});
+
+app.use('/supervisor/partials',function (req,res) {
+    res.render('supervisor/partials' + req.path);
 });
 
 // catch 404 and forward to error handler
@@ -49,7 +56,7 @@ app.use(function(err, req, res, next) {
     // istanbul ignore next -- TODO how to generate a 500 error??
     res.status(err.status || 500);
     // istanbul ignore next -- testing doesn't need to create environments
-    res.render('error', {
+    res.render('supervisor/error', {
         message: err.message,
         error: app.get('env') === 'development' ? err : {}
     });

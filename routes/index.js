@@ -4,7 +4,7 @@ var logger = require('../lib/logger')('api');
 var router = express.Router();
 
 router.get('/',function(req,res,next) {
-    res.render('index');
+    res.render('supervisor/index');
 });
 
 module.exports = router;

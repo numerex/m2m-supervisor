@@ -1,7 +1,7 @@
 app.directive('alertMessage',function(){
     return {
         restrict: 'E',
-        templateUrl: 'partials/alertmessage',
+        templateUrl: 'supervisor/partials/alertmessage',
         scope: {
             messages: '=messages'
         }
