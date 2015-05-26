@@ -2,7 +2,7 @@ app.directive('stdioSocket',function(){
     return {
         restrict: 'E',
         transclude: true,
-        templateUrl: 'partials/stdio.jade',
+        templateUrl: 'partials/stdio',
         scope: {
             behavior: '=behavior',
             observer: '=observer'

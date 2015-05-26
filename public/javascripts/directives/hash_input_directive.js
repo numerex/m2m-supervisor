@@ -1,7 +1,7 @@
 app.directive('hashInput',function(){
     return {
         restrict: 'E',
-        templateUrl: 'partials/hashinput.jade',
+        templateUrl: 'partials/hashinput',
         scope: {
             model: '=model',
             hashValues: '=hashValues'

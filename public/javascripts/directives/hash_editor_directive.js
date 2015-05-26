@@ -2,7 +2,7 @@ app.directive('hashEditor',function(){
     return {
         restrict: 'E',
         transclude: true,
-        templateUrl: 'partials/hashedit.jade',
+        templateUrl: 'partials/hashedit',
         scope: {
             extra:     '=extra',
             api:       '=api',
