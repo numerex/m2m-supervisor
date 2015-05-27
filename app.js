@@ -1,10 +1,18 @@
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
+var session = require('express-session');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var statsd = require('express-statsd');
 var logger = require('express-bunyan-logger');
+
+var sessionOptions = {secret: 'pull-this-from-config',resave: false,saveUninitialized: false};
+// istanbul ignore if -- testing will use the MemoryStore
+if (!process.env.testing){
+    var RedisStore = require('connect-redis')(session);
+    sessionOptions.store = new RedisStore();
+}
 
 var pretty = require('./lib/bunyan-prettyprinter');
 
@@ -19,6 +27,7 @@ app.set('view engine', 'jade');
 app.use(favicon(__dirname + '/public/supervisor/favicon.ico'));
 app.use(statsd({prefix: 'www'}));
 app.use(logger(pretty({name: 'express',immediate: true})));
+app.use(session(sessionOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
@@ -35,17 +44,13 @@ app.use('/',index);
 app.use('/supervisor',index);
 app.use('/api/supervisor',api);
 
-app.use('/supervisor',function (req,res) {
-    res.render('supervisor' + req.path);
-});
-
 app.use('/supervisor/partials',function (req,res) {
     res.render('supervisor/partials' + req.path);
 });
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
-    var err = new Error('Not Found');
+    var err = new Error('Not Found: ' + req.originalUrl);
     err.status = 404;
     next(err);
 });

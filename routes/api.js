@@ -1,5 +1,4 @@
 var _ = require('lodash');
-var express = require('express');
 
 var ScheduleFactory = require('../lib/schedule-factory');
 var RedisWatcher = require('../services/redis-watcher');
@@ -11,6 +10,7 @@ var helpers = require('../lib/hash-helpers');
 var configTemplate = require('../lib/config-hashkeys');
 var deviceTemplate = require('../lib/device-hashkeys');
 
+var express = require('express');
 var router = express.Router();
 
 function checkRedis(callback){

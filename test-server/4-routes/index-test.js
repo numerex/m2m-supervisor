@@ -40,4 +40,19 @@ describe('index router',function() {
             });
     });
 
+    it('should return the home page content',function(done){
+        var request = require('supertest');
+        request(app).get('/supervisor/partials/home')
+            .expect('Content-Type',/html/)
+            .expect(200)
+            .end(function (err,res) {
+                test.should.not.exist(err);
+                test.matchArrays(test.pp.snapshot(),[
+                    /\[express   \] \S+ --> GET \/supervisor\/partials\/home HTTP\/1\.1 200 - - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
+                    /\[express   \] \S+ <-- GET \/supervisor\/partials\/home HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
+                ]);
+                done();
+            });
+    });
+
 });
