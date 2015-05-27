@@ -24,7 +24,7 @@ function M2mSupervisor(config){
 
     config = config || {};
 
-    var httpPort        = config.httpPort || process.env.PORT || '3000';
+    var httpPort        = config.httpPort || process.env.PORT || '5000';
     var runBridge       = config.runBridge;
     var runWeb          = config.runWeb;
     var runTransceiver  = config.runTransceiver;

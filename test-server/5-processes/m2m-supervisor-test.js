@@ -66,7 +66,7 @@ describe('M2mSupervisor',function() {
                 '[redis     ] start watching',
                 '[redis     ] check ready',
                 '[redis     ] redis client error: test error',
-                '[http      ] Listening on port 3000',
+                '[http      ] Listening on port 5000',
                 '[redis     ] stop watching'
             ]);
             test.mockredis.snapshot().should.eql([
@@ -139,7 +139,7 @@ describe('M2mSupervisor',function() {
                 '[redis     ] start watching',
                 '[redis     ] check ready',
                 '[redis     ] redis client error: test error',
-                '[http      ] Listening on port 3000',
+                '[http      ] Listening on port 5000',
                 '[redis     ] stop watching'
             ]);
             test.mockredis.snapshot().should.eql([
@@ -172,7 +172,7 @@ describe('M2mSupervisor',function() {
             //    '[pppd      ] start watching',
             //    '[pppd      ] pppstats error: Error: no response found: pppstats',
             //    '[modem     ] start watching',
-            //    '[http      ] Listening on port 3000',
+            //    '[http      ] Listening on port 5000',
             //    '[modem     ] start error: Error: Cannot open /dev/ttyUSB2',
             //    '[redis     ] stop watching',
             //    '[hash      ] stop watching: m2m-config',
