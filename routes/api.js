@@ -108,6 +108,21 @@ function requestConfig(res){
     requestHash(res,schema.config.key,'config',configTemplate);
 }
 
+// PROXY ----------------
+
+
+router.get('/proxy',function(req,res,next){
+    req.session.proxy = _.keys(req.query).length > 0 ? req.query : null;
+    // TODO validate proxy
+    res.redirect('/');
+});
+
+router.post('/proxy',function(req,res,next){
+    req.session.proxy = _.keys(req.body).length > 0 ? req.body : null;
+    // TODO validate proxy
+    res.redirect('/');
+});
+
 // DEVICE ----------------
 
 declareRouteList('devices',schema.device.settings);
@@ -241,7 +256,7 @@ router.get('/status',function(req,res,next){
         var status = {};
         status.redis = !!RedisWatcher.instance.client;
         // istanbul ignore if - TODO consider how to test...
-        if (M2mSupervisor.instance){
+        if (M2mSupervisor.instance && !M2mSupervisor.instance.supervisorProxy){
             status.config   = M2mSupervisor.instance.configWatcher.ready();
             status.modem    = !!M2mSupervisor.instance.modemWatcher && M2mSupervisor.instance.modemWatcher.ready();
             status.ppp      = !!M2mSupervisor.instance.pppdWatcher  && M2mSupervisor.instance.pppdWatcher.ready();

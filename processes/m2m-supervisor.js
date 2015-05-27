@@ -65,10 +65,12 @@ function M2mSupervisor(config){
 
     self.redisWatcher.addClientWatcher(self.configWatcher);
 
+    self.supervisorProxy = false;
     if (runWeb || runAll) {
-        self.httpServer     = new HttpServer().start(httpPort);
-        self.socketServer   = new SocketServer().start(self.httpServer);
-        self.shellBehavior  = new ShellBehavior().registerSelf(self.socketServer);
+        self.supervisorProxy  = !runAll;
+        self.httpServer       = new HttpServer().start(httpPort);
+        self.socketServer     = new SocketServer().start(self.httpServer);
+        self.shellBehavior    = new ShellBehavior().registerSelf(self.socketServer);
         self.commandBehavior  = new CommandBehavior().registerSelf(self.socketServer);
     }
 }
