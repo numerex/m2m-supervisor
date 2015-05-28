@@ -88,8 +88,13 @@ function declareRouteGetByID(model,responder){
     });
 }
 
-// PROXY ----------------
+// CHECK ----------------
 
+router.get('/check',function(req,res,next){
+    res.send({});
+});
+
+// PROXY ----------------
 
 router.get('/proxy',function(req,res,next){
     var helper = new ProxyHelper(req.query).checkConfig(function(error,config){

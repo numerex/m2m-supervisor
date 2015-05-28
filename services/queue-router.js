@@ -147,13 +147,11 @@ QueueRouter.prototype.processPendingMessage = function(ackState){
         self.noteQueueResult('tick');
     } else {
         logger.info('retry: ' + ackState.sequenceNumber);
-        self.client
-            .set(schema.ack.ticks.key,0)
-            .incr(schema.ack.retries.key)
-            .thenHint('incrRetries',function(){
-                self.transmitMessage(new m2m.Message({json: ackState.message}),retries % 2 == 1);
-                self.noteQueueResult('retry');
-            });
+        self.client.set(schema.ack.ticks.key,0);
+        self.client.incr(schema.ack.retries.key).thenHint('incrRetries',function(){
+            self.transmitMessage(new m2m.Message({json: ackState.message}),retries % 2 == 1);
+            self.noteQueueResult('retry');
+        });
     }
 };
 
