@@ -5,7 +5,7 @@ app.controller('DevicesController',['$scope','$rootScope','$http',function($scop
     $scope.newDevice = {
         id: null,
         valuesKey: 'new-device',
-        api: '/api/supervisor/device'
+        api: '/supervisor/api/device'
     };
     $scope.newDeviceID = {
         label: 'Device ID',
@@ -22,14 +22,14 @@ app.controller('DevicesController',['$scope','$rootScope','$http',function($scop
     };
 
     $scope.setupDevices = function (){
-        $http.get('/api/supervisor/devices')
+        $http.get('/supervisor/api/devices')
             .success(function(result){
                 if (result.devices)
                     $scope.devices = _.map(result.devices || [],function(id){
                         return {
                             id: id,
                             valuesKey: 'device:' + id,
-                            api: '/api/supervisor/device/' + id
+                            api: '/supervisor/api/device/' + id
                         };
                     });
                 if (result.error)

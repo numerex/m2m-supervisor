@@ -28,7 +28,7 @@ app.controller('CommandsController',['$scope','$rootScope','$http',function($sco
         if ($rootScope.profileDefinitions[profile])
             $scope.changeProfile(profile);
         else
-            $http.get('/api/supervisor/definitions/' + profile).success(function(profileDefinitions){
+            $http.get('/supervisor/api/definitions/' + profile).success(function(profileDefinitions){
                 $rootScope.profileDefinitions[profile] = _.map(_.values(profileDefinitions['definitions:' + profile] || {}),JSON.parse);
                 $scope.changeProfile(profile);
             });
@@ -37,7 +37,7 @@ app.controller('CommandsController',['$scope','$rootScope','$http',function($sco
         if ($rootScope.profileOptions[profile])
             $scope.changeProfile(profile);
         else
-            $http.get('/api/supervisor/options/' + profile).success(function(profileOptions){
+            $http.get('/supervisor/api/options/' + profile).success(function(profileOptions){
                 $rootScope.profileOptions[profile] = _.mapValues(profileOptions['options:' + profile] || {},JSON.parse);
                 $scope.changeProfile(profile);
             });
@@ -136,7 +136,7 @@ app.controller('CommandsController',['$scope','$rootScope','$http',function($sco
 
     $scope.devices = [];
     $scope.currentID = $rootScope.currentDeviceID;
-    $http.get('/api/supervisor/devices').success(function(result){
+    $http.get('/supervisor/api/devices').success(function(result){
         $scope.devices = result.devices || [];
         $scope.changeCurrentID($scope.devices[0]);
     });

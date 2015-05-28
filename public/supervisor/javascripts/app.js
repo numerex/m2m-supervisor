@@ -61,7 +61,7 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
         $rootScope.globalStatus = {label: 'Status: Pending...',css: 'label-default'};
 
         $rootScope.checkStatus = function(){
-            $http.get('/api/supervisor/status')
+            $http.get('/supervisor/api/status')
                 .success(function(result){
                     var total = 0;
                     var success = 0;

@@ -28,7 +28,7 @@ describe('API router',function() {
         test.mockredis.clientException = 'test error';
 
         var request = require('supertest');
-        request(app).get('/api/supervisor/config')
+        request(app).get('/supervisor/api/config')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -40,12 +40,12 @@ describe('API router',function() {
                     {end: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/api\/supervisor\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] redis client error: test error',
-                    /^\[express   \] \S+ <-- GET \/api\/supervisor\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -55,7 +55,7 @@ describe('API router',function() {
 
     it('GET /config should return the current configuration from redis',function(done) {
         var request = require('supertest');
-        request(app).get('/api/supervisor/config')
+        request(app).get('/supervisor/api/config')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -67,12 +67,12 @@ describe('API router',function() {
                     {hgetall: 'm2m-config'}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/api\/supervisor\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/api\/supervisor\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
                 ]);
                 done();
             });
@@ -80,7 +80,7 @@ describe('API router',function() {
 
     it('POST /config should do nothing but return the current configuration when no changes given',function(done) {
         var request = require('supertest');
-        request(app).post('/api/supervisor/config')
+        request(app).post('/supervisor/api/config')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -91,9 +91,9 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> POST \/api\/supervisor\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> POST \/supervisor\/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[api       ] config changes: {}',
-                    /^\[express   \] \S+ <-- POST \/api\/supervisor\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -104,7 +104,7 @@ describe('API router',function() {
         test.mockredis.lookup.hgetall['m2m-config'] = {'gateway:primary': 'private'};
 
         var request = require('supertest');
-        request(app).post('/api/supervisor/config').send({'gateway:primary':'private'})
+        request(app).post('/supervisor/api/config').send({'gateway:primary':'private'})
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -119,13 +119,13 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] .* --> POST \/api\/supervisor\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] .* --> POST \/supervisor\/api\/config HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
                     '[api       ] config changes: {"gateway:primary":"private"}',
-                    /^\[express   \] \S+ <-- POST \/api\/supervisor\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/config HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -136,7 +136,7 @@ describe('API router',function() {
         test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:test:settings'];
 
         var request = require('supertest');
-        request(app).get('/api/supervisor/devices')
+        request(app).get('/supervisor/api/devices')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -149,12 +149,12 @@ describe('API router',function() {
                 ]);
                 res.text.should.eql('{"devices":["test"]}');
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/api\/supervisor\/devices HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/devices HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/api\/supervisor\/devices HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/devices HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -163,7 +163,7 @@ describe('API router',function() {
 
     it('GET /device should return the default settings for a new device when no device profile exists',function(done){
         var request = require('supertest');
-        request(app).get('/api/supervisor/device')
+        request(app).get('/supervisor/api/device')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -175,12 +175,12 @@ describe('API router',function() {
                 ]);
                 res.text.should.match(/^\{"new-device":\{"Connection":/);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/api\/supervisor\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/api\/supervisor\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -193,7 +193,7 @@ describe('API router',function() {
         //require(process.cwd() + '/routes/api').resetRedisWatcher();
 
         var request = require('supertest');
-        request(app).get('/api/supervisor/device')
+        request(app).get('/supervisor/api/device')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -209,12 +209,12 @@ describe('API router',function() {
                 res.text.should.match(/{"key":"command:routing","label":"Routing","options":\["ad-hoc","none"\],"type":"string","status":"editable","default":"ad-hoc"},{"key":"command:schedule","label":"Schedule","type":"string","default":null,"value":null}/);
                 res.text.should.match(/{"key":"command:command-prefix","label":"Command Prefix","type":"string","default":null,"value":"TESTPATTERN"}/);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/api\/supervisor\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/api\/supervisor\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -227,7 +227,7 @@ describe('API router',function() {
         //require(process.cwd() + '/routes/api').resetRedisWatcher();
 
         var request = require('supertest');
-        request(app).get('/api/supervisor/device')
+        request(app).get('/supervisor/api/device')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -243,12 +243,12 @@ describe('API router',function() {
                 res.text.should.match(/{"key":"command:routing","label":"Routing","options":\["ad-hoc","none","scheduled"\],"type":"string","status":"editable","default":"scheduled"},{"key":"command:schedule","label":"Schedule","type":"string","default":null,"value":"testKey"}/);
                 res.text.should.match(/{"key":"command:command-prefix","label":"Command Prefix","type":"string","default":null,"value":"TESTPATTERN"}/);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/api\/supervisor\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/api\/supervisor\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -257,7 +257,7 @@ describe('API router',function() {
 
     it('POST /device should detect a missing device ID',function(done){
         var request = require('supertest');
-        request(app).post('/api/supervisor/device')
+        request(app).post('/supervisor/api/device')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -269,12 +269,12 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> POST \/api\/supervisor\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> POST \/supervisor\/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- POST \/api\/supervisor\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -285,7 +285,7 @@ describe('API router',function() {
         test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:test-123:settings'];
 
         var request = require('supertest');
-        request(app).post('/api/supervisor/device').send({id: 'test 123'})
+        request(app).post('/supervisor/api/device').send({id: 'test 123'})
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -298,12 +298,12 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> POST \/api\/supervisor\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> POST \/supervisor\/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- POST \/api\/supervisor\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -316,7 +316,7 @@ describe('API router',function() {
         test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
 
         var request = require('supertest');
-        request(app).post('/api/supervisor/device').send({id: 'test abc:123','connection:telnet:address': 'localhost','connection:telnet:port': 10002})
+        request(app).post('/supervisor/api/device').send({id: 'test abc:123','connection:telnet:address': 'localhost','connection:telnet:port': 10002})
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -333,13 +333,13 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> POST \/api\/supervisor\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> POST \/supervisor\/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
                     '[api       ] device creation(test-abc-123): {"connection:telnet:address":"localhost","connection:telnet:port":10002}',
-                    /^\[express   \] \S+ <-- POST \/api\/supervisor\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -351,7 +351,7 @@ describe('API router',function() {
         test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
 
         var request = require('supertest');
-        request(app).get('/api/supervisor/device/test-abc-123')
+        request(app).get('/supervisor/api/device/test-abc-123')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -364,12 +364,12 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/api\/supervisor\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/api\/supervisor\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -381,7 +381,7 @@ describe('API router',function() {
         test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'command:profile':'test-profile','connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
 
         var request = require('supertest');
-        request(app).get('/api/supervisor/device/test-abc-123')
+        request(app).get('/supervisor/api/device/test-abc-123')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -396,12 +396,12 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/api\/supervisor\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/api\/supervisor\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -413,7 +413,7 @@ describe('API router',function() {
         test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'command:profile':'test-profile','command:schedule':'test-profile','connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
 
         var request = require('supertest');
-        request(app).get('/api/supervisor/device/test-abc-123')
+        request(app).get('/supervisor/api/device/test-abc-123')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -428,12 +428,12 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/api\/supervisor\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/api\/supervisor\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -445,7 +445,7 @@ describe('API router',function() {
         test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
 
         var request = require('supertest');
-        request(app).post('/api/supervisor/device/test-abc-123')
+        request(app).post('/supervisor/api/device/test-abc-123')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -457,13 +457,13 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> POST \/api\/supervisor\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> POST \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
                     '[api       ] device changes(test-abc-123): {}',
-                    /^\[express   \] \S+ <-- POST \/api\/supervisor\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -475,7 +475,7 @@ describe('API router',function() {
         test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
 
         var request = require('supertest');
-        request(app).post('/api/supervisor/device/test-abc-123').send({'connection:telnet:address': 'localhost'})
+        request(app).post('/supervisor/api/device/test-abc-123').send({'connection:telnet:address': 'localhost'})
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -489,13 +489,13 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> POST \/api\/supervisor\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> POST \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
                     '[api       ] device changes(test-abc-123): {"connection:telnet:address":"localhost"}',
-                    /^\[express   \] \S+ <-- POST \/api\/supervisor\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -508,7 +508,7 @@ describe('API router',function() {
         test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'connection:telnet:address': 'localhost'};
 
         var request = require('supertest');
-        request(app).post('/api/supervisor/device/test-abc-123').send({'connection:telnet:port': null})
+        request(app).post('/supervisor/api/device/test-abc-123').send({'connection:telnet:port': null})
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -522,13 +522,13 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> POST \/api\/supervisor\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> POST \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
                     '[api       ] device changes(test-abc-123): {"connection:telnet:port":null}',
-                    /^\[express   \] \S+ <-- POST \/api\/supervisor\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -540,7 +540,7 @@ describe('API router',function() {
         test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'connection:telnet:address': 'localhost'};
 
         var request = require('supertest');
-        request(app).post('/api/supervisor/device/test-abc-123').send({'connection:telnet:address': 'localhost','connection:telnet:port': null})
+        request(app).post('/supervisor/api/device/test-abc-123').send({'connection:telnet:address': 'localhost','connection:telnet:port': null})
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -555,13 +555,13 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> POST \/api\/supervisor\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> POST \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
                     '[api       ] device changes(test-abc-123): {"connection:telnet:address":"localhost","connection:telnet:port":null}',
-                    /^\[express   \] \S+ <-- POST \/api\/supervisor\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -572,7 +572,7 @@ describe('API router',function() {
         test.mockredis.lookup.keys['m2m-schedule:*:periods'] = ['m2m-schedule:test:periods'];
 
         var request = require('supertest');
-        request(app).get('/api/supervisor/schedules')
+        request(app).get('/supervisor/api/schedules')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -585,12 +585,12 @@ describe('API router',function() {
                 ]);
                 res.text.should.eql('{"schedules":["test"]}');
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/api\/supervisor\/schedules HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/schedules HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/api\/supervisor\/schedules HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/schedules HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -601,7 +601,7 @@ describe('API router',function() {
         test.mockredis.lookup.hgetall['m2m-schedule:test:periods'] = {"100": '["TEST1","TEST2"]',"200": '["TEST3"]'};
 
         var request = require('supertest');
-        request(app).get('/api/supervisor/schedule/test')
+        request(app).get('/supervisor/api/schedule/test')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -614,12 +614,12 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/api\/supervisor\/schedule\/test HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/schedule\/test HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/api\/supervisor\/schedule\/test HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/schedule\/test HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -630,7 +630,7 @@ describe('API router',function() {
         test.mockredis.lookup.hgetall['m2m-command:test:profile'] = {"command:command-prefix":"ABC"};
 
         var request = require('supertest');
-        request(app).get('/api/supervisor/profile/test')
+        request(app).get('/supervisor/api/profile/test')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -643,12 +643,12 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/api\/supervisor\/profile\/test HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/profile\/test HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/api\/supervisor\/profile\/test HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/profile\/test HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -659,7 +659,7 @@ describe('API router',function() {
         test.mockredis.lookup.hgetall['m2m-command:test:options'] = {test: '["X"]'};
 
         var request = require('supertest');
-        request(app).get('/api/supervisor/options/test')
+        request(app).get('/supervisor/api/options/test')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -672,12 +672,12 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/api\/supervisor\/options\/test HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/options\/test HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/api\/supervisor\/options\/test HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/options\/test HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -688,7 +688,7 @@ describe('API router',function() {
         test.mockredis.lookup.hgetall['m2m-command:test:definitions'] = {test: '["X"]'};
 
         var request = require('supertest');
-        request(app).get('/api/supervisor/definitions/test')
+        request(app).get('/supervisor/api/definitions/test')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -701,12 +701,12 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/api\/supervisor\/definitions\/test HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/definitions\/test HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/api\/supervisor\/definitions\/test HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/definitions\/test HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -715,7 +715,7 @@ describe('API router',function() {
 
     it('GET /status should return the status of all services',function(done) {
         var request = require('supertest');
-        request(app).get('/api/supervisor/status')
+        request(app).get('/supervisor/api/status')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -727,12 +727,12 @@ describe('API router',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/api\/supervisor\/status HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/status HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/api\/supervisor\/status HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/status HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();

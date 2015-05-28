@@ -44,10 +44,15 @@ Processes
  * Check the "ack" queue for the arrival matching "ack" messages from the gateway via the **m2m-bridge**
  * Check the queue of each "device router" and distribute an inbound "command" message to it for processing
 
-* **bin/www-server** -- This is an "ExpressJS" and "AngularJS" web application that will do the following:
+* **bin/m2m-web-server** -- This is an "ExpressJS" and "AngularJS" web application that will do the following:
  * Monitor the status of the overall M2M-SUPERVISOR
  * Allow the remote setup of General and Device IO configuration
  * Support remote submission of local "shell" commands -- _**user caution is advised!**_
+ 
+Additional processes:
+ 
+* **bin/m2m-web-proxy** -- This is a special version of the **m2m-web-server** that assumes that it will only function as a proxy for all access to M2M Supervisor functionality,
+with the one exception of Device Template information -- this is assumed to be standard for all remote M2M Supervisors and will be satisfied locally to avoid unnecessary communications over possibly-costly remote channels.
 
 Configuration Options
 ----
