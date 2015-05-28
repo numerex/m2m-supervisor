@@ -42,7 +42,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/',index);
 app.use('/supervisor',index);
-app.use('/api/supervisor',api);
+app.use('/supervisor/api',api);
 
 app.use('/supervisor/partials',function (req,res) {
     res.render('supervisor/partials' + req.path);

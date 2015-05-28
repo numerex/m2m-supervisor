@@ -32,23 +32,29 @@ function M2mSupervisor(config){
 
     var self = this;
 
+    self.supervisorProxy = false;
+    if (config.runProxy) {
+        runBridge = runTransceiver = runAll = false;
+        self.supervisorProxy  = runWeb = true;
+    }
+
     self.configWatcher  = new HashWatcher(schema.config.key,configHashkeys,config);
     self.redisWatcher   = new RedisWatcher(config);
 
     if (runBridge || runAll) {
         self.heartbeat      = null;
-        self.proxy          = new GatewayProxy(config);
+        self.gateway        = new GatewayProxy(config);
         self.pppdWatcher    = new PppdWatcher(config);
         self.modemWatcher   = new ModemWatcher(config);
 
         self.configWatcher
-            .addKeysetWatcher('gateway',false,  self.proxy)
+            .addKeysetWatcher('gateway',false,  self.gateway)
             .addKeysetWatcher('PPP',    true,   self.pppdWatcher)
             .addKeysetWatcher('modem',  true,   self.modemWatcher);
 
         self.pppdWatcher.on('ready',function(ready){
             if (ready && !self.heartbeat) {
-                self.heartbeat = new HeartbeatGenerator(self.proxy,config);
+                self.heartbeat = new HeartbeatGenerator(self.gateway,config);
                 self.configWatcher.addKeysetWatcher('gateway',true,self.heartbeat);
             }
         });
@@ -65,9 +71,7 @@ function M2mSupervisor(config){
 
     self.redisWatcher.addClientWatcher(self.configWatcher);
 
-    self.supervisorProxy = false;
     if (runWeb || runAll) {
-        self.supervisorProxy  = !runAll;
         self.httpServer       = new HttpServer().start(httpPort);
         self.socketServer     = new SocketServer().start(self.httpServer);
         self.shellBehavior    = new ShellBehavior().registerSelf(self.socketServer);

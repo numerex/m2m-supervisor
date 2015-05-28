@@ -1,6 +1,7 @@
 var _ = require('lodash');
 
 var ScheduleFactory = require('../lib/schedule-factory');
+var ProxyHelper = require('../lib/proxy-helper');
 var RedisWatcher = require('../services/redis-watcher');
 var M2mSupervisor = require('../processes/m2m-supervisor');
 
@@ -87,6 +88,25 @@ function declareRouteGetByID(model,responder){
     });
 }
 
+// PROXY ----------------
+
+
+router.get('/proxy',function(req,res,next){
+    var helper = new ProxyHelper(req.query).checkConfig(function(error,config){
+        req.session.proxy = config;
+        if (error)
+            throw(error);
+        else
+            res.redirectTo('/');
+    });
+});
+
+router.post('/proxy',function(req,res,next){
+    req.session.proxy = _.keys(req.body).length > 0 ? req.body : null;
+    // TODO validate proxy
+    res.redirect('/');
+});
+
 // CONFIG ----------------
 
 router.get('/config',function(req,res,next){
@@ -107,21 +127,6 @@ router.post('/config',function(req,res,next){
 function requestConfig(res){
     requestHash(res,schema.config.key,'config',configTemplate);
 }
-
-// PROXY ----------------
-
-
-router.get('/proxy',function(req,res,next){
-    req.session.proxy = _.keys(req.query).length > 0 ? req.query : null;
-    // TODO validate proxy
-    res.redirect('/');
-});
-
-router.post('/proxy',function(req,res,next){
-    req.session.proxy = _.keys(req.body).length > 0 ? req.body : null;
-    // TODO validate proxy
-    res.redirect('/');
-});
 
 // DEVICE ----------------
 
@@ -260,7 +265,7 @@ router.get('/status',function(req,res,next){
             status.config   = M2mSupervisor.instance.configWatcher.ready();
             status.modem    = !!M2mSupervisor.instance.modemWatcher && M2mSupervisor.instance.modemWatcher.ready();
             status.ppp      = !!M2mSupervisor.instance.pppdWatcher  && M2mSupervisor.instance.pppdWatcher.ready();
-            status.proxy    = !!M2mSupervisor.instance.proxy        && M2mSupervisor.instance.proxy.started();
+            status.gateway  = !!M2mSupervisor.instance.gateway        && M2mSupervisor.instance.gateway.started();
             status.router   = !!M2mSupervisor.instance.queueRouter  && M2mSupervisor.instance.queueRouter.started();
             _.each(M2mSupervisor.instance.queueRouter && M2mSupervisor.instance.queueRouter.routes || {},function(route,key){
                 status['device:' + route.deviceKey] = route.ready();
