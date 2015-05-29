@@ -232,7 +232,7 @@ describe('DeviceRouter',function() {
                     });
                 } else if (event === null){
                     _.defer (function(){
-                        events.should.eql(['device','off',null]);
+                        events.should.eql(['device','ready','off',null]);
                         test.mockredis.snapshot().should.eql([
                             {hgetall: 'm2m-device:testKey:settings'}
                         ]);
@@ -364,28 +364,24 @@ describe('DeviceRouter',function() {
         var router = new DeviceRouter('testKey')
             .on('status',function(event){
                 events.push(event);
-                if (event !== 'ready') return;
 
-                test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
-                    'connection:type': 'telnet',
-                    'connection:telnet:address': 'host',
-                    'connection:telnet:port': '1234',
-                    'command:routing': 'none'
-                };
-
-                if (!checked) {
-                    router.settingsWatcher.checkReady();
+                if (event === 'ready' && !checked) {
                     checked = true;
-                } else {
+                    test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
+                        'connection:type': 'telnet',
+                        'connection:telnet:address': 'host',
+                        'connection:telnet:port': '1234',
+                        'command:routing': 'none'
+                    };
+                    router.settingsWatcher.checkReady();
+                } else if (event === 'off') {
                     router.stop();
-                    events.should.eql(['device','commands','ready','off','ready',null]);
+                    events.should.eql(['device','commands','ready','ready','off',null]);
                     test.mockredis.snapshot().should.eql([
                         {hgetall: 'm2m-device:testKey:settings'},
                         {hgetall: 'm2m-device:testKey:settings'}
                     ]);
                     test.mocknet.snapshot().should.eql([
-                        {connect: {host: 'host',port: 1234}},
-                        {end: null},
                         {connect: {host: 'host',port: 1234}},
                         {end: null}
                     ]);
@@ -402,12 +398,9 @@ describe('DeviceRouter',function() {
                         '[hash      ] check ready: m2m-device:testKey:settings',
                         '[hash      ] hash changed: m2m-device:testKey:settings',
                         '[reader    ] stop watching',
-                        '[reader    ] start watching',
-                        '[reader    ] ready',
                         '[dev-route ] stop watching: testKey',
                         '[hash      ] stop watching: m2m-device:testKey:settings',
-                        '[device    ] stop watching: testKey',
-                        '[reader    ] stop watching'
+                        '[device    ] stop watching: testKey'
                     ]);
                     done();
                 }

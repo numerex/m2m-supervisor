@@ -32,10 +32,15 @@ CommandBehavior.prototype.disconnectEvent = function(socket) {
 };
 
 CommandBehavior.prototype.deviceEvent = function(socket,device){
+    var deviceRouter = null;
     var commandQueueKey = schema.device.queue.useParam(device);
     if (!RedisWatcher.instance || !RedisWatcher.instance.started())
         socket.emit('output',{id: socket.clientID,stderr: 'Redis not ready'});
-    else if (!M2mSupervisor.instance || !M2mSupervisor.instance.queueRouter || !M2mSupervisor.instance.queueRouter.started() || !M2mSupervisor.instance.queueRouter.routes[commandQueueKey])
+    else if (!M2mSupervisor.instance ||
+        !M2mSupervisor.instance.queueRouter ||
+        !M2mSupervisor.instance.queueRouter.started() ||
+        !(deviceRouter = M2mSupervisor.instance.queueRouter.routes[commandQueueKey]) ||
+        !deviceRouter.reader)
         socket.emit('output',{id: socket.clientID,stderr: 'Device not ready: ' + device});
     else {
         logger.info('device(' + socket.clientID + '): ' + JSON.stringify(device));

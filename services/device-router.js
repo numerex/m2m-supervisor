@@ -31,6 +31,8 @@ function DeviceRouter(deviceKey){
     };
 
     self.on('status',function(status){
+        if (status === 'off') return self.makeReady(true);
+
         if (!status || !self.device || !self.commands || self.reader) return;
 
         self.reader = new DataReader(self.device,self.commands)
@@ -39,8 +41,8 @@ function DeviceRouter(deviceKey){
         self.reader.start();
     });
 
-    self.makeReady = function(){
-        self.busyState = false;
+    self.makeReady = function(busy){
+        self.busyState = !!busy;
         if (self.schedule) self.schedule.start(self.client);
         self.noteStatus('ready');
         self.emit('ready',self.ready());
@@ -71,6 +73,7 @@ function DeviceRouter(deviceKey){
                 if (self.ready()) self.resetReader();
                 switch(config.routing){
                     case 'none':
+                        self.commands = null;
                         return self.noteStatus('off');
                     case 'ad-hoc':
                         self.commands = config;

@@ -165,7 +165,7 @@ describe('CommandBehavior',function() {
         M2mSupervisor.instance = {
             queueRouter: {
                 started: function() { return true; },
-                routes: {'m2m-device:test1:queue': true,'m2m-device:test2:queue': true}
+                routes: {'m2m-device:test1:queue': {reader: true},'m2m-device:test2:queue': {reader: true}}
             }
         };
 
