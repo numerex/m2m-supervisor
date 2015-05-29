@@ -137,7 +137,7 @@ describe('SerialDevice',function() {
             values.push(error);
         });
         device.close();
-        values.should.eql(['Error: test error']);
+        values.should.eql([new Error('test error')]);
         test.mockserialport.snapshot().should.eql([
             {create: ['/dev/tty0',{baudrate: 1234},false]},
             {open: null},

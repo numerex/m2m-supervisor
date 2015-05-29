@@ -236,7 +236,7 @@ describe('DataReader',function() {
         var reader = new DataReader(testDevice,{commandPrefix: 'A',commandSuffix: 'B',responsePrefix: '0',responseSuffix: '1'});
         reader.start();
         reader.submit('test-command',function(error,command,response){
-            [error,command,response].should.eql(['Error: test error',null,null]);
+            [error,command,response].should.eql([new Error('test error'),null,null]);
             reader.stop();
             test.mocknet.snapshot().should.eql([
                 {connect: {host: 'host',port: 1234}},
@@ -246,7 +246,7 @@ describe('DataReader',function() {
                 '[reader    ] start watching',
                 '[reader    ] ready',
                 '[reader    ] command: "test-command"',
-                '[reader    ] write error: Error: test error',
+                '[reader    ] write error: test error',
                 '[reader    ] stop watching'
             ]);
             done();

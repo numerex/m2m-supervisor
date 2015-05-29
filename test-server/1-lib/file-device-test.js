@@ -39,7 +39,7 @@ describe('FileDevice',function() {
         device
             .on('ready',function() {
                 device.writeBuffer('test', function (err) {
-                    [err].should.eql(['TypeError: path must be a string']);
+                    err.toString().should.eql('TypeError: path must be a string');
                     done();
                 });
             })

@@ -41,11 +41,11 @@ ModemWatcher.prototype._onStart = function(config) {
         self.emit('ready');
     });
     self.device.on('retry',function(reason){
-        logger.error('retry: ' + reason);
+        logger.error('retry: ' + reason.message);
         self.emit('note','retry');
     });
     self.device.on('error',function(error){
-        logger.error('read error: ' + error);
+        logger.error('read error: ' + error.message);
         self.emit('note','error');
     });
     self.device.on('data',function(data){
@@ -78,7 +78,7 @@ ModemWatcher.prototype.noteRSSI = function(data){
         var parts = data.split(',');
         this.emit('rssi',Math.max(validParseInt(parts[0],10),0));
     } catch (e) {
-        logger.error('rssi error: ' + e);
+        logger.error('rssi error: ' + e.message);
         this.emit('note','error');
     }
     return true;

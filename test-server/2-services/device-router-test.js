@@ -506,7 +506,7 @@ describe('DeviceRouter',function() {
                 test.mockredis.snapshot().should.eql([
                     {hgetall: 'm2m-device:testKey:settings'},
                     {lpush: ['m2m-transmit:queue','{"10":"test command","11":"\\u0001test\\u0003","12":null,"routeKey":"m2m-device:testKey:queue","eventCode":10}']},
-                    {lpush: ['m2m-transmit:queue','{"10":null,"11":null,"12":"Error: test error","routeKey":"m2m-device:testKey:queue","eventCode":10}']}
+                    {lpush: ['m2m-transmit:queue','{"10":null,"11":null,"12":"test error","routeKey":"m2m-device:testKey:queue","eventCode":10}']}
                 ]);
                 test.mocknet.snapshot().should.eql([
                     {connect: {host: 'host',port: 1234}},
@@ -530,8 +530,8 @@ describe('DeviceRouter',function() {
                     '[dev-route ] response(testKey): "\\u0001test\\u0003"',
                     '[dev-route ] queue entry(testKey): {"command":"test command"}',
                     '[reader    ] command: "test command"',
-                    '[reader    ] write error: Error: test error',
-                    '[dev-route ] error(testKey) submit: Error: test error',
+                    '[reader    ] write error: test error',
+                    '[dev-route ] error(testKey) submit: test error',
                     '[dev-route ] stop watching: testKey',
                     '[hash      ] stop watching: m2m-device:testKey:settings',
                     '[device    ] stop watching: testKey',

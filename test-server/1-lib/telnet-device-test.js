@@ -111,7 +111,7 @@ describe('TelnetDevice',function() {
             values.push(error);
         });
         device.close();
-        values.should.eql(['Error: test error']);
+        values.should.eql([new Error('test error')]);
         test.mocknet.snapshot().should.eql([
             {connect: {host: 'host',port: 1234}},
             {end: null}

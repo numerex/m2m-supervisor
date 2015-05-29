@@ -53,7 +53,7 @@ function DeviceRouter(deviceKey){
                 self.settingsWatcher.emit('checkReady');
             }
         } else if (self.deviceWatcher.device) {
-            self.device = self.deviceWatcher.device;//.on('error',self.noteErrorStatus);
+            self.device = self.deviceWatcher.device;
             self.noteStatus('device');
         } else {
             self.noteErrorStatus('unavailable connection type: ' + self.deviceWatcher.config.type);
@@ -160,13 +160,13 @@ DeviceRouter.prototype.processQueueEntry = function(entry){
         self.reader.submit(entry.command,function(error,command,response){
             self.busyState = false;
             if (error)
-                logger.error('error(' + self.deviceKey + ') submit: ' + error);
+                logger.error('error(' + self.deviceKey + ') submit: ' + error.message);
             else
                 logger.info('response(' + self.deviceKey + '): ' + JSON.stringify(response));
             var results = {};
             results[settings.ObjectTypes.deviceCommand]  = command;
             results[settings.ObjectTypes.deviceResponse] = response;
-            results[settings.ObjectTypes.deviceError]    = error;
+            results[settings.ObjectTypes.deviceError]    = error ? error.message : null;
             if (!entry.requestID)
                 results.eventCode = settings.EventCodes.deviceSchedule;
             else {
