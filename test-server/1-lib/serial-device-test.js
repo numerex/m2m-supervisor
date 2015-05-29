@@ -64,7 +64,7 @@ describe('SerialDevice',function() {
         var count = 0;
         var device = new SerialDevice({serialPort: '/dev/tty0',serialBaudRate: '1234',retryInterval: 1});
         device.on('retry',function(error){
-            error.should.eql('Error: test error');
+            error.should.eql(new Error('test error'));
             if (count++ > 0) {
                 device.close();
                 test.mockserialport.snapshot().should.eql([]);

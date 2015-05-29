@@ -41,7 +41,7 @@ ModemWatcher.prototype._onStart = function(config) {
         self.emit('ready');
     });
     self.device.on('retry',function(reason){
-        logger.error('start error: ' + reason);
+        logger.error('retry: ' + reason);
         self.emit('note','retry');
     });
     self.device.on('error',function(error){
@@ -95,7 +95,7 @@ ModemWatcher.prototype.requestInfo = function(command,event){
         if (!err)
             self.emit('note',event);
         else {
-            logger.error('request error: ' + err);
+            logger.error('request error: ' + err.message);
             self.emit('note','error');
         }
     });

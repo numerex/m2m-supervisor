@@ -96,7 +96,7 @@ describe('DeviceRouter',function() {
                     '[device    ] start watching: testKey',
                     '[device    ] check ready: testKey',
                     '[device    ] now ready: testKey',
-                    '[dev-route ] error(testKey): no schedule defined',
+                    '[dev-route ] error(testKey) status: no schedule defined',
                     '[dev-route ] stop watching: testKey',
                     '[hash      ] stop watching: m2m-device:testKey:settings',
                     '[device    ] stop watching: testKey'
@@ -141,7 +141,7 @@ describe('DeviceRouter',function() {
                     '[device    ] start watching: testKey',
                     '[device    ] check ready: testKey',
                     '[device    ] now ready: testKey',
-                    '[dev-route ] error(testKey): empty schedule',
+                    '[dev-route ] error(testKey) status: empty schedule',
                     '[dev-route ] stop watching: testKey',
                     '[hash      ] stop watching: m2m-device:testKey:settings',
                     '[device    ] stop watching: testKey'
@@ -193,6 +193,7 @@ describe('DeviceRouter',function() {
                     '[device    ] check ready: testKey',
                     '[device    ] now ready: testKey',
                     '[reader    ] start watching',
+                    '[reader    ] ready',
                     '[hash      ] now ready: m2m-device:testKey:settings',
                     '[scheduler ] start watching: m2m-device:testKey:queue',
                     '[scheduler ] schedule[100]: TEST1,TEST2',
@@ -255,7 +256,7 @@ describe('DeviceRouter',function() {
         router.start(client);
     });
 
-    it('should allow a defined device to have a command routing of none',function(done){
+    it('should allow a defined device to have a command routing of unknown',function(done){
         test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
             'connection:type': 'telnet',
             'connection:telnet:address': 'host',
@@ -278,7 +279,7 @@ describe('DeviceRouter',function() {
                 _.defer(function(){
                     events.should.eql([
                         ['device',null],
-                        ['error','error(testKey): unavailable command routing: unknown'],
+                        ['error','error(testKey) status: unavailable command routing: unknown'],
                         [null,null]
                     ]);
                     test.mockredis.snapshot().should.eql([
@@ -292,7 +293,7 @@ describe('DeviceRouter',function() {
                         '[device    ] start watching: testKey',
                         '[device    ] check ready: testKey',
                         '[device    ] now ready: testKey',
-                        '[dev-route ] error(testKey): unavailable command routing: unknown',
+                        '[dev-route ] error(testKey) status: unavailable command routing: unknown',
                         '[dev-route ] stop watching: testKey',
                         '[hash      ] stop watching: m2m-device:testKey:settings',
                         '[device    ] stop watching: testKey'
@@ -323,7 +324,7 @@ describe('DeviceRouter',function() {
                 router.ready().should.not.be.ok;
                 router.stop();
                 events.should.eql([
-                    ['error','error(testKey): unavailable connection type: unknown'],
+                    ['error','error(testKey) status: unavailable connection type: unknown'],
                     [null,null]
                 ]);
                 test.mockredis.snapshot().should.eql([
@@ -337,56 +338,10 @@ describe('DeviceRouter',function() {
                     '[device    ] start watching: testKey',
                     '[device    ] check ready: testKey',
                     '[device    ] now ready: testKey',
-                    '[dev-route ] error(testKey): unavailable connection type: unknown',
+                    '[dev-route ] error(testKey) status: unavailable connection type: unknown',
                     '[dev-route ] stop watching: testKey',
                     '[hash      ] stop watching: m2m-device:testKey:settings',
                     '[device    ] stop watching: testKey'
-                ]);
-                done();
-            });
-        router.start(client);
-    });
-
-    it('should start/stop with a default telnet device defined for the key',function(done){
-        test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
-            'connection:type': 'telnet',
-            'connection:telnet:address': 'host',
-            'connection:telnet:port': '1234',
-            'command:command-prefix': '\\u0001',
-            'command:command-suffix': '\\u0003',
-            'command:response-prefix': '\\u0001',
-            'command:response-suffix': '\\u0003'
-        };
-
-        var events = [];
-        var router = new DeviceRouter('testKey')
-            .on('status',function(event){
-                events.push(event);
-                if (event !== 'ready') return;
-
-                router.ready().should.be.ok;
-                router.stop();
-                events.should.eql(['device','commands','ready',null]);
-                test.mockredis.snapshot().should.eql([
-                    {hgetall: 'm2m-device:testKey:settings'}
-                ]);
-                test.mocknet.snapshot().should.eql([
-                    {connect: {host: 'host',port: 1234}},
-                    {end: null}
-                ]);
-                test.pp.snapshot().should.eql([
-                    '[dev-route ] start watching: testKey',
-                    '[hash      ] start watching: m2m-device:testKey:settings',
-                    '[hash      ] check ready: m2m-device:testKey:settings',
-                    '[device    ] start watching: testKey',
-                    '[device    ] check ready: testKey',
-                    '[device    ] now ready: testKey',
-                    '[reader    ] start watching',
-                    '[hash      ] now ready: m2m-device:testKey:settings',
-                    '[dev-route ] stop watching: testKey',
-                    '[hash      ] stop watching: m2m-device:testKey:settings',
-                    '[device    ] stop watching: testKey',
-                    '[reader    ] stop watching'
                 ]);
                 done();
             });
@@ -442,11 +397,13 @@ describe('DeviceRouter',function() {
                         '[device    ] check ready: testKey',
                         '[device    ] now ready: testKey',
                         '[reader    ] start watching',
+                        '[reader    ] ready',
                         '[hash      ] now ready: m2m-device:testKey:settings',
                         '[hash      ] check ready: m2m-device:testKey:settings',
                         '[hash      ] hash changed: m2m-device:testKey:settings',
                         '[reader    ] stop watching',
                         '[reader    ] start watching',
+                        '[reader    ] ready',
                         '[dev-route ] stop watching: testKey',
                         '[hash      ] stop watching: m2m-device:testKey:settings',
                         '[device    ] stop watching: testKey',
@@ -505,6 +462,7 @@ describe('DeviceRouter',function() {
                         '[device    ] check ready: testKey',
                         '[device    ] now ready: testKey',
                         '[reader    ] start watching',
+                        '[reader    ] ready',
                         '[hash      ] now ready: m2m-device:testKey:settings',
                         '[hash      ] check ready: m2m-device:testKey:settings',
                         '[hash      ] hash changed: m2m-device:testKey:settings',
@@ -563,6 +521,7 @@ describe('DeviceRouter',function() {
                     '[device    ] check ready: testKey',
                     '[device    ] now ready: testKey',
                     '[reader    ] start watching',
+                    '[reader    ] ready',
                     '[hash      ] now ready: m2m-device:testKey:settings',
                     '[dev-route ] invalid queue entry(testKey): {}',
                     '[dev-route ] queue entry(testKey): {"command":"test command"}',
@@ -572,7 +531,7 @@ describe('DeviceRouter',function() {
                     '[dev-route ] queue entry(testKey): {"command":"test command"}',
                     '[reader    ] command: "test command"',
                     '[reader    ] write error: Error: test error',
-                    '[dev-route ] error(testKey): Error: test error',
+                    '[dev-route ] error(testKey) submit: Error: test error',
                     '[dev-route ] stop watching: testKey',
                     '[hash      ] stop watching: m2m-device:testKey:settings',
                     '[device    ] stop watching: testKey',
@@ -623,6 +582,7 @@ describe('DeviceRouter',function() {
                     '[device    ] check ready: testKey',
                     '[device    ] now ready: testKey',
                     '[reader    ] start watching',
+                    '[reader    ] ready',
                     '[hash      ] now ready: m2m-device:testKey:settings',
                     '[dev-route ] invalid queue entry(testKey): {}',
                     '[dev-route ] queue entry(testKey): {"command":"test command","requestID":2,"destination":"m2m-web:queue"}',

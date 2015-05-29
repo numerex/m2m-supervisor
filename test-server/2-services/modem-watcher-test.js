@@ -164,8 +164,8 @@ describe('ModemWatcher',function(){
                 watcher.stop();
                 test.pp.snapshot().should.eql([
                     '[modem     ] start watching',
-                    '[modem     ] start error: Error: test error',
-                    '[modem     ] start error: Error: test error',
+                    '[modem     ] retry: Error: test error',
+                    '[modem     ] retry: Error: test error',
                     '[modem     ] stop watching'
                 ]);
                 done();

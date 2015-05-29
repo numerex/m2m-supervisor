@@ -24,8 +24,9 @@ function DeviceRouter(deviceKey){
     self.settingsKey = schema.device.settings.useParam(deviceKey);
 
     self.noteErrorStatus = function(error) {
-        var string = 'error(' + self.deviceKey + '): ' + error;
+        var string = 'error(' + self.deviceKey + ') status: ' + error;
         logger.error(string);
+        self.busyState = true;
         self.noteStatus('error',string);
     };
 
@@ -34,14 +35,16 @@ function DeviceRouter(deviceKey){
 
         self.reader = new DataReader(self.device,self.commands)
             .on('error',self.noteErrorStatus)
-            .start();
-        _.defer(function(){
-            self.busyState = false;
-            if (self.schedule) self.schedule.start(self.client);
-            self.noteStatus('ready');
-            self.emit('ready',self.ready());
-        });
+            .on('ready',function(){ _.defer(_.bind(self.makeReady,self)) });
+        self.reader.start();
     });
+
+    self.makeReady = function(){
+        self.busyState = false;
+        if (self.schedule) self.schedule.start(self.client);
+        self.noteStatus('ready');
+        self.emit('ready',self.ready());
+    };
 
     self.deviceWatcher = new DeviceWatcher(self.deviceKey).on('ready',function(ready){
         if (!ready) {
@@ -50,7 +53,7 @@ function DeviceRouter(deviceKey){
                 self.settingsWatcher.emit('checkReady');
             }
         } else if (self.deviceWatcher.device) {
-            self.device = self.deviceWatcher.device.on('error',self.noteErrorStatus);
+            self.device = self.deviceWatcher.device;//.on('error',self.noteErrorStatus);
             self.noteStatus('device');
         } else {
             self.noteErrorStatus('unavailable connection type: ' + self.deviceWatcher.config.type);
@@ -97,7 +100,7 @@ function DeviceRouter(deviceKey){
 util.inherits(DeviceRouter,Watcher);
 
 DeviceRouter.prototype.ready = function(){
-    return !!this.reader && this.reader.started();
+    return !!this.reader && this.reader.ready();
 };
 
 DeviceRouter.prototype.busy = function(){
@@ -157,7 +160,7 @@ DeviceRouter.prototype.processQueueEntry = function(entry){
         self.reader.submit(entry.command,function(error,command,response){
             self.busyState = false;
             if (error)
-                logger.error('error(' + self.deviceKey + '): ' + error);
+                logger.error('error(' + self.deviceKey + ') submit: ' + error);
             else
                 logger.info('response(' + self.deviceKey + '): ' + JSON.stringify(response));
             var results = {};

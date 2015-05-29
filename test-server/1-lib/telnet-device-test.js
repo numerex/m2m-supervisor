@@ -62,7 +62,7 @@ describe('TelnetDevice',function() {
         var count = 0;
         var device = new TelnetDevice({telnetAddress: 'host',telnetPort: '1234',retryInterval: 1});
         device.on('retry',function(error){
-            error.should.eql('Error: test error');
+            error.should.eql(new Error('test error'));
             if (count++ > 0) {
                 device.close();
                 done();
@@ -73,8 +73,8 @@ describe('TelnetDevice',function() {
 
     it('should capture an error event',function(done){
         var device = new TelnetDevice({telnetAddress: 'host',telnetPort: '1234',retryInterval: 1});
-        device.on('error',function(error){
-            error.should.eql('Error: test error');
+        device.on('retry',function(error){
+            error.should.eql(new Error('test error'));
             device.close();
             test.mocknet.snapshot().should.eql([
                 {connect: {host: 'host',port: 1234}},
