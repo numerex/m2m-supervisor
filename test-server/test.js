@@ -36,9 +36,14 @@ var MockNet = {
     calls: [],
     events: {},
     connect: function(args,callback){
-        if (MockNet.connectException) throw(new Error(MockNet.connectException));
-        MockNet.calls.push({connect: args});
-        callback && callback();
+        _.defer(function(){
+            if (MockNet.connectException)
+                MockNet.events.error && MockNet.events.error(new Error(MockNet.connectException));
+            else {
+                MockNet.calls.push({connect: args});
+                callback && callback(null);
+            }
+        });
         return MockNet;
     },
     on: function(event,callback){

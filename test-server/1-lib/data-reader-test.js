@@ -1,3 +1,4 @@
+var _ = require('lodash');
 var test = require('../test');
 
 var DataReader = require(process.cwd() + '/lib/data-reader');
@@ -47,7 +48,7 @@ describe('DataReader',function() {
         test.pp.snapshot().should.eql(['[reader    ] JSON string contents expected: "'])
     });
 
-    it('should properly initialize data with all arguments, started, and stopped',function(){
+    it('should properly initialize data with all arguments, started, and stopped',function(done){
         var reader = new DataReader(testDevice,{
             commandPrefix: 'A',
             commandSuffix: 'B',
@@ -64,20 +65,23 @@ describe('DataReader',function() {
         reader.started().should.not.be.ok;
         reader.ready().should.not.be.ok;
         reader.start();
-        reader.started().should.be.ok;
-        reader.ready().should.be.ok;
-        reader.stop();
-        reader.started().should.not.be.ok;
-        reader.ready().should.not.be.ok;
-        test.mocknet.snapshot().should.eql([
-            {connect: {host: 'host',port: 1234}},
-            {end: null}
-        ]);
-        test.pp.snapshot().should.eql([
-            '[reader    ] start watching',
-            '[reader    ] ready',
-            '[reader    ] stop watching'
-        ]);
+        _.defer(function(){
+            reader.started().should.be.ok;
+            reader.ready().should.be.ok;
+            reader.stop();
+            reader.started().should.not.be.ok;
+            reader.ready().should.not.be.ok;
+            test.mocknet.snapshot().should.eql([
+                {connect: {host: 'host',port: 1234}},
+                {end: null}
+            ]);
+            test.pp.snapshot().should.eql([
+                '[reader    ] start watching',
+                '[reader    ] ready',
+                '[reader    ] stop watching'
+            ]);
+            done();
+        });
     });
 
     it('should retry if the device is not ready',function(done){
@@ -85,15 +89,21 @@ describe('DataReader',function() {
 
         var count = 0;
         var reader = new DataReader(testDevice);
+        reader.on('error',function(error){
+            console.log(error);
+        });
         reader.on('retry',function(error){
             error.should.eql(new Error('test error'));
             if (count++ > 0) {
                 reader.stop();
                 test.pp.snapshot().should.eql([
                     '[reader    ] start watching',
-                    '[reader    ] retry: Error: test error',
-                    '[reader    ] retry: Error: test error',
+                    '[reader    ] retry: test error',
+                    '[reader    ] retry: test error',
                     '[reader    ] stop watching'
+                ]);
+                test.mocknet.snapshot().should.eql([
+                    {end: null}
                 ]);
                 done();
             }
@@ -101,32 +111,35 @@ describe('DataReader',function() {
         reader.start();
     });
 
-    // TODO rethink...
-    //it('should capture an error event',function(done){
-    //    var reader = new DataReader(testDevice);
-    //    reader.on('error',function(error){
-    //        error.should.eql(new Error('test error'));
-    //        reader.stop();
-    //        test.mocknet.snapshot().should.eql([
-    //            {connect: {host: 'host',port: 1234}},
-    //            {end: null}
-    //        ]);
-    //        test.pp.snapshot().should.eql([
-    //            '[reader    ] start watching',
-    //            '[reader    ] read error: Error: test error',
-    //            '[reader    ] stop watching'
-    //        ]);
-    //        done();
-    //    });
-    //    reader.start();
-    //    reader.device.client.events.error(new Error('test error'));
-    //});
+    it('should capture an error event',function(done){
+        var reader = new DataReader(testDevice);
+        reader.on('ready',function(){
+            reader.device.client.events.error(new Error('test error'));
+        });
+        reader.on('error',function(error){
+            error.should.eql(new Error('test error'));
+            reader.stop();
+            test.mocknet.snapshot().should.eql([
+                {connect: {host: 'host',port: 1234}},
+                {end: null}
+            ]);
+            test.pp.snapshot().should.eql([
+                '[reader    ] start watching',
+                '[reader    ] ready',
+                '[reader    ] read error: test error',
+                '[reader    ] stop watching'
+            ]);
+            done();
+        });
+        reader.start();
+    });
 
     it('should capture a skipped data event',function(done){
         var events = [];
         var reader = new DataReader(testDevice);
         reader.on('note',function(event){
             events.push(event);
+            if (event === 'ready') reader.device.client.events.data(new Buffer('test'));
             if (event !== 'skip') return;
 
             reader.stop();
@@ -144,7 +157,6 @@ describe('DataReader',function() {
             done();
         });
         reader.start();
-        reader.device.client.events.data(new Buffer('test'));
     });
 
     it('should capture a single, complete data event',function(done){
@@ -152,6 +164,7 @@ describe('DataReader',function() {
         var reader = new DataReader(testDevice,{responsePrefix: '0',responseSuffix: '1'});
         reader.on('note',function(event){
             events.push(event);
+            if (event === 'ready') reader.device.client.events.data(new Buffer('0test1'));
             if (event !== 'response') return;
 
             reader.stop();
@@ -169,7 +182,6 @@ describe('DataReader',function() {
             done();
         });
         reader.start();
-        reader.device.client.events.data(new Buffer('0test1'));
     });
 
     it('should capture a multiple pieces of a data event',function(done){
@@ -177,6 +189,13 @@ describe('DataReader',function() {
         var reader = new DataReader(testDevice,{responsePrefix: '0',responseSuffix: '1'});
         reader.on('note',function(event){
             events.push(event);
+
+            if (event === 'ready') {
+                reader.device.client.events.data(new Buffer('0a'));
+                reader.device.client.events.data(new Buffer('b'));
+                reader.device.client.events.data(new Buffer('c1'));
+            }
+
             if (event !== 'response') return;
 
             reader.stop();
@@ -194,9 +213,6 @@ describe('DataReader',function() {
             done();
         });
         reader.start();
-        reader.device.client.events.data(new Buffer('0a'));
-        reader.device.client.events.data(new Buffer('b'));
-        reader.device.client.events.data(new Buffer('c1'));
     });
 
     it('should not allow submitting command when the device is not ready',function(done){
@@ -209,48 +225,52 @@ describe('DataReader',function() {
 
     it('should provide a response to a submitted command',function(done){
         var reader = new DataReader(testDevice,{commandPrefix: 'A',commandSuffix: 'B',responsePrefix: '0',responseSuffix: '1'});
-        reader.start();
-        reader.submit('test-command',function(error,command,response){
-            [error,command,response].should.eql([null,'test-command','0test1']);
-            reader.stop();
-            test.mocknet.snapshot().should.eql([
-                {connect: {host: 'host',port: 1234}},
-                {write: 'Atest-commandB'},
-                {end: null}
-            ]);
-            test.pp.snapshot().should.eql([
-                '[reader    ] start watching',
-                '[reader    ] ready',
-                '[reader    ] command: "test-command"',
-                '[reader    ] response: "0test1"',
-                '[reader    ] stop watching'
-            ]);
-            done();
+        reader.on('ready',function(){
+            reader.submit('test-command',function(error,command,response){
+                [error,command,response].should.eql([null,'test-command','0test1']);
+                reader.stop();
+                test.mocknet.snapshot().should.eql([
+                    {connect: {host: 'host',port: 1234}},
+                    {write: 'Atest-commandB'},
+                    {end: null}
+                ]);
+                test.pp.snapshot().should.eql([
+                    '[reader    ] start watching',
+                    '[reader    ] ready',
+                    '[reader    ] command: "test-command"',
+                    '[reader    ] response: "0test1"',
+                    '[reader    ] stop watching'
+                ]);
+                done();
+            });
+            reader.device.client.events.data(new Buffer('0test1'));
         });
-        reader.device.client.events.data(new Buffer('0test1'));
+        reader.start();
     });
 
     it('should capture an error on writing',function(done){
         test.mocknet.writeException = 'test error';
 
         var reader = new DataReader(testDevice,{commandPrefix: 'A',commandSuffix: 'B',responsePrefix: '0',responseSuffix: '1'});
-        reader.start();
-        reader.submit('test-command',function(error,command,response){
-            [error,command,response].should.eql([new Error('test error'),null,null]);
-            reader.stop();
-            test.mocknet.snapshot().should.eql([
-                {connect: {host: 'host',port: 1234}},
-                {end: null}
-            ]);
-            test.pp.snapshot().should.eql([
-                '[reader    ] start watching',
-                '[reader    ] ready',
-                '[reader    ] command: "test-command"',
-                '[reader    ] write error: test error',
-                '[reader    ] stop watching'
-            ]);
-            done();
+        reader.on('ready',function(){
+            reader.submit('test-command',function(error,command,response){
+                [error,command,response].should.eql([new Error('test error'),null,null]);
+                reader.stop();
+                test.mocknet.snapshot().should.eql([
+                    {connect: {host: 'host',port: 1234}},
+                    {end: null}
+                ]);
+                test.pp.snapshot().should.eql([
+                    '[reader    ] start watching',
+                    '[reader    ] ready',
+                    '[reader    ] command: "test-command"',
+                    '[reader    ] write error: test error',
+                    '[reader    ] stop watching'
+                ]);
+                done();
+            });
         });
+        reader.start();
     });
 
 });

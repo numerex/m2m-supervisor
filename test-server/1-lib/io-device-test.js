@@ -43,7 +43,7 @@ describe('IoDevice',function() {
     it('should note that a device is not ready for writing',function(done){
         var device = new IoDevice();
         device.writeBuffer(null,function(err){
-            err.should.eql('not ready');
+            err.should.eql(new Error('not ready'));
             done();
         });
     });
