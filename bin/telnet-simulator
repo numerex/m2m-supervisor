@@ -11,9 +11,15 @@ var host = net.createServer(function(socket){
     socket.on('data',function(data){
         try {
             console.log('request: ' + JSON.stringify(data.toString()));
-            var response = lookup[data] || '\x019999FF1B\x03';
-            console.log('response:' + JSON.stringify(response));
-            socket.write(response);
+            setTimeout(function(){
+                try {
+                    var response = lookup[data] || '\x019999FF1B\x03';
+                    console.log('response:' + JSON.stringify(response));
+                    socket.write(response);
+                } catch (e) {
+                    console.log('inside:  ' + e);
+                }
+            },1000);
         } catch (e) {
             console.log('error:   ' + e);
         }

@@ -96,16 +96,16 @@ QueueRouter.prototype._onStop = function(){
     this.client = null;
 };
 
-QueueRouter.prototype.addRoute = function(routeID,router){
-    logger.info('add route(' + router.queueKey + '): ' + routeID);
-    this.queues[+routeID] = router.queueKey;
+QueueRouter.prototype.addRoute = function(routeIndex,router){
+    logger.info('add route(' + router.queueKey + '): ' + routeIndex);
+    this.queues[+routeIndex] = router.queueKey;
     this.routes[router.queueKey] = router;
     this.setQueueArgs();
     return this;
 };
 
 QueueRouter.prototype.setQueueArgs = function(){
-    var routeKeys = _.keys(this.routes);
+    var routeKeys = _.map(_.select(this.routes,function(router){ return !router.busy(); }),function(router){ return router.queueKey; });
     this.ackArgs = ACK_PENDING_QUEUE_KEYS.concat(routeKeys).concat([this.config.timeoutInterval]);
     this.transmitArgs = COMMON_QUEUE_KEYS.concat(routeKeys).concat([this.config.timeoutInterval]);
 };
@@ -116,6 +116,7 @@ QueueRouter.prototype.checkQueue = function(){
     var self = this;
     self.client.send('mget',ACK_STATE_KEYS).thenHint('getAckState',function(values){
         var ackState = getAckState(values);
+        self.setQueueArgs(); // TODO remove other calls...
         var queueArgs = ackState.message ? self.ackArgs : self.transmitArgs;
         self.client.send('brpop',queueArgs).thenHint('checkQueue',function(result){
             if (result)
@@ -188,8 +189,8 @@ QueueRouter.prototype.processCommand = function(rawEntry,ackState) {
     switch (message.eventCode){
         case settings.EventCodes.deviceCommand:
             var command = message.find(settings.ObjectTypes.deviceCommand,null);
-            var routeID = message.find(settings.ObjectTypes.deviceRoute,1);
-            var queueKey = self.queues[routeID];
+            var routeIndex = message.find(settings.ObjectTypes.deviceIndex,1);
+            var queueKey = self.queues[routeIndex];
             var route = self.routes[queueKey];
             if (!route) {
                 logger.warn('route not found: ' + rawEntry);

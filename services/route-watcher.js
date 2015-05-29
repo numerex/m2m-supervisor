@@ -15,7 +15,7 @@ function RouteWatcher(queueRouter,config) {
     self.on('change',function(routes){
         if (!routes) return;
 
-        _.each(routes,function(routeKey,routeID){
+        _.each(routes,function(routeKey,routeIndex){
             var deviceKey = schema.device.queue.getParam(routeKey);
             // istanbul ignore if - should never occur, but nervous about not checking...
             if (!deviceKey) return;
@@ -23,7 +23,7 @@ function RouteWatcher(queueRouter,config) {
             if (self.queueRouter.routes[routeKey]) return;
 
             var deviceRouter = new DeviceRouter(deviceKey)
-                .on('status',function(status){ if (status == 'ready') self.queueRouter.addRoute(routeID,deviceRouter); });
+                .on('status',function(status){ if (status == 'ready') self.queueRouter.addRoute(routeIndex,deviceRouter); });
             deviceRouter.start(self.client);
             RedisWatcher.instance.addClientWatcher(deviceRouter.settingsWatcher);
         });

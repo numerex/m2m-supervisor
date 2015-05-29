@@ -16,6 +16,8 @@ var settings = require('../lib/m2m-settings');
 function DeviceRouter(deviceKey){
     var self = this;
     Watcher.apply(self,[logger,{qualifier: deviceKey},true]);
+
+    self.busyState = true;
     self.deviceKey = deviceKey;
     self.queueKey = schema.device.queue.useParam(deviceKey);
     self.messageBase = {routeKey: self.queueKey};
@@ -34,6 +36,7 @@ function DeviceRouter(deviceKey){
             .on('error',self.noteErrorStatus)
             .start();
         _.defer(function(){
+            self.busyState = false;
             if (self.schedule) self.schedule.start(self.client);
             self.noteStatus('ready');
             self.emit('ready',self.ready());
@@ -97,12 +100,17 @@ DeviceRouter.prototype.ready = function(){
     return !!this.reader && this.reader.started();
 };
 
+DeviceRouter.prototype.busy = function(){
+    return !this.ready() || this.busyState;
+};
+
 DeviceRouter.prototype._onStart = function(client){
     this.client = client;
     this.settingsWatcher.start(client);
 };
 
 DeviceRouter.prototype._onStop = function(){
+    this.busyState = true;
     this.settingsWatcher.stop();
     this.reset();
     this.noteStatus(null);
@@ -122,6 +130,7 @@ DeviceRouter.prototype.resetReader = function(){
     }
     this.reader = null;
     this.schedule = null;
+    this.busyState = true;
 };
 
 DeviceRouter.prototype.noteStatus = function(status,info){
@@ -144,7 +153,9 @@ DeviceRouter.prototype.processQueueEntry = function(entry){
         logger.error('invalid queue entry(' + self.deviceKey + '): ' + JSON.stringify(entry));
     else {
         logger.info('queue entry(' + self.deviceKey + '): ' + JSON.stringify(entry));
+        self.busyState = true;
         self.reader.submit(entry.command,function(error,command,response){
+            self.busyState = false;
             if (error)
                 logger.error('error(' + self.deviceKey + '): ' + error);
             else
