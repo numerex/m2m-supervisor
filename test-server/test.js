@@ -430,13 +430,14 @@ mockSocketIO.reset = function(){
     mockSocketIO.httpServer = null;
     mockSocketIO.eventHandlers = {};
     mockSocketIO.sockets = [];
-    mockSocketIO.handshake = {session: {}};
+    mockSocketIO.useCallback = null;
 };
 
 mockSocketIO.newMockSocket = function(){
     var mockSocket = {
         socketID: mockSocketIO.sockets.length,
-        eventHandlers: {}
+        eventHandlers: {},
+        handshake: {session: {}}
     };
     mockSocket.on = function(event,callback){
         mockSocket.eventHandlers[event] = callback;
@@ -451,7 +452,7 @@ mockSocketIO.newMockSocket = function(){
 };
 
 mockSocketIO.use = function(callback){
-    callback && callback(mockSocketIO,function(){});
+    mockSocketIO.useCallback = callback;
 };
 
 module.exports.mocksocketio = function (httpServer){

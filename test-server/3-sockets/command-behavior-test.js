@@ -68,9 +68,11 @@ describe('CommandBehavior',function() {
             ],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
+                {emit: {socket: 0,ready: {id: 1}}},
                 {emit: {socket: 1,identified: {id: 2}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
-                {emit: {socket: 1,behavior: {id: 2,result: true}}}]
+                {emit: {socket: 1,ready: {id: 2}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','note']}}},
+                {emit: {socket: 1,behavior: {id: 2,result: true,emissions: ['started','output','note']}}}]
         });
     });
 
@@ -100,7 +102,8 @@ describe('CommandBehavior',function() {
             ],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','note']}}},
                 {emit: {socket: 0,output: {id: 1,stderr: 'Redis not ready'}}}
             ]
         });
@@ -152,7 +155,8 @@ describe('CommandBehavior',function() {
             ],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','note']}}},
                 {emit: {socket: 0,output: {id: 1,stderr: 'Device not ready: test'}}},
                 {emit: {socket: 0,output: {id: 1,stderr: 'Device not ready'}}}
             ]
@@ -228,7 +232,8 @@ describe('CommandBehavior',function() {
             ],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','note']}}},
                 {emit: {socket: 0,output: {id: 1,stdin: 'Device ready: test1'}}},
                 {emit: {socket: 0,note: {id: 1,profile: 'test-profile'}}},
                 {emit: {socket: 0,started: {id: 1,command: 'test command'}}},

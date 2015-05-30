@@ -56,9 +56,12 @@ describe('ShellBehavior',function() {
             ],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
+                {emit: {socket: 0,ready: {id: 1}}},
                 {emit: {socket: 1,identified: {id: 2}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
-                {emit: {socket: 1,behavior: {id: 2,result: true}}}]
+                {emit: {socket: 1,ready: {id: 2}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','close','exit']}}},
+                {emit: {socket: 1,behavior: {id: 2,result: true,emissions: ['started','output','close','exit']}}}
+            ]
         });
     });
 
@@ -85,7 +88,8 @@ describe('ShellBehavior',function() {
             sockets: [{id: 0,events: ['behavior','disconnect','close','input','kill']}],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','close','exit']}}},
                 {emit: {socket: 0,output: {id: 1,stderr: "TypeError: Cannot read property 'command' of null"}}}
             ]
         });
@@ -124,7 +128,8 @@ describe('ShellBehavior',function() {
             sockets: [{id: 0,events: ['behavior','disconnect','close','input','kill']}],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','close','exit']}}},
                 {emit: {socket: 0,started: {id: 1,command: 'test command'}}},
                 {emit: {socket: 0,output: {id: 1,stderr: 'test error'}}},
                 {emit: {socket: 0,exit: {id: 1,code: 127,signal: null}}},
@@ -155,7 +160,8 @@ describe('ShellBehavior',function() {
             sockets: [{id: 0,events: ['behavior','disconnect','close','input','kill']}],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','close','exit']}}},
                 {emit: {socket: 0,output: {id: 1,stderr: 'No active command'}}}
             ]
         });
@@ -192,7 +198,8 @@ describe('ShellBehavior',function() {
             sockets: [{id: 0,events: ['behavior','disconnect','close','input','kill']}],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','close','exit']}}},
                 {emit: {socket: 0,started: {id: 1,command: 'test command'}}},
                 {emit: {socket: 0,output: {id: 1,stdout: 'test output'}}},
                 {emit: {socket: 0,exit: {id: 1,code: null,signal: 'SIGTERM'}}},
@@ -232,7 +239,8 @@ describe('ShellBehavior',function() {
             sockets: [{id: 0,events: ['behavior','disconnect','close','input','kill']}],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','close','exit']}}},
                 {emit: {socket: 0,started: {id: 1,command: 'test command'}}},
                 {emit: {socket: 0,output: {id: 1,stdout: 'test output'}}},
                 {emit: {socket: 0,exit: {id: 1,code: null,signal: 'SIGTERM'}}},
@@ -271,7 +279,8 @@ describe('ShellBehavior',function() {
             sockets: [{id: 0,events: ['behavior','disconnect','close','input','kill']}],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','close','exit']}}},
                 {emit: {socket: 0,started: {id: 1,command: 'test command'}}},
                 {emit: {socket: 0,output: {id: 1,stdout: 'test output'}}},
                 {emit: {socket: 0,exit: {id: 1,code: null,signal: 'SIGTERM'}}},
@@ -310,7 +319,8 @@ describe('ShellBehavior',function() {
             sockets: [{id: 0,events: ['behavior','disconnect','close','input','kill']}],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','close','exit']}}},
                 {emit: {socket: 0,started: {id: 1,command: 'test command'}}},
                 {emit: {socket: 0,output: {id: 1,stderr: 'test error'}}},
                 {emit: {socket: 0,output: {id: 1,stderr: 'A command is already active: test command'}}}

@@ -31,7 +31,10 @@ describe('SocketServer',function() {
         test.mocksocketio.snapshot().should.eql({
             events: ['connection'],
             sockets: [{id: 0,events: ['behavior','disconnect','close']}],
-            calls: [{emit: {socket: 0,identified: {id: 1}}}]
+            calls: [
+                {emit: {socket: 0,identified: {id: 1}}},
+                {emit: {socket: 0,ready: {id: 1}}}
+            ]
         });
         test.pp.snapshot().should.eql([
             '[socket    ] register behavior: mock',
@@ -46,8 +49,8 @@ describe('SocketServer',function() {
             events: ['connection'],
             sockets: [{id: 0,events: ['behavior','disconnect','close']}],
             calls: [
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
-                {emit: {socket: 0,behavior: {id: 1,result: false}}}
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: []}}},
+                {emit: {socket: 0,behavior: {id: 1,result: false,emissions: []}}}
             ]
         });
         test.pp.snapshot().should.eql([
@@ -90,7 +93,8 @@ describe('SocketServer',function() {
             sockets: [{id: 0,events: ['behavior','disconnect','close','test']}],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}}
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: []}}}
             ]
         });
         test.pp.snapshot().should.eql([

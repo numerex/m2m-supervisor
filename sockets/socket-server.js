@@ -29,7 +29,7 @@ SocketServer.prototype.start = function (httpServer) {
         if (proxy)
             socket.proxySocket = self.findProxySocket(proxy,socket);
         else
-            socket.emit('ready',null);
+            socket.emit('ready',{id: socket.clientID});
 
         socket.on('behavior',function(behavior){
             self.applyBehavior(behavior,socket);
@@ -95,10 +95,10 @@ SocketServer.prototype.findProxySocket = function(proxy,socket){
     var proxySocket = self.proxies[proxy.hostname];
     if (proxySocket){
         if (proxySocket.relaySocket)
-            socket.emit('busy',null);
+            socket.emit('busy',{id: socket.clientID});
         else {
             proxySocket.relaySocket = socket;
-            socket.emit('ready',null);
+            socket.emit('ready',{id: socket.clientID});
         }
     } else {
         proxySocket = self.proxies[proxy.hostname] = self.ioClient('http://' + proxy.hostname + ':' + 5000,{path: '/supervisor/socket'}); // TODO make port configurable?
@@ -111,7 +111,7 @@ SocketServer.prototype.findProxySocket = function(proxy,socket){
         });
         proxySocket.on('connect',function(){
             console.log('proxy connect');
-            proxySocket.relaySocket.emit('ready',null);
+            proxySocket.relaySocket.emit('ready',{id: proxySocket.relaySocket.clientID});
         });
         proxySocket.on('disconnect',function(){
             console.log('proxy disconnect');
