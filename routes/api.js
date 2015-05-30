@@ -97,20 +97,16 @@ router.get('/check',function(req,res,next){
 // PROXY ----------------
 
 router.get('/proxy',function(req,res,next){
-    requireRedis(res,function() {
-        var helper = new ProxyHelper(RedisWatcher.instance.client,req.query).checkConfig(function (error, config) {
-            req.session.proxy = config;
-            if (error)
-                throw(error);
-            else
-                res.redirect('/');
-        });
-    });
+    setProxy(req,res,req.query);
 });
 
 router.post('/proxy',function(req,res,next){
+    setProxy(req,res,req.body);
+});
+
+function setProxy(req,res,config){
     requireRedis(res,function() {
-        var helper = new ProxyHelper(RedisWatcher.instance.client,req.body).checkConfig(function (error, config) {
+        var helper = new ProxyHelper(RedisWatcher.instance.client,config).checkConfig(function (error, config) {
             req.session.proxy = config;
             if (error)
                 throw(error);
@@ -118,7 +114,7 @@ router.post('/proxy',function(req,res,next){
                 res.redirect('/');
         });
     });
-});
+}
 
 function proxiedGET(proxy,path,res){
     var helper = new ProxyHelper(RedisWatcher.instance.client,proxy).get(path,res);
@@ -137,7 +133,8 @@ router.get('/config',function(req,res,next){
 });
 
 router.post('/config',function(req,res,next){
-    if (req.session.proxy) return proxiedPOST(req.session.proxy,'/config',JSON.stringify(req.body),res);
+console.dir(req.session);
+    if (req.session.proxy) return proxiedPOST(req.session.proxy,'/config',req.body,res);
 
     requireRedis(res,function(){
         logger.info('config changes: ' + JSON.stringify(req.body));
