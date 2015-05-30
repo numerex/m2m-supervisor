@@ -20,63 +20,30 @@ SocketServer.prototype.start = function (httpServer) {
         session(socket.handshake, {}, next);
     });
     self.ioServer.on('connection',function (socket) {
-        var proxy = socket.handshake.session.proxy;
-        if (proxy) {
-            if (!self.ioClient) self.ioClient = require('socket.io-client'); // NOTE delay for testability et.al
-            socket.proxySocket = self.ioClient(proxy.hostname + ':' + 5000,{path: '/supervisor/socket'}); // TODO make port configurable?
-            socket.proxySocket.on('identified',function(data){
-                console.log('proxy identified: ' + JSON.stringify(data));
-            });
-            socket.proxySocket.on('close',function(data){
-                console.log('proxy close: ' + JSON.stringify(data));
-            });
-            socket.proxySocket.on('connect',function(){
-                console.log('proxy connect');
-            });
-            socket.proxySocket.on('disconnect',function(){
-                console.log('proxy disconnect');
-            });
-            socket.proxySocket.on('error',function(error){
-                console.log('proxy error:' + error);
-            });
-            socket.proxySocket.on('reconnect',function(number){
-                console.log('proxy reconnect:' + number);
-            });
-            socket.proxySocket.on('reconnect_attempt',function(){
-                console.log('proxy reconnect_attempt');
-            });
-            socket.proxySocket.on('reconnecting',function(number){
-                console.log('proxy reconnecting:' + number);
-            });
-            socket.proxySocket.on('reconnect_failed',function(){
-                console.log('proxy reconnect_failed');
-            });
-
-            socket.proxySocket.on('behavior',function(data){
-                console.log('proxy behavior:' + JSON.stringify(data));
-                _.each(data.emissions,function(event){
-                    if (socket.proxySocket.listeners(event).length === 0) socket.proxySocket.on(event,function(event,data){ socket.emit(event,data); });
-                })
-            });
-        }
-
         socket.behaviors = {};
         socket.clientID = ++self.lastID;
         logger.info('connection(' + socket.clientID + ')');
         socket.emit('identified',{id: socket.clientID});
+
+        var proxy = socket.handshake.session.proxy;
+        if (proxy)
+            socket.proxySocket = self.findProxySocket(proxy,socket);
+        else
+            socket.emit('ready',null);
+
         socket.on('behavior',function(behavior){
-            if (socket.proxySocket) socket.proxySocket.emit('behavior',behavior);
             self.applyBehavior(behavior,socket);
+            if (socket.proxySocket) socket.proxySocket.emit('behavior',behavior);
         });
         socket.on('disconnect', function () {
             logger.info('disconnect(' + socket.clientID + ')');
-            if (socket.proxySocket) socket.proxySocket.disconnect();
-            _.each(socket.behaviors,function(behavior) { behavior && behavior.disconnectEvent && behavior.disconnectEvent(socket); })
+            _.each(socket.behaviors,function(behavior) { behavior && behavior.disconnectEvent && behavior.disconnectEvent(socket); });
+            if (socket.proxySocket === socket) socket.proxySocket.relaySocket = null;
         });
         socket.on('close', function () {
             logger.info('close(' + socket.clientID + ')');
-            if (socket.proxySocket) socket.proxySocket.close();
-            _.each(socket.behaviors,function(behavior) { behavior && behavior.closeEvent && behavior.closeEvent(socket); })
+            _.each(socket.behaviors,function(behavior) { behavior && behavior.closeEvent && behavior.closeEvent(socket); });
+            if (socket.proxySocket === socket) socket.proxySocket.relaySocket = null;
         });
     });
     return this;
@@ -97,14 +64,79 @@ SocketServer.prototype.applyBehavior = function(type,socket) {
     if (!socket.behaviors[type]) {
         behavior = self.behaviors[type];
         socket.behaviors[type] = behavior;
-        _.each((behavior && behavior.eventHandlers) || [],function(handler){
-            if (socket.proxySocket)
-                socket.on(handler.event,function(data){ socket.proxySocket.emit(handler.event,data) });
-            else
+        var proxySocket = socket.proxySocket;
+        if (!proxySocket)
+            _.each((behavior && behavior.eventHandlers) || [],function(handler){
                 socket.on(handler.event,function(data) { handler.callback(socket,data); });
-        });
+            });
+        else{
+            _.each((behavior && behavior.eventHandlers) || [],function(handler){
+                socket.on(handler.event,function(data){
+                    console.log('proxy incoming event:' + handler.event + ' ' + JSON.stringify(data));
+                    proxySocket.emit(handler.event,data)
+                });
+            });
+            _.each(behavior && behavior.emissions || [],function(event){
+                if (proxySocket.listeners(event).length === 0)
+                    proxySocket.on(event,function(data){
+                        console.log('proxy outgoing event:' + event + ' ' + JSON.stringify(data));
+                        proxySocket.relaySocket.emit(event,data);
+                    });
+            })
+        }
     }
     socket.emit('behavior',{id: socket.clientID,result: !!behavior,emissions: (behavior && behavior.emissions) || []});
+};
+
+SocketServer.prototype.findProxySocket = function(proxy,socket){
+    var self = this;
+    if (!self.ioClient) self.ioClient = require('socket.io-client'); // NOTE delay for testability et.al
+    if (!self.proxies) self.proxies = {};
+    var proxySocket = self.proxies[proxy.hostname];
+    if (proxySocket){
+        if (proxySocket.relaySocket)
+            socket.emit('busy',null);
+        else {
+            proxySocket.relaySocket = socket;
+            socket.emit('ready',null);
+        }
+    } else {
+        proxySocket = self.proxies[proxy.hostname] = self.ioClient('http://' + proxy.hostname + ':' + 5000,{path: '/supervisor/socket'}); // TODO make port configurable?
+        proxySocket.relaySocket = socket;
+        proxySocket.on('identified',function(data){
+            console.log('proxy identified: ' + JSON.stringify(data));
+        });
+        proxySocket.on('close',function(data){
+            console.log('proxy close: ' + JSON.stringify(data));
+        });
+        proxySocket.on('connect',function(){
+            console.log('proxy connect');
+            proxySocket.relaySocket.emit('ready',null);
+        });
+        proxySocket.on('disconnect',function(){
+            console.log('proxy disconnect');
+        });
+        proxySocket.on('error',function(error){
+            console.log('proxy error:' + error);
+        });
+        proxySocket.on('reconnect',function(number){
+            console.log('proxy reconnect:' + number);
+        });
+        proxySocket.on('reconnect_attempt',function(){
+            console.log('proxy reconnect_attempt');
+        });
+        proxySocket.on('reconnecting',function(number){
+            console.log('proxy reconnecting:' + number);
+        });
+        proxySocket.on('reconnect_failed',function(){
+            console.log('proxy reconnect_failed');
+        });
+
+        proxySocket.on('behavior',function(data){
+            console.log('proxy behavior:' + JSON.stringify(data));
+        });
+    }
+    return proxySocket;
 };
 
 module.exports = SocketServer;

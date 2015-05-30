@@ -114,6 +114,12 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
                 $rootScope.socket.on('reconnect_failed',function(){
                     console.log('reconnect_failed');
                 });
+                $rootScope.socket.on('ready',function(){
+                    console.log('ready');
+                });
+                $rootScope.socket.on('busy',function(){
+                    console.log('busy');
+                });
             }
             if (!$rootScope.socket.flavors[flavor]) {
                 $rootScope.socket.flavors[flavor] = true;

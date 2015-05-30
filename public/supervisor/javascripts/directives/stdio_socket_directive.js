@@ -11,7 +11,10 @@ app.directive('stdioSocket',function(){
             $scope.instanceID = ++$rootScope.instanceID;
 
             $scope.socket = $rootScope.setupSocket('stdio',function(socket){
-                socket.on('connect',function(){
+                socket.on('busy',function(){
+                    displayOutput('stderr','The remote supervisor is busy');
+                });
+                socket.on('ready',function(){
                     socket.emit('behavior',socket.stdio.behavior);
                 });
                 socket.on('behavior',function(data){
