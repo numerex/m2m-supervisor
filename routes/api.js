@@ -133,11 +133,9 @@ router.get('/config',function(req,res,next){
 });
 
 router.post('/config',function(req,res,next){
-console.dir(req.session);
     if (req.session.proxy) return proxiedPOST(req.session.proxy,'/config',req.body,res);
 
     requireRedis(res,function(){
-console.dir(req.headers);
         logger.info('config changes: ' + JSON.stringify(req.body));
         changeHash(req,res,schema.config.key,function(){
             // istanbul ignore if - TODO consider how to test...

@@ -6,8 +6,10 @@ var express = require('express');
 var router = express.Router();
 
 router.get('/',function(req,res,next) {
-    // istanbul ignore next -- TODO figure out how to test w/o damaging M2mSupervisor
-    res.render('supervisor/index',{title: 'M2M Supervisor',proxyOnly: !req.session.proxy && !!M2mSupervisor.instance && M2mSupervisor.instance.supervisorProxy});
+    var proxyOnly = !!M2mSupervisor.instance && M2mSupervisor.instance.supervisorProxy;
+    var title = proxyOnly ? 'M2M Proxy' : 'M2M Supervisor';
+    if (req.session.proxy) title = req.session.proxy.label ? 'M2M Remote: ' + req.session.proxy.label : 'M2M Remote';
+    res.render('supervisor/index',{title: title,proxyOnly: !req.session.proxy && proxyOnly});
 });
 
 module.exports = router;

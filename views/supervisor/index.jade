@@ -5,7 +5,7 @@ block content
   .navbar.navbar-default.navbar-fixed-top
     .container-fluid
       .navbar-header
-        .navbar-brand M2M Supervisor
+        .navbar-brand= title
       unless proxyOnly
         ul.nav.navbar-nav
           li(ng-class = "{active: $state.includes('home')}")
