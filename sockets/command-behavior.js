@@ -13,6 +13,11 @@ function CommandBehavior(){
         {event: 'device',callback: function(socket,data){ self.deviceEvent(socket,data); }},
         {event: 'command',callback: function(socket,data){ self.commandEvent(socket,data); }}
     ];
+    self.emissions = [
+        'started',
+        'output',
+        'note'
+    ];
     M2mSupervisor = require('../processes/m2m-supervisor'); // delay for instance to exist
 }
 

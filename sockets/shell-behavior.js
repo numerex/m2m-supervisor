@@ -7,6 +7,12 @@ function ShellBehavior(){
         {event: 'input',callback: function(socket,data){ self.inputEvent(socket,data); }},
         {event: 'kill', callback: function(socket,data){ self.killEvent(socket,data); }}
     ];
+    self.emissions = [
+        'started',
+        'output',
+        'close',
+        'exit'
+    ];
 }
 
 ShellBehavior.prototype.registerSelf = function(socketServer){
