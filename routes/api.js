@@ -68,8 +68,10 @@ function findIDs(keyPattern,callback){
     RedisWatcher.instance.client.keys(keyPattern).thenHint('findIDs - ' + keyPattern,callback);
 }
 
-function declareRouteList(model,schemaEntry){
+function declareRouteList(model,allowProxy,schemaEntry){
     router.get('/' + model,function(req,res,next){
+        if (allowProxy && req.session.proxy) return proxiedGET(req.session.proxy,'/' + model,res);
+
         requireRedis(res,function(){
             findIDs(schemaEntry.keysPattern(),function(keys){
                 var result = {};
@@ -80,8 +82,10 @@ function declareRouteList(model,schemaEntry){
     });
 }
 
-function declareRouteGetByID(model,responder){
+function declareRouteGetByID(model,allowProxy,responder){
     router.get('/' + model + '/:id',function(req,res,next){
+        if (allowProxy && req.session.proxy) return proxiedGET(req.session.proxy,'/' + model + '/' + req.params.id,res);
+
         requireRedis(res,function(){
             responder(res,req.params.id);
         });
@@ -106,7 +110,7 @@ router.post('/proxy',function(req,res,next){
 
 function setProxy(req,res,config){
     requireRedis(res,function() {
-        var helper = new ProxyHelper(RedisWatcher.instance.client,config).checkConfig(function (error, config) {
+        new ProxyHelper(RedisWatcher.instance.client,config).checkConfig(function (error, config) {
             req.session.proxy = config;
             if (error)
                 throw(error);
@@ -117,11 +121,11 @@ function setProxy(req,res,config){
 }
 
 function proxiedGET(proxy,path,res){
-    var helper = new ProxyHelper(RedisWatcher.instance.client,proxy).get(path,res);
+    new ProxyHelper(RedisWatcher.instance.client,proxy).get(path,res);
 }
 
 function proxiedPOST(proxy,path,body,res){
-    var helper = new ProxyHelper(RedisWatcher.instance.client,proxy).post(path,body,res);
+    new ProxyHelper(RedisWatcher.instance.client,proxy).post(path,body,res);
 }
 
 // CONFIG ----------------
@@ -151,11 +155,13 @@ function requestConfig(res){
 
 // DEVICE ----------------
 
-declareRouteList('devices',schema.device.settings);
+declareRouteList('devices',true,schema.device.settings);
 
-declareRouteGetByID('device',requestDevice);
+declareRouteGetByID('device',true,requestDevice);
 
 router.post('/device/:id',function(req,res,next){
+    if (req.session.proxy) return proxiedPOST(req.session.proxy,'/device/' + req.params.id,req.body,res);
+
     requireRedis(res,function(){
         logger.info('device changes(' + req.params.id + '): ' + JSON.stringify(req.body));
         changeHash(req,res,schema.device.settings.useParam(req.params.id),function(){
@@ -170,6 +176,8 @@ router.post('/device/:id',function(req,res,next){
 });
 
 router.get('/device',function(req,res,next){
+    if (req.session.proxy) return proxiedGET(req.session.proxy,'/device',null,res);
+
     requireRedis(res,function(){
         var profileKeys = _.select(_.collect(RedisWatcher.instance.keys,_.bind(schema.command.profile.getParam,schema.command.profile,_)));
         var scheduleKeys = _.select(_.collect(RedisWatcher.instance.keys,_.bind(schema.schedule.periods.getParam,schema.schedule.periods,_)));
@@ -212,6 +220,8 @@ function deleteOptionExists(options){
 }
 
 router.post('/device',function(req,res,next){
+    if (req.session.proxy) return proxiedPOST(req.session.proxy,'/device',req.body,res);
+
     requireRedis(res,function(){
         var id = req.body.id;
         delete req.body.id;
@@ -248,9 +258,9 @@ function requestDevice(res,id){
 
 // SCHEDULES ----------------
 
-declareRouteList('schedules',schema.schedule.periods);
+declareRouteList('schedules',false,schema.schedule.periods);
 
-declareRouteGetByID('schedule',function(res,id){
+declareRouteGetByID('schedule',false,function(res,id){
     var factory = new ScheduleFactory(RedisWatcher.instance.client);
     factory.exportSchedules(id,function(schedules){
         var result = {};
@@ -261,17 +271,17 @@ declareRouteGetByID('schedule',function(res,id){
 
 // PROFILES ----------------
 
-declareRouteList('profiles',schema.schedule.periods);
+declareRouteList('profiles',false,schema.schedule.periods);
 
-declareRouteGetByID('profile',function(res,id){
+declareRouteGetByID('profile',false,function(res,id){
     requestHash(res,schema.command.profile.useParam(id),'profile:' + id,null);
 });
 
-declareRouteGetByID('options',function(res,id){
+declareRouteGetByID('options',false,function(res,id){
     requestHash(res,schema.command.options.useParam(id),'options:' + id,null);
 });
 
-declareRouteGetByID('definitions',function(res,id){
+declareRouteGetByID('definitions',false,function(res,id){
     requestHash(res,schema.command.definitions.useParam(id),'definitions:' + id,null);
 });
 
