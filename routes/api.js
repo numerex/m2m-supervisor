@@ -97,28 +97,48 @@ router.get('/check',function(req,res,next){
 // PROXY ----------------
 
 router.get('/proxy',function(req,res,next){
-    var helper = new ProxyHelper(req.query).checkConfig(function(error,config){
-        req.session.proxy = config;
-        if (error)
-            throw(error);
-        else
-            res.redirectTo('/');
+    requireRedis(res,function() {
+        var helper = new ProxyHelper(RedisWatcher.instance.client,req.query).checkConfig(function (error, config) {
+            req.session.proxy = config;
+            if (error)
+                throw(error);
+            else
+                res.redirect('/');
+        });
     });
 });
 
 router.post('/proxy',function(req,res,next){
-    req.session.proxy = _.keys(req.body).length > 0 ? req.body : null;
-    // TODO validate proxy
-    res.redirect('/');
+    requireRedis(res,function() {
+        var helper = new ProxyHelper(RedisWatcher.instance.client,req.body).checkConfig(function (error, config) {
+            req.session.proxy = config;
+            if (error)
+                throw(error);
+            else
+                res.redirect('/');
+        });
+    });
 });
+
+function proxiedGET(proxy,path,res){
+    var helper = new ProxyHelper(RedisWatcher.instance.client,proxy).get(path,res);
+}
+
+function proxiedPOST(proxy,path,body,res){
+    var helper = new ProxyHelper(RedisWatcher.instance.client,proxy).post(path,body,res);
+}
 
 // CONFIG ----------------
 
 router.get('/config',function(req,res,next){
+    if (req.session.proxy) return proxiedGET(req.session.proxy,'/config',res);
+
     requireRedis(res,_.bind(requestConfig,this,res));
 });
 
 router.post('/config',function(req,res,next){
+    if (req.session.proxy) return proxiedPOST(req.session.proxy,'/config',JSON.stringify(req.body),res);
+
     requireRedis(res,function(){
         logger.info('config changes: ' + JSON.stringify(req.body));
         changeHash(req,res,schema.config.key,function(){
@@ -262,6 +282,8 @@ declareRouteGetByID('definitions',function(res,id){
 // STATUS ----------------
 
 router.get('/status',function(req,res,next){
+    if (req.session.proxy) return proxiedGET(req.session.proxy,'/status',res);
+
     checkRedis(function(){
         var status = {};
         status.redis = !!RedisWatcher.instance.client;

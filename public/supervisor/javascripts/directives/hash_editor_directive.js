@@ -42,7 +42,7 @@ app.directive('hashEditor',function(){
                         $scope.setupHash(false,result);
                     })
                     .error(function (error){
-                        $rootScope.globalMessages = {error: error};
+                        $rootScope.globalMessages = {error: error || 'Request failed'};
                     });
             };
 
