@@ -61,7 +61,6 @@ function QueueRouter(config) {
     });
     self.routes = {};
     self.queues = {};
-    self.setQueueArgs();
     self.listener = new UdpListener('router',null,function(buffer) { logger.info('unexpected response: ' + JSON.stringify(buffer)); });
     self.on('queueResult',function(result){
         self.emit('note',result);
@@ -100,7 +99,6 @@ QueueRouter.prototype.addRoute = function(routeIndex,router){
     logger.info('add route(' + router.queueKey + '): ' + routeIndex);
     this.queues[+routeIndex] = router.queueKey;
     this.routes[router.queueKey] = router;
-    this.setQueueArgs();
     return this;
 };
 
@@ -116,7 +114,7 @@ QueueRouter.prototype.checkQueue = function(){
     var self = this;
     self.client.send('mget',ACK_STATE_KEYS).thenHint('getAckState',function(values){
         var ackState = getAckState(values);
-        self.setQueueArgs(); // TODO remove other calls...
+        self.setQueueArgs();
         var queueArgs = ackState.message ? self.ackArgs : self.transmitArgs;
         self.client.send('brpop',queueArgs).thenHint('checkQueue',function(result){
             if (result)
@@ -268,7 +266,7 @@ QueueRouter.prototype.assembleMessage = function(routeKey,eventCode,timestamp,se
                     else
                         message.pushString(code,value);
                     break;
-                // istanbul ignore next - TODO improve self...
+                // istanbul ignore next - options will expand over time; no need to test for specific failures...
                 default:
                     logger.error('unexpected key/value: ' + key + '=' + value);
 
@@ -285,7 +283,7 @@ QueueRouter.prototype.transmitMessage = function(message,toggleRelay){
     var relay = !toggleRelay ? this.gateway.primary : this.gateway.primary === 'public' ? 'private' : 'public';
     logger.info('transmit: ' + JSON.stringify(message));
     this.idleCount = 0;
-    this.listener.send(message.toWire(),'localhost',+this.gateway[relay + 'Relay']); // TODO which relay to use?
+    this.listener.send(message.toWire(),'localhost',+this.gateway[relay + 'Relay']);
 };
 
 QueueRouter.prototype.noteQueueResult = function(result){

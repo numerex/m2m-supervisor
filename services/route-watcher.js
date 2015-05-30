@@ -17,13 +17,14 @@ function RouteWatcher(queueRouter,config) {
 
         _.each(routes,function(routeKey,routeIndex){
             var deviceKey = schema.device.queue.getParam(routeKey);
+
             // istanbul ignore if - should never occur, but nervous about not checking...
             if (!deviceKey) return;
-            // istanbul ignore if - TODO maybe recreate or refresh it??
+
             if (self.queueRouter.routes[routeKey]) return;
 
-            var deviceRouter = new DeviceRouter(deviceKey)
-                .on('status',function(status){ if (status == 'ready') self.queueRouter.addRoute(routeIndex,deviceRouter); });
+            var deviceRouter = new DeviceRouter(deviceKey);
+            deviceRouter.on('status',function(status){ if (status == 'ready') self.queueRouter.addRoute(routeIndex,deviceRouter); });
             deviceRouter.start(self.client);
             RedisWatcher.instance.addClientWatcher(deviceRouter.settingsWatcher);
         });

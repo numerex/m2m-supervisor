@@ -62,7 +62,6 @@ app.directive('hashEditor',function(){
                     });
                 });
 
-                //$rootScope.globalMessages = {};
                 if (_.keys(dirty).length == 0)
                     $rootScope.globalMessages = {warning: 'No changes'};
                 else {

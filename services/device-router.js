@@ -140,8 +140,6 @@ DeviceRouter.prototype.resetReader = function(){
 };
 
 DeviceRouter.prototype.noteStatus = function(status,info){
-    //if (status && this.status === 'error') return; TODO - do we need this?
-    
     this.emit('status',this.status = status,info || null);
 };
 
