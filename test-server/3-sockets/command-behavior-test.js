@@ -40,10 +40,10 @@ describe('CommandBehavior',function() {
     it('should properly self-register then connect two sockets, closing one and disconnecting the other',function(){
         var commandBehavior = new CommandBehavior().registerSelf(socketServer);
 
-        var mockSocket1 = socketServer.io.newMockSocket();
-        var mockSocket2 = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket1);
-        socketServer.io.eventHandlers.connection(mockSocket2);
+        var mockSocket1 = socketServer.ioServer.newMockSocket();
+        var mockSocket2 = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket1);
+        socketServer.ioServer.eventHandlers.connection(mockSocket2);
         mockSocket1.eventHandlers.behavior('command');
         mockSocket2.eventHandlers.behavior('command');
         mockSocket1.eventHandlers.disconnect();
@@ -77,8 +77,8 @@ describe('CommandBehavior',function() {
     it('should detect that redis is not ready',function(){
         var commandBehavior = new CommandBehavior().registerSelf(socketServer);
 
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         mockSocket.eventHandlers.behavior('command');
         mockSocket.eventHandlers.device('test');
         mockSocket.eventHandlers.disconnect();
@@ -117,8 +117,8 @@ describe('CommandBehavior',function() {
         var commandBehavior = new CommandBehavior().registerSelf(socketServer);
 
         ensureRedis();
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         mockSocket.eventHandlers.behavior('command');
         mockSocket.eventHandlers.device('test');
         mockSocket.eventHandlers.command(null);
@@ -172,8 +172,8 @@ describe('CommandBehavior',function() {
         var commandBehavior = new CommandBehavior().registerSelf(socketServer);
 
         ensureRedis();
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         mockSocket.eventHandlers.behavior('command');
         mockSocket.eventHandlers.device('test1');
         mockSocket.eventHandlers.command({command: 'test command'});

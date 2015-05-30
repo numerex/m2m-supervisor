@@ -32,6 +32,8 @@ describe('QueueRouter',function() {
         var router = new QueueRouter();
         router.config.should.eql({idleReport: 12,maxRetries: 168,maxTicks: 720,timeoutInterval: 5});
         router.routes.should.eql({});
+
+        router.setQueueArgs();
         router.transmitArgs.should.eql(['m2m-ack:queue','m2m-command:queue','m2m-transmit:queue',5]);
         test.pp.snapshot().should.eql([]);
         test.mockredis.snapshot().should.eql([]);
@@ -43,6 +45,8 @@ describe('QueueRouter',function() {
         router.config.should.eql({idleReport: 10,maxRetries: 2,maxTicks: 16,timeoutInterval: 1});
         router.queues.should.eql({1: mockRoute.queueKey});
         router.routes.should.eql({testQueue: mockRoute});
+
+        router.setQueueArgs();
         router.transmitArgs.should.eql(['m2m-ack:queue','m2m-command:queue','m2m-transmit:queue','testQueue',1]);
         test.pp.snapshot().should.eql([
             '[router    ] add route(testQueue): 1'

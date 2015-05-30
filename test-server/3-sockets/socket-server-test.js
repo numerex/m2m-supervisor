@@ -26,8 +26,8 @@ describe('SocketServer',function() {
 
         socketServer.registerBehavior('mock',{});
 
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         test.mocksocketio.snapshot().should.eql({
             events: ['connection'],
             sockets: [{id: 0,events: ['behavior','disconnect','close']}],
@@ -73,8 +73,8 @@ describe('SocketServer',function() {
             closeEvent: function(socket){ behaviorCalls.push({close: socket && socket.clientID})}
         });
 
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         
         mockSocket.eventHandlers.behavior('mock');
         mockSocket.eventHandlers.test('data');

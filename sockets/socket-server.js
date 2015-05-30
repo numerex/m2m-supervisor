@@ -1,5 +1,7 @@
 var _ = require('lodash');
-var logger = require('./../lib/logger')('socket');
+
+var session = require('../lib/session');
+var logger = require('../lib/logger')('socket');
 
 function SocketServer(){
     this.behaviors = {};
@@ -13,8 +15,11 @@ SocketServer.prototype.start = function (httpServer) {
     var self = this;
     self.httpServer = httpServer;
     self.lastID = 0;
-    self.io = require('socket.io')(httpServer,{path: '/supervisor/socket'}); // NOTE delay require for testability
-    self.io.on('connection',function (socket) {
+    self.ioServer = require('socket.io')(httpServer,{path: '/supervisor/socket'}); // NOTE delay require for testability
+    self.ioServer.use(function(socket, next) {
+        session(socket.handshake, {}, next);
+    });
+    self.ioServer.on('connection',function (socket) {
         socket.behaviors = {};
         socket.clientID = ++self.lastID;
         logger.info('connection(' + socket.clientID + ')');

@@ -1,19 +1,12 @@
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
-var session = require('express-session');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var statsd = require('express-statsd');
 var logger = require('express-bunyan-logger');
 
-var sessionOptions = {secret: 'pull-this-from-config',resave: false,saveUninitialized: false};
-// istanbul ignore if -- testing will use the MemoryStore
-if (!process.env.testing){
-    var RedisStore = require('connect-redis')(session);
-    sessionOptions.store = new RedisStore();
-}
-
+var session = require('./lib/session');
 var pretty = require('./lib/bunyan-prettyprinter');
 
 var index = require('./routes/index');
@@ -27,7 +20,7 @@ app.set('view engine', 'jade');
 app.use(favicon(__dirname + '/public/supervisor/favicon.ico'));
 app.use(statsd({prefix: 'www'}));
 app.use(logger(pretty({name: 'express',immediate: true})));
-app.use(session(sessionOptions));
+app.use(session);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());

@@ -28,10 +28,10 @@ describe('ShellBehavior',function() {
     it('should properly self-register then connect two sockets, closing one and disconnecting the other',function(){
         var shellBehavior = new ShellBehavior().registerSelf(socketServer);
 
-        var mockSocket1 = socketServer.io.newMockSocket();
-        var mockSocket2 = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket1);
-        socketServer.io.eventHandlers.connection(mockSocket2);
+        var mockSocket1 = socketServer.ioServer.newMockSocket();
+        var mockSocket2 = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket1);
+        socketServer.ioServer.eventHandlers.connection(mockSocket2);
         mockSocket1.eventHandlers.behavior('shell');
         mockSocket2.eventHandlers.behavior('shell');
         mockSocket1.eventHandlers.disconnect();
@@ -67,8 +67,8 @@ describe('ShellBehavior',function() {
 
         var shellBehavior = new ShellBehavior().registerSelf(socketServer);
 
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         mockSocket.eventHandlers.behavior('shell');
 
         mockSocket.eventHandlers.input(null);
@@ -97,8 +97,8 @@ describe('ShellBehavior',function() {
 
         var shellBehavior = new ShellBehavior().registerSelf(socketServer);
 
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         mockSocket.eventHandlers.behavior('shell');
 
         test.mockshelljs.processes.length.should.equal(0);
@@ -139,8 +139,8 @@ describe('ShellBehavior',function() {
 
         var shellBehavior = new ShellBehavior().registerSelf(socketServer);
 
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         mockSocket.eventHandlers.behavior('shell');
         mockSocket.eventHandlers.kill({signal: 'SIGTERM'});
 
@@ -167,8 +167,8 @@ describe('ShellBehavior',function() {
 
         var shellBehavior = new ShellBehavior().registerSelf(socketServer);
 
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         mockSocket.eventHandlers.behavior('shell');
         mockSocket.eventHandlers.input({command: 'test command'});
 
@@ -208,8 +208,8 @@ describe('ShellBehavior',function() {
 
         var shellBehavior = new ShellBehavior().registerSelf(socketServer);
 
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         mockSocket.eventHandlers.behavior('shell');
         mockSocket.eventHandlers.input({command: 'test command'});
 
@@ -247,8 +247,8 @@ describe('ShellBehavior',function() {
 
         var shellBehavior = new ShellBehavior().registerSelf(socketServer);
 
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         mockSocket.eventHandlers.behavior('shell');
         mockSocket.eventHandlers.input({command: 'test command'});
 
@@ -286,8 +286,8 @@ describe('ShellBehavior',function() {
 
         var shellBehavior = new ShellBehavior().registerSelf(socketServer);
 
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         mockSocket.eventHandlers.behavior('shell');
         mockSocket.eventHandlers.input({command: 'test command'});
 
