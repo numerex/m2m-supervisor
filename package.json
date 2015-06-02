@@ -1,6 +1,6 @@
 {
   "name": "m2m-supervisor",
-  "version": "0.0.14",
+  "version": "0.1.0",
   "bin": {
     "m2m": "./bin/m2m"
   },
