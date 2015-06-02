@@ -267,11 +267,11 @@ describe('API Local',function() {
             });
     });
 
-    it('GET /devices should return the set of device IDs found in redis',function(done){
-        test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:test:settings'];
+    it('GET /peripherals should return the set of peripheral IDs found in redis',function(done){
+        test.mockredis.lookup.keys['m2m-peripheral:*:settings'] = ['m2m-peripheral:test:settings'];
 
         var request = require('supertest');
-        request(app).get('/supervisor/api/devices')
+        request(app).get('/supervisor/api/peripherals')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -279,26 +279,26 @@ describe('API Local',function() {
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
-                    {keys: 'm2m-device:*:settings'},
+                    {keys: 'm2m-peripheral:*:settings'},
                     {quit: null}
                 ]);
-                res.body.should.eql({devices:['test']});
+                res.body.should.eql({peripherals:['test']});
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/supervisor\/api\/devices HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/peripherals HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/devices HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/peripherals HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
             });
     });
 
-    it('GET /device should return the default settings for a new device when no device profile exists',function(done){
+    it('GET /peripheral should return the default settings for a new peripheral when no peripheral profile exists',function(done){
         var request = require('supertest');
-        request(app).get('/supervisor/api/device')
+        request(app).get('/supervisor/api/peripheral')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -308,27 +308,27 @@ describe('API Local',function() {
                     {keys: '*'},
                     {quit: null}
                 ]);
-                res.text.should.match(/^\{"new-device":\{"Connection":/);
+                res.text.should.match(/^\{"new-peripheral":\{"Connection":/);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/supervisor\/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/peripheral HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/peripheral HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
             });
     });
 
-    it('GET /device should return the default settings for a new device when a device profile exists without a schedule',function(done){
+    it('GET /peripheral should return the default settings for a new peripheral when a peripheral profile exists without a schedule',function(done){
         test.mockredis.lookup.keys['*'] = ['m2m-command:testKey:profile'];
         test.mockredis.lookup.hgetall['m2m-command:testKey:profile'] = {'command:command-prefix': 'TESTPATTERN'};
         //require(process.cwd() + '/routes/api').resetRedisWatcher();
 
         var request = require('supertest');
-        request(app).get('/supervisor/api/device')
+        request(app).get('/supervisor/api/peripheral')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -339,30 +339,30 @@ describe('API Local',function() {
                     {hgetall: 'm2m-command:testKey:profile'},
                     {quit: null}
                 ]);
-                res.text.should.match(/^\{"new-device":\{"Connection":/);
+                res.text.should.match(/^\{"new-peripheral":\{"Connection":/);
                 res.text.should.match(/{"key":"command:profile","label":"Profile","type":"string","default":null,"value":"testKey"}/);
                 res.text.should.match(/{"key":"command:routing","label":"Routing","options":\["ad-hoc","none"\],"type":"string","status":"editable","default":"ad-hoc"},{"key":"command:schedule","label":"Schedule","type":"string","default":null,"value":null}/);
                 res.text.should.match(/{"key":"command:command-prefix","label":"Command Prefix","type":"string","default":null,"value":"TESTPATTERN"}/);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/supervisor\/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/peripheral HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/peripheral HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
             });
     });
 
-    it('GET /device should return the default settings for a new device when a device profile exists with a schedule',function(done){
+    it('GET /peripheral should return the default settings for a new peripheral when a peripheral profile exists with a schedule',function(done){
         test.mockredis.lookup.keys['*'] = ['m2m-command:testKey:profile','m2m-schedule:testKey:periods'];
         test.mockredis.lookup.hgetall['m2m-command:testKey:profile'] = {'command:command-prefix': 'TESTPATTERN'};
         //require(process.cwd() + '/routes/api').resetRedisWatcher();
 
         var request = require('supertest');
-        request(app).get('/supervisor/api/device')
+        request(app).get('/supervisor/api/peripheral')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -373,72 +373,72 @@ describe('API Local',function() {
                     {hgetall: 'm2m-command:testKey:profile'},
                     {quit: null}
                 ]);
-                res.text.should.match(/^\{"new-device":\{"Connection":/);
+                res.text.should.match(/^\{"new-peripheral":\{"Connection":/);
                 res.text.should.match(/{"key":"command:profile","label":"Profile","type":"string","default":null,"value":"testKey"}/);
                 res.text.should.match(/{"key":"command:routing","label":"Routing","options":\["ad-hoc","none","scheduled"\],"type":"string","status":"editable","default":"scheduled"},{"key":"command:schedule","label":"Schedule","type":"string","default":null,"value":"testKey"}/);
                 res.text.should.match(/{"key":"command:command-prefix","label":"Command Prefix","type":"string","default":null,"value":"TESTPATTERN"}/);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/supervisor\/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/peripheral HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/peripheral HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
             });
     });
 
-    it('POST /device should detect a missing device ID',function(done){
+    it('POST /peripheral should detect a missing peripheral ID',function(done){
         var request = require('supertest');
-        request(app).post('/supervisor/api/device')
+        request(app).post('/supervisor/api/peripheral')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.eql('{"error":"Device ID not provided"}');
+                res.text.should.eql('{"error":"Peripheral ID not provided"}');
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> POST \/supervisor\/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> POST \/supervisor\/api\/peripheral HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/peripheral HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
             });
     });
 
-    it('POST /device should detect an existing device ID',function(done){
-        test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:test-123:settings'];
+    it('POST /peripheral should detect an existing peripheral ID',function(done){
+        test.mockredis.lookup.keys['m2m-peripheral:*:settings'] = ['m2m-peripheral:test-123:settings'];
 
         var request = require('supertest');
-        request(app).post('/supervisor/api/device').send({id: 'test 123'})
+        request(app).post('/supervisor/api/peripheral').send({id: 'test 123'})
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.body.should.eql({error: 'Device ID already used'});
+                res.body.should.eql({error: 'Peripheral ID already used'});
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
-                    {keys: 'm2m-device:*:settings'},
+                    {keys: 'm2m-peripheral:*:settings'},
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> POST \/supervisor\/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> POST \/supervisor\/api\/peripheral HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/peripheral HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -446,141 +446,141 @@ describe('API Local',function() {
     });
 
 
-    it('POST /device should create a new device',function(done){
-        test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:other:settings'];
-        test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
+    it('POST /peripheral should create a new peripheral',function(done){
+        test.mockredis.lookup.keys['m2m-peripheral:*:settings'] = ['m2m-peripheral:other:settings'];
+        test.mockredis.lookup.hgetall['m2m-peripheral:test-abc-123:settings'] = {'connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
 
         var request = require('supertest');
-        request(app).post('/supervisor/api/device').send({id: 'test abc:123','connection:telnet:address': 'localhost','connection:telnet:port': 10002})
+        request(app).post('/supervisor/api/peripheral').send({id: 'test abc:123','connection:telnet:address': 'localhost','connection:telnet:port': 10002})
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.match(/^\{"device:test-abc-123":\{"Connection":/);
+                res.text.should.match(/^\{"peripheral:test-abc-123":\{"Connection":/);
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
-                    {keys: 'm2m-device:*:settings'},
+                    {keys: 'm2m-peripheral:*:settings'},
                     {incr: 'm2m-command:next-route'},
-                    {hset: ['m2m-command:routes','1','m2m-device:test-abc-123:queue']},
-                    {hmset: ['m2m-device:test-abc-123:settings','connection:telnet:address','localhost','connection:telnet:port','10002']},
-                    {hgetall: 'm2m-device:test-abc-123:settings'},
+                    {hset: ['m2m-command:routes','1','m2m-peripheral:test-abc-123:queue']},
+                    {hmset: ['m2m-peripheral:test-abc-123:settings','connection:telnet:address','localhost','connection:telnet:port','10002']},
+                    {hgetall: 'm2m-peripheral:test-abc-123:settings'},
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> POST \/supervisor\/api\/device HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> POST \/supervisor\/api\/peripheral HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    '[api       ] device creation(test-abc-123): {"connection:telnet:address":"localhost","connection:telnet:port":10002}',
-                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/device HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    '[api       ] peripheral creation(test-abc-123): {"connection:telnet:address":"localhost","connection:telnet:port":10002}',
+                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/peripheral HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
             });
     });
 
-    it('GET /device/:id should return device settings without a profile or schedule',function(done){
-        test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:test-abc-123:settings'];
-        test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
+    it('GET /peripheral/:id should return peripheral settings without a profile or schedule',function(done){
+        test.mockredis.lookup.keys['m2m-peripheral:*:settings'] = ['m2m-peripheral:test-abc-123:settings'];
+        test.mockredis.lookup.hgetall['m2m-peripheral:test-abc-123:settings'] = {'connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
 
         var request = require('supertest');
-        request(app).get('/supervisor/api/device/test-abc-123')
+        request(app).get('/supervisor/api/peripheral/test-abc-123')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.match(/^\{"device:test-abc-123":\{"Connection":/);
+                res.text.should.match(/^\{"peripheral:test-abc-123":\{"Connection":/);
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
-                    {hgetall: 'm2m-device:test-abc-123:settings'},
+                    {hgetall: 'm2m-peripheral:test-abc-123:settings'},
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/peripheral\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/peripheral\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
             });
     });
 
-    it('GET /device/:id should return device settings with a profile but no schedule',function(done){
-        test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:test-abc-123:settings'];
-        test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'command:profile':'test-profile','connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
+    it('GET /peripheral/:id should return peripheral settings with a profile but no schedule',function(done){
+        test.mockredis.lookup.keys['m2m-peripheral:*:settings'] = ['m2m-peripheral:test-abc-123:settings'];
+        test.mockredis.lookup.hgetall['m2m-peripheral:test-abc-123:settings'] = {'command:profile':'test-profile','connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
 
         var request = require('supertest');
-        request(app).get('/supervisor/api/device/test-abc-123')
+        request(app).get('/supervisor/api/peripheral/test-abc-123')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.match(/^\{"device:test-abc-123":\{"Connection":/);
+                res.text.should.match(/^\{"peripheral:test-abc-123":\{"Connection":/);
                 res.text.should.match(/{"key":"command:profile","label":"Profile","type":"string","default":null,"value":"test-profile","exists":true}/);
                 res.text.should.match(/{"key":"command:routing","label":"Routing","options":\["ad-hoc","none"\],"type":"string","status":"editable","default":"ad-hoc"},{"key":"command:schedule","label":"Schedule","type":"string","default":null}/);
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
-                    {hgetall: 'm2m-device:test-abc-123:settings'},
+                    {hgetall: 'm2m-peripheral:test-abc-123:settings'},
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/peripheral\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/peripheral\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
             });
     });
 
-    it('GET /device/:id should return device settings with a profile and schedule',function(done){
-        test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:test-abc-123:settings'];
-        test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'command:profile':'test-profile','command:schedule':'test-profile','connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
+    it('GET /peripheral/:id should return peripheral settings with a profile and schedule',function(done){
+        test.mockredis.lookup.keys['m2m-peripheral:*:settings'] = ['m2m-peripheral:test-abc-123:settings'];
+        test.mockredis.lookup.hgetall['m2m-peripheral:test-abc-123:settings'] = {'command:profile':'test-profile','command:schedule':'test-profile','connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
 
         var request = require('supertest');
-        request(app).get('/supervisor/api/device/test-abc-123')
+        request(app).get('/supervisor/api/peripheral/test-abc-123')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.match(/^\{"device:test-abc-123":\{"Connection":/);
+                res.text.should.match(/^\{"peripheral:test-abc-123":\{"Connection":/);
                 res.text.should.match(/{"key":"command:profile","label":"Profile","type":"string","default":null,"value":"test-profile","exists":true}/);
                 res.text.should.match(/{"key":"command:routing","label":"Routing","options":\["ad-hoc","none","scheduled"\],"type":"string","status":"editable","default":"ad-hoc"},{"key":"command:schedule","label":"Schedule","type":"string","default":null,"value":"test-profile","exists":true}/);
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
-                    {hgetall: 'm2m-device:test-abc-123:settings'},
+                    {hgetall: 'm2m-peripheral:test-abc-123:settings'},
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> GET \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/peripheral\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/peripheral\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
             });
     });
 
-    it('POST /device/:id should report no changes for empty body',function(done){
-        test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:test-abc-123:settings'];
-        test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
+    it('POST /peripheral/:id should report no changes for empty body',function(done){
+        test.mockredis.lookup.keys['m2m-peripheral:*:settings'] = ['m2m-peripheral:test-abc-123:settings'];
+        test.mockredis.lookup.hgetall['m2m-peripheral:test-abc-123:settings'] = {'connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
 
         var request = require('supertest');
-        request(app).post('/supervisor/api/device/test-abc-123')
+        request(app).post('/supervisor/api/peripheral/test-abc-123')
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
@@ -592,45 +592,45 @@ describe('API Local',function() {
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> POST \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> POST \/supervisor\/api\/peripheral\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    '[api       ] device changes(test-abc-123): {}',
-                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    '[api       ] peripheral changes(test-abc-123): {}',
+                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/peripheral\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
             });
     });
 
-    it('POST /device/:id should update the hash',function(done){
-        test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:test-abc-123:settings'];
-        test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
+    it('POST /peripheral/:id should update the hash',function(done){
+        test.mockredis.lookup.keys['m2m-peripheral:*:settings'] = ['m2m-peripheral:test-abc-123:settings'];
+        test.mockredis.lookup.hgetall['m2m-peripheral:test-abc-123:settings'] = {'connection:telnet:address': 'localhost','connection:telnet:port': '10002'};
 
         var request = require('supertest');
-        request(app).post('/supervisor/api/device/test-abc-123').send({'connection:telnet:address': 'localhost'})
+        request(app).post('/supervisor/api/peripheral/test-abc-123').send({'connection:telnet:address': 'localhost'})
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.match(/^\{"device:test-abc-123":\{"Connection":/);
+                res.text.should.match(/^\{"peripheral:test-abc-123":\{"Connection":/);
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
-                    {hmset: ['m2m-device:test-abc-123:settings','connection:telnet:address','localhost']},
-                    {hgetall: 'm2m-device:test-abc-123:settings'},
+                    {hmset: ['m2m-peripheral:test-abc-123:settings','connection:telnet:address','localhost']},
+                    {hgetall: 'm2m-peripheral:test-abc-123:settings'},
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> POST \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> POST \/supervisor\/api\/peripheral\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    '[api       ] device changes(test-abc-123): {"connection:telnet:address":"localhost"}',
-                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    '[api       ] peripheral changes(test-abc-123): {"connection:telnet:address":"localhost"}',
+                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/peripheral\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -638,65 +638,65 @@ describe('API Local',function() {
     });
 
 
-    it('POST /device/:id should delete from the hash',function(done){
-        test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:test-abc-123:settings'];
-        test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'connection:telnet:address': 'localhost'};
+    it('POST /peripheral/:id should delete from the hash',function(done){
+        test.mockredis.lookup.keys['m2m-peripheral:*:settings'] = ['m2m-peripheral:test-abc-123:settings'];
+        test.mockredis.lookup.hgetall['m2m-peripheral:test-abc-123:settings'] = {'connection:telnet:address': 'localhost'};
 
         var request = require('supertest');
-        request(app).post('/supervisor/api/device/test-abc-123').send({'connection:telnet:port': null})
+        request(app).post('/supervisor/api/peripheral/test-abc-123').send({'connection:telnet:port': null})
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.match(/^\{"device:test-abc-123":\{"Connection":/);
+                res.text.should.match(/^\{"peripheral:test-abc-123":\{"Connection":/);
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
-                    {hdel: ['m2m-device:test-abc-123:settings','connection:telnet:port']},
-                    {hgetall: 'm2m-device:test-abc-123:settings'},
+                    {hdel: ['m2m-peripheral:test-abc-123:settings','connection:telnet:port']},
+                    {hgetall: 'm2m-peripheral:test-abc-123:settings'},
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> POST \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> POST \/supervisor\/api\/peripheral\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    '[api       ] device changes(test-abc-123): {"connection:telnet:port":null}',
-                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    '[api       ] peripheral changes(test-abc-123): {"connection:telnet:port":null}',
+                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/peripheral\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
             });
     });
 
-    it('POST /device/:id should allow both updating and deleting from the hash',function(done){
-        test.mockredis.lookup.keys['m2m-device:*:settings'] = ['m2m-device:test-abc-123:settings'];
-        test.mockredis.lookup.hgetall['m2m-device:test-abc-123:settings'] = {'connection:telnet:address': 'localhost'};
+    it('POST /peripheral/:id should allow both updating and deleting from the hash',function(done){
+        test.mockredis.lookup.keys['m2m-peripheral:*:settings'] = ['m2m-peripheral:test-abc-123:settings'];
+        test.mockredis.lookup.hgetall['m2m-peripheral:test-abc-123:settings'] = {'connection:telnet:address': 'localhost'};
 
         var request = require('supertest');
-        request(app).post('/supervisor/api/device/test-abc-123').send({'connection:telnet:address': 'localhost','connection:telnet:port': null})
+        request(app).post('/supervisor/api/peripheral/test-abc-123').send({'connection:telnet:address': 'localhost','connection:telnet:port': null})
             .expect('Content-Type',/json/)
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.match(/^\{"device:test-abc-123":\{"Connection":/);
+                res.text.should.match(/^\{"peripheral:test-abc-123":\{"Connection":/);
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
-                    {hdel: ['m2m-device:test-abc-123:settings','connection:telnet:port']},
-                    {hmset: ['m2m-device:test-abc-123:settings','connection:telnet:address','localhost']},
-                    {hgetall: 'm2m-device:test-abc-123:settings'},
+                    {hdel: ['m2m-peripheral:test-abc-123:settings','connection:telnet:port']},
+                    {hmset: ['m2m-peripheral:test-abc-123:settings','connection:telnet:address','localhost']},
+                    {hgetall: 'm2m-peripheral:test-abc-123:settings'},
                     {quit: null}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
-                    /^\[express   \] \S+ --> POST \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ --> POST \/supervisor\/api\/peripheral\/test-abc-123 HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    '[api       ] device changes(test-abc-123): {"connection:telnet:address":"localhost","connection:telnet:port":null}',
-                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/device\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
+                    '[api       ] peripheral changes(test-abc-123): {"connection:telnet:address":"localhost","connection:telnet:port":null}',
+                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/peripheral\/test-abc-123 HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
                     '[redis     ] stop watching'
                 ]);
                 done();
@@ -761,7 +761,7 @@ describe('API Local',function() {
             });
     });
 
-    it('GET /profile/:id should return a device profile',function(done){
+    it('GET /profile/:id should return a peripheral profile',function(done){
         test.mockredis.lookup.hgetall['m2m-command:test:profile'] = {'command:command-prefix':'ABC'};
 
         var request = require('supertest');
@@ -876,11 +876,11 @@ describe('API Local',function() {
 
     testProxyGET('config');
     testProxyPOST('config');
-    testProxyGET('devices');
-    testProxyGET('device');
-    testProxyPOST('device');
-    testProxyGET('device/test');
-    testProxyPOST('device/test');
+    testProxyGET('peripherals');
+    testProxyGET('peripheral');
+    testProxyPOST('peripheral');
+    testProxyGET('peripheral/test');
+    testProxyPOST('peripheral/test');
     testProxyGET('status');
 
     function testProxyGET(api){

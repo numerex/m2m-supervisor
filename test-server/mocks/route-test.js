@@ -1,7 +1,7 @@
 var logger = require(process.cwd() + '/lib/logger')('test-route');
 
 module.exports.reset = function(){
-    module.exports.deviceKey = 'testDevice';
+    module.exports.peripheralKey = 'testPeripheral';
     module.exports.queueKey = 'testQueue';
     module.exports.busyState = false;
     module.exports.events = [];

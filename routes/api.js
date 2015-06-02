@@ -9,7 +9,7 @@ var logger = require('../lib/logger')('api');
 var schema = require('../lib/redis-schema');
 var helpers = require('../lib/hash-helpers');
 var configTemplate = require('../lib/config-hashkeys');
-var deviceTemplate = require('../lib/device-hashkeys');
+var peripheralTemplate = require('../lib/peripheral-hashkeys');
 
 var express = require('express');
 var router = express.Router();
@@ -158,46 +158,46 @@ function requestConfig(res){
     requestHash(res,schema.config.key,'config',configTemplate);
 }
 
-// DEVICE ----------------
+// PERIPHERAL ----------------
 
-declareRouteList('devices',true,schema.device.settings);
+declareRouteList('peripherals',true,schema.peripheral.settings);
 
-declareRouteGetByID('device',true,requestDevice);
+declareRouteGetByID('peripheral',true,requestPeripheral);
 
-router.post('/device/:id',function(req,res,next){
-    if (req.session.proxy) return proxiedPOST(req.session.proxy,'/device/' + req.params.id,req.body,res);
+router.post('/peripheral/:id',function(req,res,next){
+    if (req.session.proxy) return proxiedPOST(req.session.proxy,'/peripheral/' + req.params.id,req.body,res);
 
     requireRedis(res,function(){
-        logger.info('device changes(' + req.params.id + '): ' + JSON.stringify(req.body));
-        changeHash(req,res,schema.device.settings.useParam(req.params.id),function(){
-            requestDevice(res,req.params.id);
-            var deviceRouter = null;
+        logger.info('peripheral changes(' + req.params.id + '): ' + JSON.stringify(req.body));
+        changeHash(req,res,schema.peripheral.settings.useParam(req.params.id),function(){
+            requestPeripheral(res,req.params.id);
+            var peripheralRouter = null;
             // istanbul ignore next - TODO consider how to test
             if (M2mSupervisor.instance && M2mSupervisor.instance.queueRouter &&
-                (deviceRouter = M2mSupervisor.instance.queueRouter.routes[schema.device.queue.useParam(req.params.id)]))
-                deviceRouter.settingsWatcher.emit('checkReady');
+                (peripheralRouter = M2mSupervisor.instance.queueRouter.routes[schema.peripheral.queue.useParam(req.params.id)]))
+                peripheralRouter.settingsWatcher.emit('checkReady');
         });
     });
 });
 
-router.get('/device',function(req,res,next){
-    if (req.session.proxy) return proxiedGET(req.session.proxy,'/device',res);
+router.get('/peripheral',function(req,res,next){
+    if (req.session.proxy) return proxiedGET(req.session.proxy,'/peripheral',res);
 
     requireRedis(res,function(){
         var profileKeys = _.select(_.collect(RedisWatcher.instance.keys,_.bind(schema.command.profile.getParam,schema.command.profile,_)));
         var scheduleKeys = _.select(_.collect(RedisWatcher.instance.keys,_.bind(schema.schedule.periods.getParam,schema.schedule.periods,_)));
         if (profileKeys.length !== 1) {
-            var defaults = _.defaults(helpers.hash2groups({},deviceTemplate));
+            var defaults = _.defaults(helpers.hash2groups({},peripheralTemplate));
             makeOptionEditable(defaults['Connection']);
             makeOptionEditable(defaults['Commands']);
-            res.send({'new-device': defaults});
+            res.send({'new-peripheral': defaults});
         } else {
             var profileKey = profileKeys[0];
             var scheduleKey = _.indexOf(scheduleKeys,profileKey) >= 0 ? profileKey : null;
             RedisWatcher.instance.client.hgetall(schema.command.profile.useParam(profileKey)).thenHint('requestHash - ' + profileKey,function(hash){
-                hash[deviceTemplate.commands.profile.key] = profileKey;
-                hash[deviceTemplate.commands.schedule.key] = scheduleKey;
-                var defaults = _.defaults(helpers.hash2groups(hash,deviceTemplate));
+                hash[peripheralTemplate.commands.profile.key] = profileKey;
+                hash[peripheralTemplate.commands.schedule.key] = scheduleKey;
+                var defaults = _.defaults(helpers.hash2groups(hash,peripheralTemplate));
 
                 if (scheduleKey) {
                     var routingOption = _.detect(defaults['Commands'],function(option){ return option.key === 'command:routing'});
@@ -210,7 +210,7 @@ router.get('/device',function(req,res,next){
                 deleteOptionExists(defaults['Connection']);
                 deleteOptionExists(defaults['Commands']); // TODO figure out how to allow profile & schedule options
 
-                res.send({'new-device': defaults});
+                res.send({'new-peripheral': defaults});
             });
         }
     });
@@ -224,26 +224,26 @@ function deleteOptionExists(options){
     _.each(options,function(option){ delete option.exists; });
 }
 
-router.post('/device',function(req,res,next){
-    if (req.session.proxy) return proxiedPOST(req.session.proxy,'/device',req.body,res);
+router.post('/peripheral',function(req,res,next){
+    if (req.session.proxy) return proxiedPOST(req.session.proxy,'/peripheral',req.body,res);
 
     requireRedis(res,function(){
         var id = req.body.id;
         delete req.body.id;
         if (!id)
-            res.send({error: 'Device ID not provided'});
+            res.send({error: 'Peripheral ID not provided'});
         else
-            findIDs(schema.device.settings.keysPattern(),function(keys){
+            findIDs(schema.peripheral.settings.keysPattern(),function(keys){
                 id = id.replace(/[ :]/g,'-');
-                var queueKey = schema.device.queue.useParam(id);
-                var settingsKey = schema.device.settings.useParam(id);
+                var queueKey = schema.peripheral.queue.useParam(id);
+                var settingsKey = schema.peripheral.settings.useParam(id);
                 if (_.indexOf(keys,settingsKey) >= 0)
-                    res.send({error: 'Device ID already used'});
+                    res.send({error: 'Peripheral ID already used'});
                 else {
-                    logger.info('device creation(' + id + '): ' + JSON.stringify(req.body));
+                    logger.info('peripheral creation(' + id + '): ' + JSON.stringify(req.body));
                     RedisWatcher.instance.client.incr(schema.command.nextRouteID.key).thenHint('nextRoute',function(nextID){
                         RedisWatcher.instance.client.hset(schema.command.routes.key,nextID,queueKey).thenHint('setRoute',function(){
-                            changeHash(req,res,settingsKey,_.bind(requestDevice,this,res,id));                   // TODO use device factory
+                            changeHash(req,res,settingsKey,_.bind(requestPeripheral,this,res,id));                   // TODO use peripheral factory
                             // istanbul ignore next - TODO consider how to test
                             if (M2mSupervisor.instance && M2mSupervisor.instance.routeWatcher) M2mSupervisor.instance.routeWatcher.emit('checkReady');
                         })
@@ -253,8 +253,8 @@ router.post('/device',function(req,res,next){
     });
 });
 
-function requestDevice(res,id){
-    requestHash(res,schema.device.settings.useParam(id),'device:' + id,deviceTemplate,function(groups){
+function requestPeripheral(res,id){
+    requestHash(res,schema.peripheral.settings.useParam(id),'peripheral:' + id,peripheralTemplate,function(groups){
         var routingOption = _.detect(groups['Commands'],function(option){ return option.key === 'command:routing'});
         var scheduleOption = _.detect(groups['Commands'],function(option){ return option.key === 'command:schedule'});
         if (routingOption && scheduleOption && scheduleOption.value) routingOption.options.push('scheduled');
@@ -306,7 +306,7 @@ router.get('/status',function(req,res,next){
             status.gateway  = !!M2mSupervisor.instance.gateway        && M2mSupervisor.instance.gateway.started();
             status.router   = !!M2mSupervisor.instance.queueRouter  && M2mSupervisor.instance.queueRouter.started();
             _.each(M2mSupervisor.instance.queueRouter && M2mSupervisor.instance.queueRouter.routes || {},function(route,key){
-                status['device:' + route.deviceKey] = route.ready();
+                status['peripheral:' + route.peripheralKey] = route.ready();
             });
         }
         res.send(status);

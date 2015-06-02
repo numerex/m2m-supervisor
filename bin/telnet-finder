@@ -5,7 +5,7 @@ var commander = require('commander');
 var shell = require('shelljs');
 var net = require('net');
 
-var hashkeys = require('../lib/device-hashkeys');
+var hashkeys = require('../lib/peripheral-hashkeys');
 
 var DEFAULT_PORT    = hashkeys.connection.telnetPort.default;
 var DEFAULT_TIMEOUT = 2;

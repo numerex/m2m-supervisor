@@ -95,9 +95,9 @@ describe('ModemWatcher',function(){
         done();
     });
 
-    it('should detect a device read error',function(done){
+    it('should detect a peripheral read error',function(done){
         var watcher = new ModemWatcher().start({serialPort: '/dev/ttyUSB2',rssiInterval: 100 / ModemWatcher.MILLIS_PER_SEC});
-        watcher.device.emit('error',new Error('test error'));
+        watcher.peripheral.emit('error',new Error('test error'));
         watcher.stop();
         test.mockserialport.snapshot().should.eql([
             {create: ['/dev/ttyUSB2',{baudrate: NaN},false]},
@@ -114,7 +114,7 @@ describe('ModemWatcher',function(){
         done();
     });
 
-    it('should detect a device write error',function(done){
+    it('should detect a peripheral write error',function(done){
         test.mockserialport.writeException = 'test error';
 
         var watcher = new ModemWatcher().start({serialPort: '/dev/ttyUSB2',rssiInterval: 100 / ModemWatcher.MILLIS_PER_SEC});

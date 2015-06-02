@@ -7,7 +7,7 @@ app.controller('CommandsController',['$scope','$rootScope','$http',function($sco
         switch(event){
             case 'ready':
                 $scope.stdio = stdio;
-                if ($scope.currentID) $scope.stdio.socket.emit('device',$scope.currentID);
+                if ($scope.currentID) $scope.stdio.socket.emit('peripheral',$scope.currentID);
                 break;
             case 'submit':
                 stdio.socket.emit('command',{command: stdio.commandLine});
@@ -130,15 +130,15 @@ app.controller('CommandsController',['$scope','$rootScope','$http',function($sco
     $scope.changeCurrentID = function(value){
         if ($scope.currentID === value) return;
 
-        $rootScope.currentDeviceID = $scope.currentID = value;
-        if ($scope.stdio) $scope.stdio.socket.emit('device',value);
+        $rootScope.currentPeripheralID = $scope.currentID = value;
+        if ($scope.stdio) $scope.stdio.socket.emit('peripheral',value);
     };
 
-    $scope.devices = [];
-    $scope.currentID = $rootScope.currentDeviceID;
-    $http.get('/supervisor/api/devices').success(function(result){
-        $scope.devices = result.devices || [];
-        $scope.changeCurrentID($scope.devices[0]);
+    $scope.peripherals = [];
+    $scope.currentID = $rootScope.currentPeripheralID;
+    $http.get('/supervisor/api/peripherals').success(function(result){
+        $scope.peripherals = result.peripherals || [];
+        $scope.changeCurrentID($scope.peripherals[0]);
     });
 
     $scope.inputOptions = ['Guided','Raw'];

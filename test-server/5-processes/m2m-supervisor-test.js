@@ -183,7 +183,7 @@ describe('M2mSupervisor',function() {
         });
     });
 
-    it('should start/stop with all available services, but no devices',function(done){
+    it('should start/stop with all available services, but no peripherals',function(done){
         test.mockredis.lookup.hgetall['m2m-config'] = {'modem:port-file':'/dev/ttyUSB2'};
 
         var supervisor = new M2mSupervisor({retryInterval: 100}).start();
@@ -233,17 +233,17 @@ describe('M2mSupervisor',function() {
         });
     });
 
-    it('should start/stop with all available services and a device',function(done){
+    it('should start/stop with all available services and a peripheral',function(done){
         test.mockos.interfaces = {ppp0: {}};
         test.mockshelljs.lookup['route -n'] = [0,fs.readFileSync('test-server/data/route-no-ppp.txt').toString()];
         test.mockshelljs.lookup['route add -net 172.29.12.0 netmask 255.255.255.0 dev ppp0'] = [0,''];
-        test.mockredis.lookup.keys['*'] = ['m2m-device:testKey:settings'];
-        test.mockredis.lookup.hgetall['m2m-command:routes'] = {1: 'm2m-device:testKey:queue'};
+        test.mockredis.lookup.keys['*'] = ['m2m-peripheral:testKey:settings'];
+        test.mockredis.lookup.hgetall['m2m-command:routes'] = {1: 'm2m-peripheral:testKey:queue'};
         test.mockredis.lookup.hgetall['m2m-config'] = {
             'gateway:imei': '352214046337094',
             'modem:port-file': '/dev/ttyUSB2'
         };
-        test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
+        test.mockredis.lookup.hgetall['m2m-peripheral:testKey:settings'] = {
             'connection:type': 'telnet',
             'connection:telnet:address': 'host',
             'connection:telnet:port': '1234'

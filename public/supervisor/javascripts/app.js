@@ -23,11 +23,11 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
                 controller: 'ConfigController',
                 redirectTo: 'config'
             })
-            .state('devices',{
-                url: '/supervisor/#devices',
-                templateUrl: 'supervisor/partials/devices',
-                controller: 'DevicesController',
-                redirectTo: 'devices'
+            .state('peripherals',{
+                url: '/supervisor/#peripherals',
+                templateUrl: 'supervisor/partials/peripherals',
+                controller: 'PeripheralsController',
+                redirectTo: 'peripherals'
             })
             .state('commands',{
                 url: '/supervisor/#commands',

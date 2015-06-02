@@ -3,22 +3,22 @@ var test = require('../test');
 
 var DataReader = require(process.cwd() + '/lib/data-reader');
 
-var TelnetDevice = require(process.cwd() + '/lib/telnet-device');
+var TelnetPeripheral = require(process.cwd() + '/lib/telnet-peripheral');
 
 describe('DataReader',function() {
 
-    var testDevice = null;
+    var testPeripheral = null;
 
     beforeEach(function () {
         test.mockery.enable();
         test.mockery.registerMock('net', test.mocknet);
         test.mockery.warnOnUnregistered(false);
         test.mocknet.reset();
-        testDevice = new TelnetDevice({telnetAddress: 'host',telnetPort: '1234',retryInterval: 1});
+        testPeripheral = new TelnetPeripheral({telnetAddress: 'host',telnetPort: '1234',retryInterval: 1});
     });
 
     afterEach(function () {
-        if (testDevice.opened()) testDevice.close();
+        if (testPeripheral.opened()) testPeripheral.close();
         test.mockery.deregisterMock('net');
         test.mockery.disable();
         test.mocknet.snapshot().should.eql([]);
@@ -26,8 +26,8 @@ describe('DataReader',function() {
     });
 
     it('should properly initialize data with minimal arguments',function(){
-        var reader = new DataReader(testDevice);
-        reader.device.should.eql(testDevice);
+        var reader = new DataReader(testPeripheral);
+        reader.peripheral.should.eql(testPeripheral);
         reader.config.should.eql({
             commandPrefix: '',
             commandSuffix: '',
@@ -37,8 +37,8 @@ describe('DataReader',function() {
     });
 
     it('should detect invalid eval strings',function(){
-        var reader = new DataReader(testDevice,{commandPrefix: '"'});
-        reader.device.should.eql(testDevice);
+        var reader = new DataReader(testPeripheral,{commandPrefix: '"'});
+        reader.peripheral.should.eql(testPeripheral);
         reader.config.should.eql({
             commandPrefix: '',
             commandSuffix: '',
@@ -49,13 +49,13 @@ describe('DataReader',function() {
     });
 
     it('should properly initialize data with all arguments, started, and stopped',function(done){
-        var reader = new DataReader(testDevice,{
+        var reader = new DataReader(testPeripheral,{
             commandPrefix: 'A',
             commandSuffix: 'B',
             responsePrefix: 'C',
             responseSuffix: 'D'
         });
-        reader.device.should.eql(testDevice);
+        reader.peripheral.should.eql(testPeripheral);
         reader.config.should.eql({
             commandPrefix: 'A',
             commandSuffix: 'B',
@@ -84,11 +84,11 @@ describe('DataReader',function() {
         });
     });
 
-    it('should retry if the device is not ready',function(done){
+    it('should retry if the peripheral is not ready',function(done){
         test.mocknet.connectException = 'test error';
 
         var count = 0;
-        var reader = new DataReader(testDevice);
+        var reader = new DataReader(testPeripheral);
         reader.on('error',function(error){
             console.log(error);
         });
@@ -112,9 +112,9 @@ describe('DataReader',function() {
     });
 
     it('should capture an error event',function(done){
-        var reader = new DataReader(testDevice);
+        var reader = new DataReader(testPeripheral);
         reader.on('ready',function(){
-            reader.device.client.events.error(new Error('test error'));
+            reader.peripheral.client.events.error(new Error('test error'));
         });
         reader.on('error',function(error){
             error.should.eql(new Error('test error'));
@@ -136,10 +136,10 @@ describe('DataReader',function() {
 
     it('should capture a skipped data event',function(done){
         var events = [];
-        var reader = new DataReader(testDevice);
+        var reader = new DataReader(testPeripheral);
         reader.on('note',function(event){
             events.push(event);
-            if (event === 'ready') reader.device.client.events.data(new Buffer('test'));
+            if (event === 'ready') reader.peripheral.client.events.data(new Buffer('test'));
             if (event !== 'skip') return;
 
             reader.stop();
@@ -161,10 +161,10 @@ describe('DataReader',function() {
 
     it('should capture a single, complete data event',function(done){
         var events = [];
-        var reader = new DataReader(testDevice,{responsePrefix: '0',responseSuffix: '1'});
+        var reader = new DataReader(testPeripheral,{responsePrefix: '0',responseSuffix: '1'});
         reader.on('note',function(event){
             events.push(event);
-            if (event === 'ready') reader.device.client.events.data(new Buffer('0test1'));
+            if (event === 'ready') reader.peripheral.client.events.data(new Buffer('0test1'));
             if (event !== 'response') return;
 
             reader.stop();
@@ -186,14 +186,14 @@ describe('DataReader',function() {
 
     it('should capture a multiple pieces of a data event',function(done){
         var events = [];
-        var reader = new DataReader(testDevice,{responsePrefix: '0',responseSuffix: '1'});
+        var reader = new DataReader(testPeripheral,{responsePrefix: '0',responseSuffix: '1'});
         reader.on('note',function(event){
             events.push(event);
 
             if (event === 'ready') {
-                reader.device.client.events.data(new Buffer('0a'));
-                reader.device.client.events.data(new Buffer('b'));
-                reader.device.client.events.data(new Buffer('c1'));
+                reader.peripheral.client.events.data(new Buffer('0a'));
+                reader.peripheral.client.events.data(new Buffer('b'));
+                reader.peripheral.client.events.data(new Buffer('c1'));
             }
 
             if (event !== 'response') return;
@@ -215,8 +215,8 @@ describe('DataReader',function() {
         reader.start();
     });
 
-    it('should not allow submitting command when the device is not ready',function(done){
-        var reader = new DataReader(testDevice);
+    it('should not allow submitting command when the peripheral is not ready',function(done){
+        var reader = new DataReader(testPeripheral);
         reader.submit('test command',function(error,command,response){
             [error,command,response].should.eql(['not ready',null,null]);
             done();
@@ -224,7 +224,7 @@ describe('DataReader',function() {
     });
 
     it('should provide a response to a submitted command',function(done){
-        var reader = new DataReader(testDevice,{commandPrefix: 'A',commandSuffix: 'B',responsePrefix: '0',responseSuffix: '1'});
+        var reader = new DataReader(testPeripheral,{commandPrefix: 'A',commandSuffix: 'B',responsePrefix: '0',responseSuffix: '1'});
         reader.on('ready',function(){
             reader.submit('test-command',function(error,command,response){
                 [error,command,response].should.eql([null,'test-command','0test1']);
@@ -243,7 +243,7 @@ describe('DataReader',function() {
                 ]);
                 done();
             });
-            reader.device.client.events.data(new Buffer('0test1'));
+            reader.peripheral.client.events.data(new Buffer('0test1'));
         });
         reader.start();
     });
@@ -251,7 +251,7 @@ describe('DataReader',function() {
     it('should capture an error on writing',function(done){
         test.mocknet.writeException = 'test error';
 
-        var reader = new DataReader(testDevice,{commandPrefix: 'A',commandSuffix: 'B',responsePrefix: '0',responseSuffix: '1'});
+        var reader = new DataReader(testPeripheral,{commandPrefix: 'A',commandSuffix: 'B',responsePrefix: '0',responseSuffix: '1'});
         reader.on('ready',function(){
             reader.submit('test-command',function(error,command,response){
                 [error,command,response].should.eql([new Error('test error'),null,null]);

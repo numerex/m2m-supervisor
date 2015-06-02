@@ -185,9 +185,9 @@ QueueRouter.prototype.processCommand = function(rawEntry,ackState) {
     var self = this;
     var message = new m2m.Message({json: rawEntry});
     switch (message.eventCode){
-        case settings.EventCodes.deviceCommand:
-            var command = message.find(settings.ObjectTypes.deviceCommand,null);
-            var routeIndex = message.find(settings.ObjectTypes.deviceIndex,1);
+        case settings.EventCodes.peripheralCommand:
+            var command = message.find(settings.ObjectTypes.peripheralCommand,null);
+            var routeIndex = message.find(settings.ObjectTypes.peripheralIndex,1);
             var queueKey = self.queues[routeIndex];
             var route = self.routes[queueKey];
             if (!route) {

@@ -3,28 +3,28 @@ var util = require('util');
 
 var Watcher = require('../lib/watcher');
 var CommandScheduler = require('../lib/command-scheduler');
-var DeviceWatcher = require('../lib/device-watcher');
+var PeripheralWatcher = require('../lib/peripheral-watcher');
 var DataReader = require('../lib/data-reader');
 var HashWatcher = require('./hash-watcher');
 
-var logger = require('../lib/logger')('dev-route');
+var logger = require('../lib/logger')('perph-rte');
 var helpers = require('../lib/hash-helpers');
 var schema = require('../lib/redis-schema');
-var hashkeys = require('../lib/device-hashkeys');
+var hashkeys = require('../lib/peripheral-hashkeys');
 var settings = require('../lib/m2m-settings');
 
-function DeviceRouter(deviceKey){
+function PeripheralRouter(peripheralKey){
     var self = this;
-    Watcher.apply(self,[logger,{qualifier: deviceKey},true]);
+    Watcher.apply(self,[logger,{qualifier: peripheralKey},true]);
 
     self.busyState = true;
-    self.deviceKey = deviceKey;
-    self.queueKey = schema.device.queue.useParam(deviceKey);
+    self.peripheralKey = peripheralKey;
+    self.queueKey = schema.peripheral.queue.useParam(peripheralKey);
     self.messageBase = {routeKey: self.queueKey};
-    self.settingsKey = schema.device.settings.useParam(deviceKey);
+    self.settingsKey = schema.peripheral.settings.useParam(peripheralKey);
 
     self.noteErrorStatus = function(error) {
-        var string = 'error(' + self.deviceKey + ') status: ' + error;
+        var string = 'error(' + self.peripheralKey + ') status: ' + error;
         logger.error(string);
         self.busyState = true;
         self.noteStatus('error',string);
@@ -33,9 +33,9 @@ function DeviceRouter(deviceKey){
     self.on('status',function(status){
         if (status === 'off') return self.makeReady(true);
 
-        if (!status || !self.device || !self.commands || self.reader) return;
+        if (!status || !self.peripheral || !self.commands || self.reader) return;
 
-        self.reader = new DataReader(self.device,self.commands)
+        self.reader = new DataReader(self.peripheral,self.commands)
             .on('error',self.noteErrorStatus)
             .on('ready',function(){ _.defer(_.bind(self.makeReady,self)) });
         self.reader.start();
@@ -48,23 +48,23 @@ function DeviceRouter(deviceKey){
         self.emit('ready',self.ready());
     };
 
-    self.deviceWatcher = new DeviceWatcher(self.deviceKey).on('ready',function(ready){
+    self.peripheralWatcher = new PeripheralWatcher(self.peripheralKey).on('ready',function(ready){
         if (!ready) {
             if (self.started()) {
                 self.reset();
                 self.settingsWatcher.emit('checkReady');
             }
-        } else if (self.deviceWatcher.device) {
-            self.device = self.deviceWatcher.device;
-            self.noteStatus('device');
+        } else if (self.peripheralWatcher.peripheral) {
+            self.peripheral = self.peripheralWatcher.peripheral;
+            self.noteStatus('peripheral');
         } else {
-            self.noteErrorStatus('unavailable connection type: ' + self.deviceWatcher.config.type);
+            self.noteErrorStatus('unavailable connection type: ' + self.peripheralWatcher.config.type);
         }
     });
 
     self.reset();
     self.settingsWatcher = new HashWatcher(self.settingsKey,hashkeys)
-        .addKeysetWatcher('connection',true,self.deviceWatcher)
+        .addKeysetWatcher('connection',true,self.peripheralWatcher)
         .on('change',function(hash){
             if (!hash) return;
             
@@ -100,22 +100,22 @@ function DeviceRouter(deviceKey){
         })
 }
 
-util.inherits(DeviceRouter,Watcher);
+util.inherits(PeripheralRouter,Watcher);
 
-DeviceRouter.prototype.ready = function(){
+PeripheralRouter.prototype.ready = function(){
     return !!this.reader && this.reader.ready();
 };
 
-DeviceRouter.prototype.busy = function(){
+PeripheralRouter.prototype.busy = function(){
     return !this.ready() || this.busyState;
 };
 
-DeviceRouter.prototype._onStart = function(client){
+PeripheralRouter.prototype._onStart = function(client){
     this.client = client;
     this.settingsWatcher.start(client);
 };
 
-DeviceRouter.prototype._onStop = function(){
+PeripheralRouter.prototype._onStop = function(){
     this.busyState = true;
     this.settingsWatcher.stop();
     this.reset();
@@ -123,13 +123,13 @@ DeviceRouter.prototype._onStop = function(){
     this.client = null;
 };
 
-DeviceRouter.prototype.reset = function(){
-    this.device = null;
+PeripheralRouter.prototype.reset = function(){
+    this.peripheral = null;
     this.commands = null;
     this.resetReader();
 };
 
-DeviceRouter.prototype.resetReader = function(){
+PeripheralRouter.prototype.resetReader = function(){
     if (this.ready()) {
         if (this.schedule && this.schedule.started()) this.schedule.stop();
         this.reader.stop();
@@ -139,39 +139,39 @@ DeviceRouter.prototype.resetReader = function(){
     this.busyState = true;
 };
 
-DeviceRouter.prototype.noteStatus = function(status,info){
+PeripheralRouter.prototype.noteStatus = function(status,info){
     this.emit('status',this.status = status,info || null);
 };
 
-DeviceRouter.prototype.noteAck = function(sequenceNumber){
-    logger.info('ack(' + this.deviceKey + ') received: ' + sequenceNumber);
+PeripheralRouter.prototype.noteAck = function(sequenceNumber){
+    logger.info('ack(' + this.peripheralKey + ') received: ' + sequenceNumber);
 };
 
-DeviceRouter.prototype.noteError = function(sequenceNumber){
-    logger.info('error(' + this.deviceKey + ') received: ' + sequenceNumber);
+PeripheralRouter.prototype.noteError = function(sequenceNumber){
+    logger.info('error(' + this.peripheralKey + ') received: ' + sequenceNumber);
 };
 
-DeviceRouter.prototype.processQueueEntry = function(entry){
+PeripheralRouter.prototype.processQueueEntry = function(entry){
     var self = this;
     if (!entry || typeof entry !== 'object' || !entry.command)
-        logger.error('invalid queue entry(' + self.deviceKey + '): ' + JSON.stringify(entry));
+        logger.error('invalid queue entry(' + self.peripheralKey + '): ' + JSON.stringify(entry));
     else {
-        logger.info('queue entry(' + self.deviceKey + '): ' + JSON.stringify(entry));
+        logger.info('queue entry(' + self.peripheralKey + '): ' + JSON.stringify(entry));
         self.busyState = true;
         self.reader.submit(entry.command,function(error,command,response){
             self.busyState = false;
             if (error)
-                logger.error('error(' + self.deviceKey + ') submit: ' + error.message);
+                logger.error('error(' + self.peripheralKey + ') submit: ' + error.message);
             else
-                logger.info('response(' + self.deviceKey + '): ' + JSON.stringify(response));
+                logger.info('response(' + self.peripheralKey + '): ' + JSON.stringify(response));
             var results = {};
-            results[settings.ObjectTypes.deviceCommand]  = command;
-            results[settings.ObjectTypes.deviceResponse] = response;
-            results[settings.ObjectTypes.deviceError]    = error ? error.message : null;
+            results[settings.ObjectTypes.peripheralCommand]  = command;
+            results[settings.ObjectTypes.peripheralResponse] = response;
+            results[settings.ObjectTypes.peripheralError]    = error ? error.message : null;
             if (!entry.requestID)
-                results.eventCode = settings.EventCodes.deviceSchedule;
+                results.eventCode = settings.EventCodes.peripheralSchedule;
             else {
-                results.eventCode = settings.EventCodes.deviceCommand;
+                results.eventCode = settings.EventCodes.peripheralCommand;
                 results[settings.ObjectTypes.requestID] = entry.requestID;
             }
             self.client.lpush(entry.destination || schema.transmit.queue.key,JSON.stringify(_.defaults({},self.messageBase,results))).errorHint('lpush');
@@ -179,4 +179,4 @@ DeviceRouter.prototype.processQueueEntry = function(entry){
     }
 };
 
-module.exports = DeviceRouter;
+module.exports = PeripheralRouter;
