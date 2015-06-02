@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 var config = require('../config/ftperconfig');
 
 var path = require('path');
@@ -30,9 +32,9 @@ ftp.on('ready', function () {
             if(element.name.indexOf(deviceName) > -1 || element.name.toLowerCase().indexOf('default') > -1) {
                     console.log('getting ' + element.name);
             } else {
-                    console.log('skipping ' + element.name);
                     return;
             }
+
             ftp.get(element.name, function (err, stream) {
                 if (err) {
                         console.log('ftp error ' + err);
@@ -46,6 +48,7 @@ ftp.on('ready', function () {
                 if (!fs.existsSync(config.ftp.path)) {
                         fs.mkdirSync(config.ftp.path);
                 }
+                
                 stream.pipe(fs.createWriteStream(config.ftp.path + '/' + element.name));
             });
         });
