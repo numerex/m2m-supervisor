@@ -21,6 +21,7 @@ function RouteWatcher(queueRouter,config) {
             // istanbul ignore if - should never occur, but nervous about not checking...
             if (!deviceKey) return;
 
+            // istanbul ignore if - should never occur, but nervous about not checking...
             if (self.queueRouter.routes[routeKey]) return;
 
             var deviceRouter = new DeviceRouter(deviceKey);

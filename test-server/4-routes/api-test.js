@@ -1,27 +1,163 @@
+var _ = require('lodash');
 var test = require('../test');
 
-describe('API router',function() {
+describe('API Local',function() {
     var app = null;
+    var testProxyResult = null;
+    var testProxyError = null;
+    var testProxyConfig = null;
+    var ProxyHelper = function(client,config){
+        this.client = client;
+        this.config = config;
+
+        this.checkConfig = function(callback){
+            callback(testProxyError,testProxyConfig);
+        };
+
+        this.get = function(path,res){
+            res.send(testProxyResult);
+        };
+
+        this.post = function(path,body,res){
+            res.send(testProxyResult);
+        };
+    };
+
 
     before(function () {
         test.mockery.enable();
+        test.mockery.registerMock('../lib/proxy-helper',ProxyHelper);
         test.mockery.registerMock('then-redis', test.mockredis);
         test.mockery.warnOnUnregistered(false);
         app = require(process.cwd() + '/app');
+
+        require(process.cwd() + '/routes/api').resetRedisWatcher();
+        test.mockredis.snapshot(); // clear
+        test.pp.snapshot(); // clear
     });
 
     after(function () {
+        require(process.cwd() + '/routes/api').resetRedisWatcher();
+        test.mockredis.snapshot(); // clear
+        test.pp.snapshot(); // clear
+
         test.mockery.deregisterMock('then-redis');
+        test.mockery.deregisterMock('../lib/proxy-helper');
         test.mockery.disable();
     });
 
     beforeEach(function () {
+        testProxyError = null;
+        testProxyConfig = null;
         test.mockredis.reset();
     });
 
     afterEach(function () {
         test.mockredis.snapshot().should.eql([]);
         test.pp.snapshot().should.eql([]);
+    });
+
+    // LOCAL calls...
+
+    it('GET /check should return an empty JSON object',function(done) {
+        var request = require('supertest');
+        request(app).get('/supervisor/api/check')
+            .expect('Content-Type',/json/)
+            .expect(200)
+            .end(function(err,res){
+                test.should.not.exist(err);
+                res.body.should.eql({});
+                test.matchArrays(test.pp.snapshot(),[
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/check HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/check HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
+                ]);
+                done();
+            });
+    });
+
+    it('GET /proxy detects an error',function(done){
+        test.mockredis.lookup.get['m2m-proxy-peer'] = null;
+        testProxyError =  new Error('Test error');
+
+        var request = require('supertest');
+        request(app).get('/supervisor/api/proxy')
+            .expect(302)
+            .end(function(err,res){
+                test.should.not.exist(err);
+                res.headers.location.should.eql('/');
+                require(process.cwd() + '/routes/api').resetRedisWatcher();
+                test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
+                    {quit: null}
+                ]);
+                test.matchArrays(test.pp.snapshot(),[
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/proxy HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    '[redis     ] instance created',
+                    '[redis     ] start watching',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
+                    '[api       ] proxy error: Test error',
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/proxy HTTP\/1\.1 302 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
+                    '[redis     ] stop watching'
+                ]);
+                done();
+            });
+    });
+
+    it('GET /proxy with no settings',function(done){
+        test.mockredis.lookup.get['m2m-proxy-peer'] = null;
+
+        var request = require('supertest');
+        request(app).get('/supervisor/api/proxy')
+            .expect(302)
+            .end(function(err,res){
+                test.should.not.exist(err);
+                res.headers.location.should.eql('/');
+                require(process.cwd() + '/routes/api').resetRedisWatcher();
+                test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
+                    {quit: null}
+                ]);
+                test.matchArrays(test.pp.snapshot(),[
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/proxy HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    '[redis     ] instance created',
+                    '[redis     ] start watching',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
+                    '[api       ] set proxy: null',
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/proxy HTTP\/1\.1 302 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
+                    '[redis     ] stop watching'
+                ]);
+                done();
+            });
+    });
+
+    it('POST /proxy with no settings',function(done){
+        test.mockredis.lookup.get['m2m-proxy-peer'] = null;
+
+        var request = require('supertest');
+        request(app).post('/supervisor/api/proxy')
+            .expect(302)
+            .end(function(err,res){
+                test.should.not.exist(err);
+                res.headers.location.should.eql('/');
+                require(process.cwd() + '/routes/api').resetRedisWatcher();
+                test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
+                    {quit: null}
+                ]);
+                test.matchArrays(test.pp.snapshot(),[
+                    /^\[express   \] \S+ --> POST \/supervisor\/api\/proxy HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    '[redis     ] instance created',
+                    '[redis     ] start watching',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
+                    '[api       ] set proxy: null',
+                    /^\[express   \] \S+ <-- POST \/supervisor\/api\/proxy HTTP\/1\.1 302 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
+                    '[redis     ] stop watching'
+                ]);
+                done();
+            });
     });
 
     it('GET /config should detect a redis not ready',function(done) {
@@ -33,7 +169,7 @@ describe('API router',function() {
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.eql('{"error":"Redis not ready"}');
+                res.body.should.eql({error: 'Redis not ready'});
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
@@ -51,7 +187,6 @@ describe('API router',function() {
                 done();
             });
     });
-
 
     it('GET /config should return the current configuration from redis',function(done) {
         var request = require('supertest');
@@ -85,7 +220,7 @@ describe('API router',function() {
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.eql('{"error":"No changes requested"}');
+                res.body.should.eql({error: 'No changes requested'});
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {quit: null}
@@ -147,7 +282,7 @@ describe('API router',function() {
                     {keys: 'm2m-device:*:settings'},
                     {quit: null}
                 ]);
-                res.text.should.eql('{"devices":["test"]}');
+                res.body.should.eql({devices:['test']});
                 test.matchArrays(test.pp.snapshot(),[
                     /^\[express   \] \S+ --> GET \/supervisor\/api\/devices HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
@@ -290,7 +425,7 @@ describe('API router',function() {
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.eql('{"error":"Device ID already used"}');
+                res.body.should.eql({error: 'Device ID already used'});
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
@@ -450,7 +585,7 @@ describe('API router',function() {
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.eql('{"error":"No changes requested"}');
+                res.body.should.eql({error: 'No changes requested'});
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
@@ -583,7 +718,7 @@ describe('API router',function() {
                     {keys: 'm2m-schedule:*:periods'},
                     {quit: null}
                 ]);
-                res.text.should.eql('{"schedules":["test"]}');
+                res.body.should.eql({schedules:['test']});
                 test.matchArrays(test.pp.snapshot(),[
                     /^\[express   \] \S+ --> GET \/supervisor\/api\/schedules HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
                     '[redis     ] instance created',
@@ -606,7 +741,7 @@ describe('API router',function() {
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.eql('{"schedule:test":[{"period":100,"commands":["TEST1","TEST2"]},{"period":200,"commands":["TEST3"]}]}');
+                res.body.should.eql({'schedule:test':[{period:100,commands:['TEST1','TEST2']},{period:200,commands:['TEST3']}]});
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
@@ -627,7 +762,7 @@ describe('API router',function() {
     });
 
     it('GET /profile/:id should return a device profile',function(done){
-        test.mockredis.lookup.hgetall['m2m-command:test:profile'] = {"command:command-prefix":"ABC"};
+        test.mockredis.lookup.hgetall['m2m-command:test:profile'] = {'command:command-prefix':'ABC'};
 
         var request = require('supertest');
         request(app).get('/supervisor/api/profile/test')
@@ -635,7 +770,7 @@ describe('API router',function() {
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.eql('{"profile:test":{"command:command-prefix":"ABC"}}');
+                res.body.should.eql({'profile:test':{'command:command-prefix':'ABC'}});
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
@@ -664,7 +799,7 @@ describe('API router',function() {
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.eql('{"options:test":{"test":"[\\"X\\"]"}}');
+                res.body.should.eql({'options:test':{test:'["X"]'}});
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
@@ -693,7 +828,7 @@ describe('API router',function() {
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.eql('{"definitions:test":{"test":"[\\"X\\"]"}}');
+                res.body.should.eql({'definitions:test':{test: '["X"]'}});
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
@@ -720,11 +855,10 @@ describe('API router',function() {
             .expect(200)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.text.should.eql('{"redis":true}');
-                require(process.cwd() + '/routes/api').resetRedisWatcher();
+                res.body.should.eql({'redis':true});
+                //require(process.cwd() + '/routes/api').resetRedisWatcher(); NOTE -- allow client to carry into PROXY calls...
                 test.mockredis.snapshot().should.eql([
-                    {keys: '*'},
-                    {quit: null}
+                    {keys: '*'}
                 ]);
                 test.matchArrays(test.pp.snapshot(),[
                     /^\[express   \] \S+ --> GET \/supervisor\/api\/status HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
@@ -732,11 +866,54 @@ describe('API router',function() {
                     '[redis     ] start watching',
                     '[redis     ] check ready',
                     '[redis     ] now ready',
-                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/status HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/,
-                    '[redis     ] stop watching'
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/status HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.\d+ \d+\.\d+ ms/
                 ]);
                 done();
             });
     });
+
+    // PROXY calls...
+
+    testProxyGET('config');
+    testProxyPOST('config');
+    testProxyGET('devices');
+    testProxyGET('device');
+    testProxyPOST('device');
+    testProxyGET('device/test');
+    testProxyPOST('device/test');
+    testProxyGET('status');
+
+    function testProxyGET(api){
+        it('GET /' + api + ' with proxy',function(done) {
+            var supertest = require('supertest');
+            testProxyRequest(supertest(app).get('/supervisor/api/' + api),done);
+        });
+    }
+
+    function testProxyPOST(api){
+        it('POST /' + api + ' with proxy',function(done) {
+
+            var supertest = require('supertest');
+            testProxyRequest(supertest(app).post('/supervisor/api/' + api),done);
+        });
+    }
+
+    function testProxyRequest(request,done){
+        testProxyResult = {test: 'TEST'};
+
+        test.setTestSession(request,{hostname:'test'});
+        request
+            .expect('Content-Type',/json/)
+            .expect(200)
+            .end(function(err,res){
+                test.should.not.exist(err);
+                res.body.should.eql({test: 'TEST'});
+                test.matchArrays(test.pp.snapshot(),[
+                    /^\[express   \] \S+ --> \w+ \/supervisor\/api\/\S+ HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    /^\[express   \] \S+ <-- \w+ \/supervisor\/api\/\S+ HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
+                ]);
+                done();
+            });
+    }
 
 });

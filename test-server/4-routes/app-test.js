@@ -34,6 +34,7 @@ describe('app',function() {
                 test.should.not.exist(err);
                 test.matchArrays(test.pp.snapshot(),[
                     /\[express   \] \S+ --> GET \/missing HTTP\/1\.1 200 - - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
+                    '[express   ] error(404): Not Found: /missing',
                     /\[express   \] \S+ <-- GET \/missing HTTP\/1\.1 404 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
                 ]);
                 done();

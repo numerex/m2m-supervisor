@@ -4,7 +4,7 @@ var favicon = require('serve-favicon');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var statsd = require('express-statsd');
-var logger = require('express-bunyan-logger');
+var expressLogger = require('express-bunyan-logger');
 
 var session = require('./lib/session');
 var pretty = require('./lib/bunyan-prettyprinter');
@@ -19,7 +19,7 @@ app.set('view engine', 'jade');
 
 app.use(favicon(__dirname + '/public/supervisor/favicon.ico'));
 app.use(statsd({prefix: 'www'}));
-app.use(logger(pretty({name: 'express',immediate: true})));
+app.use(expressLogger(pretty({name: 'express',immediate: true})));
 app.use(session);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -50,7 +50,10 @@ app.use(function(req, res, next) {
 
 // error handlers
 
+var logger = require('./lib/logger')('express');
+
 app.use(function(err, req, res, next) {
+    logger.error('error(' + err.status + '): ' + err.message);
     // istanbul ignore next -- TODO how to generate a 500 error??
     res.status(err.status || 500);
     // istanbul ignore next -- testing doesn't need to create environments

@@ -324,7 +324,8 @@ MockRedis.createClient = function () {
         },
         get: function(key) {
             MockRedis.calls.push({get: key});
-            MockRedis.results = MockRedis.lookup.get[key] || '0';
+            var result = MockRedis.lookup.get[key];
+            MockRedis.results = result === null ? null : result || '0';
             return client;
         },
         hdel: function(args){
@@ -427,6 +428,7 @@ mockSocketIO.on = function(event,callback) {
 };
 
 mockSocketIO.reset = function(){
+    module.exports.mocksocketio.lastInstance = null;
     mockSocketIO.httpServer = null;
     mockSocketIO.eventHandlers = {};
     mockSocketIO.sockets = [];
@@ -442,6 +444,9 @@ mockSocketIO.newMockSocket = function(){
     mockSocket.on = function(event,callback){
         mockSocket.eventHandlers[event] = callback;
     };
+    mockSocket.listeners = function(event){
+        return mockSocket.eventHandlers[event] || [];
+    },
     mockSocket.emit = function(event,data){
         var args = {socket: mockSocket.socketID};
         args[event] = data;
@@ -458,7 +463,7 @@ mockSocketIO.use = function(callback){
 module.exports.mocksocketio = function (httpServer){
     mockSocketIO.reset();
     mockSocketIO.httpServer = httpServer;
-    return mockSocketIO;
+    return module.exports.mocksocketio.lastInstance = mockSocketIO;
 };
 
 module.exports.mocksocketio.model = mockSocketIO;
@@ -487,19 +492,80 @@ var MockHTTP = {
         MockHTTP.app = null;
         MockHTTP.addressResult = null;
         MockHTTP.events = {};
+        MockHTTP.headers = {};
         MockHTTP.statusCode = 200;
+        MockHTTP.statusMessage = null;
+        MockHTTP.requestError = null;
+        MockHTTP.lastOptions = null;
         MockHTTP.written = [];
     },
     createServer: function(app){ MockHTTP.app = app; return MockHTTP; },
     listen: function(port){ MockHTTP.port = port; },
     address: function(){ return MockHTTP.addressResult || {addr: 'host',port: MockHTTP.port || 1234}; },
     on: function(event,callback){ MockHTTP.events[event] = callback; return MockHTTP; },
-    request: function(options,callback){ MockHTTP.callback = callback; return MockHTTP; },
+    request: function(options,callback){ MockHTTP.lastOptions = options; MockHTTP.callback = callback; return MockHTTP; },
     write: function(data) { MockHTTP.written.push(data); },
-    end: function() { MockHTTP.written.push(null); MockHTTP.callback && MockHTTP.callback({statusCode: MockHTTP.statusCode}); MockHTTP.callback = null; }
+    send: function(data) { MockHTTP.written.push({send: data}); },
+    end: function() {
+        if (MockHTTP.requestError) {
+            var error = new Error(MockHTTP.requestError);
+            MockHTTP.written.push(error);
+            MockHTTP.events.error && MockHTTP.events.error(error);
+        } else {
+            MockHTTP.written.push(null);
+            MockHTTP.callback && MockHTTP.callback({statusCode: MockHTTP.statusCode,statusMessage: MockHTTP.statusMessage,headers: MockHTTP.headers,on: MockHTTP.on});
+            MockHTTP.callback = null;
+        }
+    }
 };
 
 module.exports.mockhttp = MockHTTP;
+
+// HTTPS -----------------------
+
+var MockHTTPS = {
+    reset: function(){
+        MockHTTPS.port = null;
+        MockHTTPS.app = null;
+        MockHTTPS.addressResult = null;
+        MockHTTPS.events = {};
+        MockHTTPS.headers = {};
+        MockHTTPS.statusCode = 200;
+        MockHTTPS.statusMessage = null;
+        MockHTTPS.requestError = null;
+        MockHTTPS.lastOptions = null;
+        MockHTTPS.written = [];
+    },
+    createServer: function(app){ MockHTTPS.app = app; return MockHTTPS; },
+    listen: function(port){ MockHTTPS.port = port; },
+    address: function(){ return MockHTTPS.addressResult || {addr: 'host',port: MockHTTPS.port || 1234}; },
+    on: function(event,callback){ MockHTTPS.events[event] = callback; return MockHTTPS; },
+    request: function(options,callback){ MockHTTPS.lastOptions = options; MockHTTPS.callback = callback; return MockHTTPS; },
+    write: function(data) { MockHTTPS.written.push(data); },
+    send: function(data) { MockHTTPS.written.push({send: data}); },
+    end: function() {
+        if (MockHTTPS.requestError) {
+            var error = new Error(MockHTTPS.requestError);
+            MockHTTPS.written.push(error);
+            MockHTTPS.events.error && MockHTTPS.events.error(error);
+        } else {
+            MockHTTPS.written.push(null);
+            MockHTTPS.callback && MockHTTPS.callback({statusCode: MockHTTPS.statusCode,statusMessage: MockHTTPS.statusMessage,headers: MockHTTPS.headers,on: MockHTTPS.on});
+            MockHTTPS.callback = null;
+        }
+    }
+};
+
+module.exports.mockhttps = MockHTTPS;
+
+// SESSION -----------------------
+
+module.exports.setTestSession = function(request,data){
+    var sessionID = 'iZ_tCPQOgfroEZJFbw_6y1gra9wOtI9G';
+    var sessionStore = require(process.cwd() + '/lib/session').sessionOptions.store;
+    sessionStore.sessions[sessionID] = '{"cookie":{"originalMaxAge":null,"expires":null,"httpOnly":true,"path":"/"},"proxy":' + JSON.stringify(data) + '}';
+    request.cookies = 'connect.sid=s%3AiZ_tCPQOgfroEZJFbw_6y1gra9wOtI9G.SaGd1XQiRRpbQCNzdxpLeL5B6qLJoXZy338zallKwfc; Path=/; HttpOnly';
+};
 
 // OS -----------------------
 

@@ -56,6 +56,7 @@ describe('M2mSupervisor',function() {
         test.mockredis.clientException = 'test error';
 
         var supervisor = new M2mSupervisor().start();
+        supervisor.supervisorProxy.should.not.be.ok;
         test.mockhttp.events.listening();
         _.defer(function(){
             supervisor.stop();
@@ -82,6 +83,7 @@ describe('M2mSupervisor',function() {
         test.mockredis.clientException = 'test error';
 
         var supervisor = new M2mSupervisor({runBridge: true}).start();
+        supervisor.supervisorProxy.should.not.be.ok;
         _.defer(function(){
             supervisor.stop();
             test.pp.snapshot().should.eql([
@@ -105,6 +107,7 @@ describe('M2mSupervisor',function() {
         test.mockredis.clientException = 'test error';
 
         var supervisor = new M2mSupervisor({runTransceiver: true}).start();
+        supervisor.supervisorProxy.should.not.be.ok;
         _.defer(function(){
             supervisor.stop();
             test.pp.snapshot().should.eql([
@@ -128,6 +131,35 @@ describe('M2mSupervisor',function() {
         test.mockredis.clientException = 'test error';
 
         var supervisor = new M2mSupervisor({runWeb: true}).start();
+        supervisor.supervisorProxy.should.not.be.ok;
+        test.mockhttp.events.listening();
+        _.defer(function(){
+            supervisor.stop();
+            test.pp.snapshot().should.eql([
+                '[redis     ] instance removed',
+                '[redis     ] instance created',
+                '[socket    ] register behavior: shell',
+                '[socket    ] register behavior: command',
+                '[redis     ] start watching',
+                '[redis     ] check ready',
+                '[redis     ] redis client error: test error',
+                '[http      ] Listening on port 5000',
+                '[redis     ] stop watching'
+            ]);
+            test.mockredis.snapshot().should.eql([
+                {keys: '*'},
+                {end: null}
+            ]);
+            mockRoute.snapshot().should.eql([]);
+            done();
+        });
+    });
+
+    it('should start/stop with no services available -- proxy',function(done){
+        test.mockredis.clientException = 'test error';
+
+        var supervisor = new M2mSupervisor({runProxy: true}).start();
+        supervisor.supervisorProxy.should.be.ok;
         test.mockhttp.events.listening();
         _.defer(function(){
             supervisor.stop();
@@ -220,6 +252,7 @@ describe('M2mSupervisor',function() {
 
         test.timekeeper.freeze(1000000000000);
         var supervisor = new M2mSupervisor({retryInterval: 1}).start();
+        supervisor.supervisorProxy.should.not.be.ok;
         test.mockhttp.events.listening();
         var count = 0;
         supervisor.queueRouter.on('queueResult',function(result){

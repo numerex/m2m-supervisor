@@ -38,15 +38,19 @@ SocketServer.prototype.start = function (httpServer) {
         socket.on('disconnect', function () {
             logger.info('disconnect(' + socket.clientID + ')');
             _.each(socket.behaviors,function(behavior) { behavior && behavior.disconnectEvent && behavior.disconnectEvent(socket); });
-            if (socket.proxySocket === socket) socket.proxySocket.relaySocket = null;
+            self.resetRelaySocket(socket);
         });
         socket.on('close', function () {
             logger.info('close(' + socket.clientID + ')');
             _.each(socket.behaviors,function(behavior) { behavior && behavior.closeEvent && behavior.closeEvent(socket); });
-            if (socket.proxySocket === socket) socket.proxySocket.relaySocket = null;
+            self.resetRelaySocket(socket);
         });
     });
     return this;
+};
+
+SocketServer.prototype.resetRelaySocket = function(socket){
+    if (socket.proxySocket && socket.proxySocket.relaySocket === socket) socket.proxySocket.relaySocket = null;
 };
 
 SocketServer.prototype.registerBehavior = function(type,behavior){
@@ -66,20 +70,20 @@ SocketServer.prototype.applyBehavior = function(type,socket) {
         socket.behaviors[type] = behavior;
         var proxySocket = socket.proxySocket;
         if (!proxySocket)
-            _.each((behavior && behavior.eventHandlers) || [],function(handler){
+            _.each(behavior.eventHandlers,function(handler){
                 socket.on(handler.event,function(data) { handler.callback(socket,data); });
             });
         else{
-            _.each((behavior && behavior.eventHandlers) || [],function(handler){
+            _.each(behavior.eventHandlers,function(handler){
                 socket.on(handler.event,function(data){
-                    console.log('proxy incoming event:' + handler.event + ' ' + JSON.stringify(data));
+                    logger.info('proxy incoming event: ' + handler.event + ' ' + JSON.stringify(data));
                     proxySocket.emit(handler.event,data)
                 });
             });
-            _.each(behavior && behavior.emissions || [],function(event){
+            _.each(behavior.emissions,function(event){
                 if (proxySocket.listeners(event).length === 0)
                     proxySocket.on(event,function(data){
-                        console.log('proxy outgoing event:' + event + ' ' + JSON.stringify(data));
+                        logger.info('proxy outgoing event: ' + event + ' ' + JSON.stringify(data));
                         proxySocket.relaySocket.emit(event,data);
                     });
             })
@@ -103,37 +107,37 @@ SocketServer.prototype.findProxySocket = function(proxy,socket){
     } else {
         proxySocket = self.proxies[proxy.hostname] = self.ioClient('http://' + proxy.hostname + ':' + 5000,{path: '/supervisor/socket'}); // TODO make port configurable?
         proxySocket.relaySocket = socket;
-        proxySocket.on('identified',function(data){
-            console.log('proxy identified: ' + JSON.stringify(data));
-        });
-        proxySocket.on('close',function(data){
-            console.log('proxy close: ' + JSON.stringify(data));
-        });
         proxySocket.on('connect',function(){
-            console.log('proxy connect');
+            logger.info('proxy connect');
             proxySocket.relaySocket.emit('ready',{id: proxySocket.relaySocket.clientID});
         });
+        proxySocket.on('close',function(){
+            logger.info('proxy close');
+        });
         proxySocket.on('disconnect',function(){
-            console.log('proxy disconnect');
+            logger.info('proxy disconnect');
         });
         proxySocket.on('error',function(error){
-            console.log('proxy error:' + error);
+            logger.info('proxy error: ' + error.message);
         });
         proxySocket.on('reconnect',function(number){
-            console.log('proxy reconnect:' + number);
+            logger.info('proxy reconnect: ' + number);
         });
         proxySocket.on('reconnect_attempt',function(){
-            console.log('proxy reconnect_attempt');
+            logger.info('proxy reconnect_attempt');
         });
         proxySocket.on('reconnecting',function(number){
-            console.log('proxy reconnecting:' + number);
+            logger.info('proxy reconnecting: ' + number);
         });
         proxySocket.on('reconnect_failed',function(){
-            console.log('proxy reconnect_failed');
+            logger.info('proxy reconnect_failed');
         });
 
+        proxySocket.on('identified',function(data){
+            logger.info('proxy identified: ' + JSON.stringify(data));
+        });
         proxySocket.on('behavior',function(data){
-            console.log('proxy behavior:' + JSON.stringify(data));
+            logger.info('proxy behavior: ' + JSON.stringify(data));
         });
     }
     return proxySocket;

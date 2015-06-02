@@ -113,19 +113,24 @@ function setProxy(req,res,config){
         new ProxyHelper(RedisWatcher.instance.client,config).checkConfig(function (error, config) {
             req.session.proxy = config;
             if (error)
-                throw(error);
+                logger.error('proxy error: ' + error.message);
             else
-                res.redirect('/');
+                logger.info('set proxy: ' + JSON.stringify(config));
+            res.redirect('/');
         });
     });
 }
 
 function proxiedGET(proxy,path,res){
-    new ProxyHelper(RedisWatcher.instance.client,proxy).get(path,res);
+    requireRedis(res,function(){
+        new ProxyHelper(RedisWatcher.instance.client,proxy).get(path,res);
+    });
 }
 
 function proxiedPOST(proxy,path,body,res){
-    new ProxyHelper(RedisWatcher.instance.client,proxy).post(path,body,res);
+    requireRedis(res,function(){
+        new ProxyHelper(RedisWatcher.instance.client,proxy).post(path,body,res);
+    });
 }
 
 // CONFIG ----------------
@@ -176,7 +181,7 @@ router.post('/device/:id',function(req,res,next){
 });
 
 router.get('/device',function(req,res,next){
-    if (req.session.proxy) return proxiedGET(req.session.proxy,'/device',null,res);
+    if (req.session.proxy) return proxiedGET(req.session.proxy,'/device',res);
 
     requireRedis(res,function(){
         var profileKeys = _.select(_.collect(RedisWatcher.instance.keys,_.bind(schema.command.profile.getParam,schema.command.profile,_)));
@@ -293,7 +298,7 @@ router.get('/status',function(req,res,next){
     checkRedis(function(){
         var status = {};
         status.redis = !!RedisWatcher.instance.client;
-        // istanbul ignore if - TODO consider how to test...
+        // istanbul ignore next - TODO consider how to test...
         if (M2mSupervisor.instance && !M2mSupervisor.instance.supervisorProxy){
             status.config   = M2mSupervisor.instance.configWatcher.ready();
             status.modem    = !!M2mSupervisor.instance.modemWatcher && M2mSupervisor.instance.modemWatcher.ready();
