@@ -2,7 +2,7 @@ var _ = require('lodash');
 var util = require('util');
 
 var Watcher = require('../lib/watcher');
-var SerialDevice = require('../lib/serial-device');
+var SerialPeripheral = require('../lib/serial-peripheral');
 
 var logger = require('../lib/logger')('modem');
 
@@ -14,7 +14,7 @@ function ModemWatcher(config) {
 
     self.on('requestRSSI',_.bind(self.requestRSSI,self));
     self.on('ready',function() {
-        self.device.writeBuffer('AT E1\r'); // NOTE - this will ensure AT commands are echoed
+        self.peripheral.writeBuffer('AT E1\r'); // NOTE - this will ensure AT commands are echoed
         self.emit('requestRSSI');
     });
 }
@@ -28,27 +28,27 @@ ModemWatcher.Reports = Object.freeze({
 });
 
 ModemWatcher.prototype.ready = function(){
-    return !!this.device && this.device.ready();
+    return !!this.peripheral && this.peripheral.ready();
 };
 
 ModemWatcher.prototype._onStart = function(config) {
     var self = this;
     self.config = config;
-    self.device = new SerialDevice(_.defaults({retryInterval: self.retryInterval},self.config));
-    self.device.on('ready',function(){
+    self.peripheral = new SerialPeripheral(_.defaults({retryInterval: self.retryInterval},self.config));
+    self.peripheral.on('ready',function(){
         self.interval = setInterval(_.bind(self.emit,self,'requestRSSI'),self.config.rssiInterval * MILLIS_PER_SEC);
         self.emit('note','ready');
         self.emit('ready');
     });
-    self.device.on('retry',function(reason){
-        logger.error('start error: ' + reason);
+    self.peripheral.on('retry',function(reason){
+        logger.error('retry: ' + reason.message);
         self.emit('note','retry');
     });
-    self.device.on('error',function(error){
-        logger.error('read error: ' + error);
+    self.peripheral.on('error',function(error){
+        logger.error('read error: ' + error.message);
         self.emit('note','error');
     });
-    self.device.on('data',function(data){
+    self.peripheral.on('data',function(data){
         _.each(data.split('\n'),function(line){
             line = _.trim(line);
             if (line.length == 0) return;
@@ -56,15 +56,15 @@ ModemWatcher.prototype._onStart = function(config) {
         });
     });
 
-    self.device.open();
+    self.peripheral.open();
 };
 
 ModemWatcher.prototype._onStop = function() {
     if (this.interval) clearInterval(this.interval);
     this.interval = null;
 
-    this.device.close();
-    this.device = null;
+    this.peripheral.close();
+    this.peripheral = null;
 };
 
 ModemWatcher.prototype.considerLine = function(prefix,line,callback){
@@ -78,7 +78,7 @@ ModemWatcher.prototype.noteRSSI = function(data){
         var parts = data.split(',');
         this.emit('rssi',Math.max(validParseInt(parts[0],10),0));
     } catch (e) {
-        logger.error('rssi error: ' + e);
+        logger.error('rssi error: ' + e.message);
         this.emit('note','error');
     }
     return true;
@@ -91,11 +91,11 @@ ModemWatcher.prototype.requestRSSI = function(){
 
 ModemWatcher.prototype.requestInfo = function(command,event){
     var self = this;
-    self.device.writeBuffer(command,function(err) {
+    self.peripheral.writeBuffer(command,function(err) {
         if (!err)
             self.emit('note',event);
         else {
-            logger.error('request error: ' + err);
+            logger.error('request error: ' + err.message);
             self.emit('note','error');
         }
     });

@@ -3,7 +3,7 @@ var util = require('util');
 
 var HashWatcher = require('./hash-watcher');
 var RedisWatcher = require('./redis-watcher');
-var DeviceRouter = require('./device-router');
+var PeripheralRouter = require('./peripheral-router');
 
 var schema = require('../lib/redis-schema');
 
@@ -15,17 +15,19 @@ function RouteWatcher(queueRouter,config) {
     self.on('change',function(routes){
         if (!routes) return;
 
-        _.each(routes,function(routeKey,routeID){
-            var deviceKey = schema.device.queue.getParam(routeKey);
+        _.each(routes,function(routeKey,routeIndex){
+            var peripheralKey = schema.peripheral.queue.getParam(routeKey);
+
             // istanbul ignore if - should never occur, but nervous about not checking...
-            if (!deviceKey) return;
-            // istanbul ignore if - TODO maybe recreate or refresh it??
+            if (!peripheralKey) return;
+
+            // istanbul ignore if - should never occur, but nervous about not checking...
             if (self.queueRouter.routes[routeKey]) return;
 
-            var deviceRouter = new DeviceRouter(deviceKey)
-                .on('status',function(status){ if (status == 'ready') self.queueRouter.addRoute(routeID,deviceRouter); });
-            deviceRouter.start(self.client);
-            RedisWatcher.instance.addClientWatcher(deviceRouter.settingsWatcher);
+            var peripheralRouter = new PeripheralRouter(peripheralKey);
+            peripheralRouter.on('status',function(status){ if (status == 'ready') self.queueRouter.addRoute(routeIndex,peripheralRouter); });
+            peripheralRouter.start(self.client);
+            RedisWatcher.instance.addClientWatcher(peripheralRouter.settingsWatcher);
         });
     })
 }

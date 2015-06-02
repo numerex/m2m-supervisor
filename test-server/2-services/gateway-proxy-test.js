@@ -21,10 +21,10 @@ describe('GatewayProxy',function() {
         test.mockery.enable();
         test.mockery.registerMock('then-redis',test.mockredis);
         test.mockery.registerMock('dgram',mockdgram = new test.mockdgram());
-        test.mockery.registerMock('https',test.mockhttp);
+        test.mockery.registerMock('https',test.mockhttps);
         test.mockery.warnOnUnregistered(false);
         test.mockredis.reset();
-        test.mockhttp.reset();
+        test.mockhttps.reset();
         redis = test.mockredis.createClient();
     });
 
@@ -301,7 +301,7 @@ describe('GatewayProxy',function() {
     });
 
     it('should detect HTTPS failures',function(){
-        test.mockhttp.statusCode = 500;
+        test.mockhttps.statusCode = 500;
 
         var events = [];
         var proxy = new GatewayProxy()
@@ -310,7 +310,7 @@ describe('GatewayProxy',function() {
 
         test.timekeeper.freeze(1000000000000);
         proxy.publicListener.client.events.message('test',{address: 'localhost',port: 1234});
-        test.mockhttp.events.error('test error');
+        test.mockhttps.events.error('test error');
         events.should.eql(['public']);
         proxy.stop();
         test.pp.snapshot().should.eql([

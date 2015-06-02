@@ -61,7 +61,6 @@ function QueueRouter(config) {
     });
     self.routes = {};
     self.queues = {};
-    self.setQueueArgs();
     self.listener = new UdpListener('router',null,function(buffer) { logger.info('unexpected response: ' + JSON.stringify(buffer)); });
     self.on('queueResult',function(result){
         self.emit('note',result);
@@ -96,16 +95,15 @@ QueueRouter.prototype._onStop = function(){
     this.client = null;
 };
 
-QueueRouter.prototype.addRoute = function(routeID,router){
-    logger.info('add route(' + router.queueKey + '): ' + routeID);
-    this.queues[+routeID] = router.queueKey;
+QueueRouter.prototype.addRoute = function(routeIndex,router){
+    logger.info('add route(' + router.queueKey + '): ' + routeIndex);
+    this.queues[+routeIndex] = router.queueKey;
     this.routes[router.queueKey] = router;
-    this.setQueueArgs();
     return this;
 };
 
 QueueRouter.prototype.setQueueArgs = function(){
-    var routeKeys = _.keys(this.routes);
+    var routeKeys = _.map(_.select(this.routes,function(router){ return !router.busy(); }),function(router){ return router.queueKey; });
     this.ackArgs = ACK_PENDING_QUEUE_KEYS.concat(routeKeys).concat([this.config.timeoutInterval]);
     this.transmitArgs = COMMON_QUEUE_KEYS.concat(routeKeys).concat([this.config.timeoutInterval]);
 };
@@ -116,6 +114,7 @@ QueueRouter.prototype.checkQueue = function(){
     var self = this;
     self.client.send('mget',ACK_STATE_KEYS).thenHint('getAckState',function(values){
         var ackState = getAckState(values);
+        self.setQueueArgs();
         var queueArgs = ackState.message ? self.ackArgs : self.transmitArgs;
         self.client.send('brpop',queueArgs).thenHint('checkQueue',function(result){
             if (result)
@@ -147,13 +146,11 @@ QueueRouter.prototype.processPendingMessage = function(ackState){
         self.noteQueueResult('tick');
     } else {
         logger.info('retry: ' + ackState.sequenceNumber);
-        self.client
-            .set(schema.ack.ticks.key,0)
-            .incr(schema.ack.retries.key)
-            .thenHint('incrRetries',function(){
-                self.transmitMessage(new m2m.Message({json: ackState.message}),retries % 2 == 1);
-                self.noteQueueResult('retry');
-            });
+        self.client.set(schema.ack.ticks.key,0);
+        self.client.incr(schema.ack.retries.key).thenHint('incrRetries',function(){
+            self.transmitMessage(new m2m.Message({json: ackState.message}),retries % 2 == 1);
+            self.noteQueueResult('retry');
+        });
     }
 };
 
@@ -188,10 +185,10 @@ QueueRouter.prototype.processCommand = function(rawEntry,ackState) {
     var self = this;
     var message = new m2m.Message({json: rawEntry});
     switch (message.eventCode){
-        case settings.EventCodes.deviceCommand:
-            var command = message.find(settings.ObjectTypes.deviceCommand,null);
-            var routeID = message.find(settings.ObjectTypes.deviceRoute,1);
-            var queueKey = self.queues[routeID];
+        case settings.EventCodes.peripheralCommand:
+            var command = message.find(settings.ObjectTypes.peripheralCommand,null);
+            var routeIndex = message.find(settings.ObjectTypes.peripheralIndex,1);
+            var queueKey = self.queues[routeIndex];
             var route = self.routes[queueKey];
             if (!route) {
                 logger.warn('route not found: ' + rawEntry);
@@ -269,7 +266,7 @@ QueueRouter.prototype.assembleMessage = function(routeKey,eventCode,timestamp,se
                     else
                         message.pushString(code,value);
                     break;
-                // istanbul ignore next - TODO improve self...
+                // istanbul ignore next - options will expand over time; no need to test for specific failures...
                 default:
                     logger.error('unexpected key/value: ' + key + '=' + value);
 
@@ -286,7 +283,7 @@ QueueRouter.prototype.transmitMessage = function(message,toggleRelay){
     var relay = !toggleRelay ? this.gateway.primary : this.gateway.primary === 'public' ? 'private' : 'public';
     logger.info('transmit: ' + JSON.stringify(message));
     this.idleCount = 0;
-    this.listener.send(message.toWire(),'localhost',+this.gateway[relay + 'Relay']); // TODO which relay to use?
+    this.listener.send(message.toWire(),'localhost',+this.gateway[relay + 'Relay']);
 };
 
 QueueRouter.prototype.noteQueueResult = function(result){

@@ -34,6 +34,7 @@ describe('app',function() {
                 test.should.not.exist(err);
                 test.matchArrays(test.pp.snapshot(),[
                     /\[express   \] \S+ --> GET \/missing HTTP\/1\.1 200 - - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
+                    '[express   ] error(404): Not Found: /missing',
                     /\[express   \] \S+ <-- GET \/missing HTTP\/1\.1 404 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
                 ]);
                 done();
@@ -42,14 +43,14 @@ describe('app',function() {
 
     it('should handle partials',function(done){
         var request = require('supertest');
-        request(app).get('/partials/home.jade')
+        request(app).get('/supervisor/partials/home.jade')
             .expect('Content-Type',/html/)
             .expect(200)
             .end(function (err,res) {
                 test.should.not.exist(err);
                 test.matchArrays(test.pp.snapshot(),[
-                    /\[express   \] \S+ --> GET \/partials\/home\.jade HTTP\/1\.1 200 - - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
-                    /\[express   \] \S+ <-- GET \/partials\/home\.jade HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
+                    /\[express   \] \S+ --> GET \/supervisor\/partials\/home\.jade HTTP\/1\.1 200 - - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
+                    /\[express   \] \S+ <-- GET \/supervisor\/partials\/home\.jade HTTP\/1\.1 200 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/
                 ]);
                 done();
             });

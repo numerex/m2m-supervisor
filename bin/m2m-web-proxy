@@ -1,0 +1,6 @@
+#!/usr/bin/env node
+
+
+var M2mSupervisor = require('../processes/m2m-supervisor');
+
+new M2mSupervisor({runProxy: true}).start();

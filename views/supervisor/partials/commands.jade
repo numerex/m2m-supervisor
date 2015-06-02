@@ -1,0 +1,45 @@
+h1 Peripheral Commands{{ currentID ? ': ' + currentID : '' }}
+stdio-socket(behavior='"command"',observer='observer')
+  .col-lg-1(ng-if='peripherals.length > 1')
+    label.control-label Peripheral
+    select.input-sm.form-control(ng-model='currentID',ng-options='value for value in peripherals',ng-change='changeCurrentID(currentID)')
+  .col-lg-1
+    label.control-label Input Style
+    select.input-sm.form-control(ng-model='inputType',ng-options='value for value in inputOptions',ng-change='changeInputType(inputType)')
+  #guidedCommands(ng-if='inputType === "Guided"')
+    .col-lg-1
+      label.control-label I/O Type
+      select.input-sm.form-control(ng-model='commandType',ng-options='item.label for item in commandTypes',ng-change='changeCommandType(commandType)')
+    .col-lg-1(ng-if='commandFilters.length > 0')
+      label.control-label Subset
+      select.input-sm.form-control(ng-model='commandFilter',ng-options='item.label for item in commandFilters',ng-change='changeCommandFilter(commandFilter)')
+        option(value='') All Commands
+    .col-lg-2
+      label.control-label Description
+      select.input-sm.form-control(ng-model='currentCommand',ng-options='item.label for item in definitions | orderBy:"label"',ng-change='changeCurrentCommand(currentCommand)')
+        option(value='') Select a command
+    .col-lg-1(ng-repeat='field in inputFields')
+      label.control-label {{ field.label }}
+      input.input-sm.form-control(type='text',ng-model='field.value',placeholder='{{ field.format }}',ng-change='changeFieldValue(field,field.value)',ng-if='!field.options')
+      select.input-sm.form-control(ng-model='field.value',ng-options='item.label for item in field.options',ng-change='changeFieldValue(field,field.value)',ng-if='field.options')
+    .col-lg-2
+      label.control-label Command Text
+      .input-group
+        input.input-sm.form-control(type='text',ng-model='stdio.commandLine',placeholder='None',disabled=true)
+        span.input-group-btn
+          button.btn-sm.btn.btn-primary(ng-click='stdio.submitCommand()',ng-disabled='stdio.commandActive') Submit
+    .col-lg-1
+      label.control-label &nbsp;
+      br
+      button.btn-sm.btn.btn-default(ng-click='stdio.clearOutput()',ng-disabled='stdio.lineID === 0') Clear
+  #rawCommands(ng-if='inputType === "Raw"')
+    .col-lg-5
+      label.control-label Command Text
+      .input-group
+        input.input-sm.form-control(type='text',ng-model='stdio.commandLine',placeholder='Enter peripheral command')
+        span.input-group-btn
+          button.btn-sm.btn.btn-primary(ng-click='stdio.submitCommand()',ng-disabled='stdio.commandActive') Submit
+    .col-lg-1
+      label.control-label &nbsp;
+      br
+      button.btn-sm.btn.btn-default(ng-click='stdio.clearOutput()',ng-disabled='stdio.lineID === 0') Clear

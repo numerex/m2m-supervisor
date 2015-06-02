@@ -28,10 +28,10 @@ describe('ShellBehavior',function() {
     it('should properly self-register then connect two sockets, closing one and disconnecting the other',function(){
         var shellBehavior = new ShellBehavior().registerSelf(socketServer);
 
-        var mockSocket1 = socketServer.io.newMockSocket();
-        var mockSocket2 = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket1);
-        socketServer.io.eventHandlers.connection(mockSocket2);
+        var mockSocket1 = socketServer.ioServer.newMockSocket();
+        var mockSocket2 = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket1);
+        socketServer.ioServer.eventHandlers.connection(mockSocket2);
         mockSocket1.eventHandlers.behavior('shell');
         mockSocket2.eventHandlers.behavior('shell');
         mockSocket1.eventHandlers.disconnect();
@@ -56,9 +56,12 @@ describe('ShellBehavior',function() {
             ],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
+                {emit: {socket: 0,ready: {id: 1}}},
                 {emit: {socket: 1,identified: {id: 2}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
-                {emit: {socket: 1,behavior: {id: 2,result: true}}}]
+                {emit: {socket: 1,ready: {id: 2}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','close','exit']}}},
+                {emit: {socket: 1,behavior: {id: 2,result: true,emissions: ['started','output','close','exit']}}}
+            ]
         });
     });
 
@@ -67,8 +70,8 @@ describe('ShellBehavior',function() {
 
         var shellBehavior = new ShellBehavior().registerSelf(socketServer);
 
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         mockSocket.eventHandlers.behavior('shell');
 
         mockSocket.eventHandlers.input(null);
@@ -85,7 +88,8 @@ describe('ShellBehavior',function() {
             sockets: [{id: 0,events: ['behavior','disconnect','close','input','kill']}],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','close','exit']}}},
                 {emit: {socket: 0,output: {id: 1,stderr: "TypeError: Cannot read property 'command' of null"}}}
             ]
         });
@@ -97,8 +101,8 @@ describe('ShellBehavior',function() {
 
         var shellBehavior = new ShellBehavior().registerSelf(socketServer);
 
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         mockSocket.eventHandlers.behavior('shell');
 
         test.mockshelljs.processes.length.should.equal(0);
@@ -124,7 +128,8 @@ describe('ShellBehavior',function() {
             sockets: [{id: 0,events: ['behavior','disconnect','close','input','kill']}],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','close','exit']}}},
                 {emit: {socket: 0,started: {id: 1,command: 'test command'}}},
                 {emit: {socket: 0,output: {id: 1,stderr: 'test error'}}},
                 {emit: {socket: 0,exit: {id: 1,code: 127,signal: null}}},
@@ -139,8 +144,8 @@ describe('ShellBehavior',function() {
 
         var shellBehavior = new ShellBehavior().registerSelf(socketServer);
 
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         mockSocket.eventHandlers.behavior('shell');
         mockSocket.eventHandlers.kill({signal: 'SIGTERM'});
 
@@ -155,7 +160,8 @@ describe('ShellBehavior',function() {
             sockets: [{id: 0,events: ['behavior','disconnect','close','input','kill']}],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','close','exit']}}},
                 {emit: {socket: 0,output: {id: 1,stderr: 'No active command'}}}
             ]
         });
@@ -167,8 +173,8 @@ describe('ShellBehavior',function() {
 
         var shellBehavior = new ShellBehavior().registerSelf(socketServer);
 
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         mockSocket.eventHandlers.behavior('shell');
         mockSocket.eventHandlers.input({command: 'test command'});
 
@@ -192,7 +198,8 @@ describe('ShellBehavior',function() {
             sockets: [{id: 0,events: ['behavior','disconnect','close','input','kill']}],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','close','exit']}}},
                 {emit: {socket: 0,started: {id: 1,command: 'test command'}}},
                 {emit: {socket: 0,output: {id: 1,stdout: 'test output'}}},
                 {emit: {socket: 0,exit: {id: 1,code: null,signal: 'SIGTERM'}}},
@@ -208,8 +215,8 @@ describe('ShellBehavior',function() {
 
         var shellBehavior = new ShellBehavior().registerSelf(socketServer);
 
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         mockSocket.eventHandlers.behavior('shell');
         mockSocket.eventHandlers.input({command: 'test command'});
 
@@ -232,7 +239,8 @@ describe('ShellBehavior',function() {
             sockets: [{id: 0,events: ['behavior','disconnect','close','input','kill']}],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','close','exit']}}},
                 {emit: {socket: 0,started: {id: 1,command: 'test command'}}},
                 {emit: {socket: 0,output: {id: 1,stdout: 'test output'}}},
                 {emit: {socket: 0,exit: {id: 1,code: null,signal: 'SIGTERM'}}},
@@ -247,8 +255,8 @@ describe('ShellBehavior',function() {
 
         var shellBehavior = new ShellBehavior().registerSelf(socketServer);
 
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         mockSocket.eventHandlers.behavior('shell');
         mockSocket.eventHandlers.input({command: 'test command'});
 
@@ -271,7 +279,8 @@ describe('ShellBehavior',function() {
             sockets: [{id: 0,events: ['behavior','disconnect','close','input','kill']}],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','close','exit']}}},
                 {emit: {socket: 0,started: {id: 1,command: 'test command'}}},
                 {emit: {socket: 0,output: {id: 1,stdout: 'test output'}}},
                 {emit: {socket: 0,exit: {id: 1,code: null,signal: 'SIGTERM'}}},
@@ -286,8 +295,8 @@ describe('ShellBehavior',function() {
 
         var shellBehavior = new ShellBehavior().registerSelf(socketServer);
 
-        var mockSocket = socketServer.io.newMockSocket();
-        socketServer.io.eventHandlers.connection(mockSocket);
+        var mockSocket = socketServer.ioServer.newMockSocket();
+        socketServer.ioServer.eventHandlers.connection(mockSocket);
         mockSocket.eventHandlers.behavior('shell');
         mockSocket.eventHandlers.input({command: 'test command'});
 
@@ -310,7 +319,8 @@ describe('ShellBehavior',function() {
             sockets: [{id: 0,events: ['behavior','disconnect','close','input','kill']}],
             calls: [
                 {emit: {socket: 0,identified: {id: 1}}},
-                {emit: {socket: 0,behavior: {id: 1,result: true}}},
+                {emit: {socket: 0,ready: {id: 1}}},
+                {emit: {socket: 0,behavior: {id: 1,result: true,emissions: ['started','output','close','exit']}}},
                 {emit: {socket: 0,started: {id: 1,command: 'test command'}}},
                 {emit: {socket: 0,output: {id: 1,stderr: 'test error'}}},
                 {emit: {socket: 0,output: {id: 1,stderr: 'A command is already active: test command'}}}

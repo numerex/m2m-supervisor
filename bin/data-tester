@@ -8,12 +8,12 @@ var DataReader = require('../lib/data-reader');
 var RedisWatcher = require('../services/redis-watcher');
 var HashWatcher = require('../services/hash-watcher');
 
-var builder = require('../lib/device-builder');
+var builder = require('../lib/peripheral-builder');
 var schema = require('../lib/redis-schema');
-var hashkeys = require('../lib/device-hashkeys');
+var hashkeys = require('../lib/peripheral-hashkeys');
 var helpers = require('../lib/hash-helpers');
 
-var deviceKey = null;
+var peripheralKey = null;
 var configWatcher = null;
 var reader = null;
 var cli = null;
@@ -33,14 +33,14 @@ emitter
         console.log(message);
     })
     .once('redis',function(client){
-        client.keys(schema.device.settings.keysPattern()).then(function(settingsKeys){
-            var deviceKeys = _.map(settingsKeys,function(key){ return schema.device.settings.getParam(key); });
-            if (deviceKeys.length <= 0) return emitter.emit('stop','Sorry, no devices are defined.');
+        client.keys(schema.peripheral.settings.keysPattern()).then(function(settingsKeys){
+            var peripheralKeys = _.map(settingsKeys,function(key){ return schema.peripheral.settings.getParam(key); });
+            if (peripheralKeys.length <= 0) return emitter.emit('stop','Sorry, no peripherals are defined.');
 
-            deviceKey = process.argv.length > 2 ? process.argv[2] : deviceKeys.length == 1 ? deviceKeys[0] : null;
-            if (_.indexOf(deviceKeys,deviceKey)) return emitter.emit('stop','You must select one of the following: ' + deviceKeys.join(', '));
+            peripheralKey = process.argv.length > 2 ? process.argv[2] : peripheralKeys.length == 1 ? peripheralKeys[0] : null;
+            if (_.indexOf(peripheralKeys,peripheralKey)) return emitter.emit('stop','You must select one of the following: ' + peripheralKeys.join(', '));
 
-            var settingsKey = schema.device.settings.useParam(deviceKey);
+            var settingsKey = schema.peripheral.settings.useParam(peripheralKey);
             configWatcher = new HashWatcher(settingsKey,hashkeys)
                 .on('change',function(hash){
                     if (!hash) return;
@@ -50,27 +50,27 @@ emitter
                     if (connection && commands)
                         emitter.emit('reader',connection,commands);
                     else
-                        emitter.emit('stop','Device not ready: ' + deviceKey);
+                        emitter.emit('stop','Peripheral not ready: ' + peripheralKey);
                 })
                 .start(client);
         });
     })
     .once('reader',function(connection,commands){
-        var device = builder.newDevice(connection);
-        if (!device)
-            emitter.emit('stop','Device not configured: ' + deviceKey);
+        var peripheral = builder.newPeripheral(connection);
+        if (!peripheral)
+            emitter.emit('stop','Peripheral not configured: ' + peripheralKey);
         else {
-            reader = new DataReader(device,commands)
+            reader = new DataReader(peripheral,commands)
                 .on('ready',function(){
                     emitter.emit('cli');
                 })
                 .on('retry',function(reason){
                     reader.stop();
-                    emitter.emit('stop','Device not ready: ' + deviceKey + ' - ' + reason);
+                    emitter.emit('stop','Peripheral not ready: ' + peripheralKey + ' - ' + reason);
                 })
                 .on('error',function(error){
                     reader.stop();
-                    emitter.emit('stop','Device error: ' + deviceKey + ' - ' + error);
+                    emitter.emit('stop','Peripheral error: ' + peripheralKey + ' - ' + error);
                 })
                 .start();
         }

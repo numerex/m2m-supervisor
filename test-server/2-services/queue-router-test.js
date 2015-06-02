@@ -16,6 +16,7 @@ describe('QueueRouter',function() {
         test.mockery.registerMock('then-redis', test.mockredis);
         test.mockery.warnOnUnregistered(false);
         test.mockredis.reset();
+        mockRoute.reset();
     });
 
     afterEach(function () {
@@ -31,6 +32,8 @@ describe('QueueRouter',function() {
         var router = new QueueRouter();
         router.config.should.eql({idleReport: 12,maxRetries: 168,maxTicks: 720,timeoutInterval: 5});
         router.routes.should.eql({});
+
+        router.setQueueArgs();
         router.transmitArgs.should.eql(['m2m-ack:queue','m2m-command:queue','m2m-transmit:queue',5]);
         test.pp.snapshot().should.eql([]);
         test.mockredis.snapshot().should.eql([]);
@@ -42,6 +45,8 @@ describe('QueueRouter',function() {
         router.config.should.eql({idleReport: 10,maxRetries: 2,maxTicks: 16,timeoutInterval: 1});
         router.queues.should.eql({1: mockRoute.queueKey});
         router.routes.should.eql({testQueue: mockRoute});
+
+        router.setQueueArgs();
         router.transmitArgs.should.eql(['m2m-ack:queue','m2m-command:queue','m2m-transmit:queue','testQueue',1]);
         test.pp.snapshot().should.eql([
             '[router    ] add route(testQueue): 1'
@@ -355,14 +360,21 @@ describe('QueueRouter',function() {
             .start(testGateway);
     });
 
-    it('should handle an routed command',function(done){
-        test.mockredis.lookup.brpop = [['testQueue','"test command"']];
+    it('should handle an routed command and block until it is finished',function(done){
+        test.mockredis.lookup.brpop = [null,['testQueue','"test command"']];
+
+        var counter = 0;
+        mockRoute.busyState.should.not.be.ok;
 
         var router = new QueueRouter()
             .on('note',function(){
+                if (counter++ === 0) return;
+                
                 router.stop();
+                mockRoute.busyState.should.be.ok;
                 test.mockredis.snapshot().should.eql([
-                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
+                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: ['m2m-ack:queue','m2m-command:queue','m2m-transmit:queue','testQueue',5]},
+                    {mget: QueueRouter.ACK_STATE_KEYS},{brpop: ['m2m-ack:queue','m2m-command:queue','m2m-transmit:queue',5]},
                     {quit: null}
                 ]);
                 test.pp.snapshot().should.eql([

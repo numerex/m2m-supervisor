@@ -56,6 +56,7 @@ describe('M2mSupervisor',function() {
         test.mockredis.clientException = 'test error';
 
         var supervisor = new M2mSupervisor().start();
+        supervisor.supervisorProxy.should.not.be.ok;
         test.mockhttp.events.listening();
         _.defer(function(){
             supervisor.stop();
@@ -66,7 +67,7 @@ describe('M2mSupervisor',function() {
                 '[redis     ] start watching',
                 '[redis     ] check ready',
                 '[redis     ] redis client error: test error',
-                '[http      ] Listening on port 3000',
+                '[http      ] Listening on port 5000',
                 '[redis     ] stop watching'
             ]);
             test.mockredis.snapshot().should.eql([
@@ -82,6 +83,7 @@ describe('M2mSupervisor',function() {
         test.mockredis.clientException = 'test error';
 
         var supervisor = new M2mSupervisor({runBridge: true}).start();
+        supervisor.supervisorProxy.should.not.be.ok;
         _.defer(function(){
             supervisor.stop();
             test.pp.snapshot().should.eql([
@@ -105,6 +107,7 @@ describe('M2mSupervisor',function() {
         test.mockredis.clientException = 'test error';
 
         var supervisor = new M2mSupervisor({runTransceiver: true}).start();
+        supervisor.supervisorProxy.should.not.be.ok;
         _.defer(function(){
             supervisor.stop();
             test.pp.snapshot().should.eql([
@@ -128,6 +131,7 @@ describe('M2mSupervisor',function() {
         test.mockredis.clientException = 'test error';
 
         var supervisor = new M2mSupervisor({runWeb: true}).start();
+        supervisor.supervisorProxy.should.not.be.ok;
         test.mockhttp.events.listening();
         _.defer(function(){
             supervisor.stop();
@@ -139,7 +143,7 @@ describe('M2mSupervisor',function() {
                 '[redis     ] start watching',
                 '[redis     ] check ready',
                 '[redis     ] redis client error: test error',
-                '[http      ] Listening on port 3000',
+                '[http      ] Listening on port 5000',
                 '[redis     ] stop watching'
             ]);
             test.mockredis.snapshot().should.eql([
@@ -151,7 +155,35 @@ describe('M2mSupervisor',function() {
         });
     });
 
-    it('should start/stop with all available services, but no devices',function(done){
+    it('should start/stop with no services available -- proxy',function(done){
+        test.mockredis.clientException = 'test error';
+
+        var supervisor = new M2mSupervisor({runProxy: true}).start();
+        supervisor.supervisorProxy.should.be.ok;
+        test.mockhttp.events.listening();
+        _.defer(function(){
+            supervisor.stop();
+            test.pp.snapshot().should.eql([
+                '[redis     ] instance removed',
+                '[redis     ] instance created',
+                '[socket    ] register behavior: shell',
+                '[socket    ] register behavior: command',
+                '[redis     ] start watching',
+                '[redis     ] check ready',
+                '[redis     ] redis client error: test error',
+                '[http      ] Listening on port 5000',
+                '[redis     ] stop watching'
+            ]);
+            test.mockredis.snapshot().should.eql([
+                {keys: '*'},
+                {end: null}
+            ]);
+            mockRoute.snapshot().should.eql([]);
+            done();
+        });
+    });
+
+    it('should start/stop with all available services, but no peripherals',function(done){
         test.mockredis.lookup.hgetall['m2m-config'] = {'modem:port-file':'/dev/ttyUSB2'};
 
         var supervisor = new M2mSupervisor({retryInterval: 100}).start();
@@ -172,7 +204,7 @@ describe('M2mSupervisor',function() {
             //    '[pppd      ] start watching',
             //    '[pppd      ] pppstats error: Error: no response found: pppstats',
             //    '[modem     ] start watching',
-            //    '[http      ] Listening on port 3000',
+            //    '[http      ] Listening on port 5000',
             //    '[modem     ] start error: Error: Cannot open /dev/ttyUSB2',
             //    '[redis     ] stop watching',
             //    '[hash      ] stop watching: m2m-config',
@@ -201,17 +233,17 @@ describe('M2mSupervisor',function() {
         });
     });
 
-    it('should start/stop with all available services and a device',function(done){
+    it('should start/stop with all available services and a peripheral',function(done){
         test.mockos.interfaces = {ppp0: {}};
         test.mockshelljs.lookup['route -n'] = [0,fs.readFileSync('test-server/data/route-no-ppp.txt').toString()];
         test.mockshelljs.lookup['route add -net 172.29.12.0 netmask 255.255.255.0 dev ppp0'] = [0,''];
-        test.mockredis.lookup.keys['*'] = ['m2m-device:testKey:settings'];
-        test.mockredis.lookup.hgetall['m2m-command:routes'] = {1: 'm2m-device:testKey:queue'};
+        test.mockredis.lookup.keys['*'] = ['m2m-peripheral:testKey:settings'];
+        test.mockredis.lookup.hgetall['m2m-command:routes'] = {1: 'm2m-peripheral:testKey:queue'};
         test.mockredis.lookup.hgetall['m2m-config'] = {
             'gateway:imei': '352214046337094',
             'modem:port-file': '/dev/ttyUSB2'
         };
-        test.mockredis.lookup.hgetall['m2m-device:testKey:settings'] = {
+        test.mockredis.lookup.hgetall['m2m-peripheral:testKey:settings'] = {
             'connection:type': 'telnet',
             'connection:telnet:address': 'host',
             'connection:telnet:port': '1234'
@@ -220,14 +252,15 @@ describe('M2mSupervisor',function() {
 
         test.timekeeper.freeze(1000000000000);
         var supervisor = new M2mSupervisor({retryInterval: 1}).start();
+        supervisor.supervisorProxy.should.not.be.ok;
         test.mockhttp.events.listening();
         var count = 0;
         supervisor.queueRouter.on('queueResult',function(result){
             if (mockdgram.deliveries.length > 0) {
                 mockdgram.deliveries.should.eql([[new Buffer([170,16,1,0,1,0,0,0,232,212,165,16,0,1,0,2,0,15,51,53,50,50,49,52,48,52,54,51,51,55,48,57,52,35]),0,34,3011,'172.29.12.253']]);
                 mockdgram.deliveries = [];
-                var buffer = new m2m.Message({messageType: m2m.Common.MOBILE_TERMINATED_ACK,timestamp: 0,sequenceNumber: 1}).pushString(0,supervisor.proxy.config.imei).toWire();
-                supervisor.proxy.outsideListener.client.events.message(buffer,{address: '172.29.12.253',port: 3011});
+                var buffer = new m2m.Message({messageType: m2m.Common.MOBILE_TERMINATED_ACK,timestamp: 0,sequenceNumber: 1}).pushString(0,supervisor.gateway.config.imei).toWire();
+                supervisor.gateway.outsideListener.client.events.message(buffer,{address: '172.29.12.253',port: 3011});
             }
 
             if (++count === 3) {

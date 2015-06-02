@@ -1,0 +1,14 @@
+h1 Peripheral Setup
+alert-message(messages='globalMessages')
+.row(ng-if='peripherals')
+  .col-lg-12
+    ul.nav.nav-tabs
+      li(ng-repeat='peripheral in peripherals',ng-class='{active: peripheral.id == currentID}')
+        a(data-toggle='tab',ng-click='makeActive(peripheral)') {{ peripheral.id }}
+      li(ng-class='{active: newPeripheral.id == currentID}')
+        a(data-toggle='tab',ng-click='makeActive(newPeripheral)') New Peripheral
+    .tab-content
+      hash-editor(ng-repeat='peripheral in peripherals',values-key='peripheral.valuesKey',api='peripheral.api',ng-show='peripheral.id == currentID')
+      hash-editor(values-key='newPeripheral.valuesKey',api='newPeripheral.api',extra='newPeripheralID',ng-show='currentID == null')
+        .row
+          hash-input.col-lg-4(model='newPeripheralID',hash-values='globalValues[newPeripheral.valuesKey]')
