@@ -32,7 +32,8 @@ describe('DataReader',function() {
             commandPrefix: '',
             commandSuffix: '',
             responsePrefix: '',
-            responseSuffix: ''
+            responseSuffix: '',
+            timeoutInterval: 5000
         });
     });
 
@@ -43,7 +44,8 @@ describe('DataReader',function() {
             commandPrefix: '',
             commandSuffix: '',
             responsePrefix: '',
-            responseSuffix: ''
+            responseSuffix: '',
+            timeoutInterval: 5000
         });
         test.pp.snapshot().should.eql(['[reader    ] JSON string contents expected: "'])
     });
@@ -53,14 +55,16 @@ describe('DataReader',function() {
             commandPrefix: 'A',
             commandSuffix: 'B',
             responsePrefix: 'C',
-            responseSuffix: 'D'
+            responseSuffix: 'D',
+            timeoutInterval: 1
         });
         reader.peripheral.should.eql(testPeripheral);
         reader.config.should.eql({
             commandPrefix: 'A',
             commandSuffix: 'B',
             responsePrefix: 'C',
-            responseSuffix: 'D'
+            responseSuffix: 'D',
+            timeoutInterval: 1
         });
         reader.started().should.not.be.ok;
         reader.ready().should.not.be.ok;
@@ -159,6 +163,30 @@ describe('DataReader',function() {
         reader.start();
     });
 
+    it('should allow a command without response to timeout',function(done){
+        var reader = new DataReader(testPeripheral,{responsePrefix: '0',responseSuffix: '1',timeoutInterval: 10});
+        reader.on('ready',function(){
+            reader.submit('test command',function(error,command,data){
+                [error,command,data].should.eql([new Error('timeout'),'test command',null]);
+                reader.stop();
+                test.mocknet.snapshot().should.eql([
+                    {connect: {host: 'host',port: 1234}},
+                    {write: 'test command'},
+                    {end: null}
+                ]);
+                test.pp.snapshot().should.eql([
+                    '[reader    ] start watching',
+                    '[reader    ] ready',
+                    '[reader    ] command: "test command"',
+                    '[reader    ] timeout',
+                    '[reader    ] stop watching'
+                ]);
+                done();
+            });
+        });
+        reader.start();
+    });
+
     it('should capture a single, complete data event',function(done){
         var events = [];
         var reader = new DataReader(testPeripheral,{responsePrefix: '0',responseSuffix: '1'});
@@ -218,7 +246,7 @@ describe('DataReader',function() {
     it('should not allow submitting command when the peripheral is not ready',function(done){
         var reader = new DataReader(testPeripheral);
         reader.submit('test command',function(error,command,response){
-            [error,command,response].should.eql(['not ready',null,null]);
+            [error,command,response].should.eql([new Error('not ready'),'test command',null]);
             done();
         })
     });
@@ -254,7 +282,7 @@ describe('DataReader',function() {
         var reader = new DataReader(testPeripheral,{commandPrefix: 'A',commandSuffix: 'B',responsePrefix: '0',responseSuffix: '1'});
         reader.on('ready',function(){
             reader.submit('test-command',function(error,command,response){
-                [error,command,response].should.eql([new Error('test error'),null,null]);
+                [error,command,response].should.eql([new Error('test error'),'test-command',null]);
                 reader.stop();
                 test.mocknet.snapshot().should.eql([
                     {connect: {host: 'host',port: 1234}},

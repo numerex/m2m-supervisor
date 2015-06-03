@@ -488,22 +488,22 @@ describe('PeripheralRouter',function() {
 
                 router.processQueueEntry({}); // NOTE invalid entry for test coverage...
 
-                router.processQueueEntry({command: 'test command'});
+                router.processQueueEntry({command: 'test command1'});
                 router.reader.peripheral.client.events.data(new Buffer('\x01test\x03'));
 
                 test.mocknet.writeException = 'test error';
-                router.processQueueEntry({command: 'test command'});
+                router.processQueueEntry({command: 'test command2'});
 
                 router.stop();
                 events.should.eql(['peripheral','commands','ready',null]);
                 test.mockredis.snapshot().should.eql([
                     {hgetall: 'm2m-peripheral:testKey:settings'},
-                    {lpush: ['m2m-transmit:queue','{"10":"test command","11":"\\u0001test\\u0003","12":null,"routeKey":"m2m-peripheral:testKey:queue","eventCode":10}']},
-                    {lpush: ['m2m-transmit:queue','{"10":null,"11":null,"12":"test error","routeKey":"m2m-peripheral:testKey:queue","eventCode":10}']}
+                    {lpush: ['m2m-transmit:queue','{"10":"test command1","11":"\\u0001test\\u0003","12":null,"routeKey":"m2m-peripheral:testKey:queue","eventCode":10}']},
+                    {lpush: ['m2m-transmit:queue','{"10":"test command2","11":null,"12":"test error","routeKey":"m2m-peripheral:testKey:queue","eventCode":10}']}
                 ]);
                 test.mocknet.snapshot().should.eql([
                     {connect: {host: 'host',port: 1234}},
-                    {write: '\x01test command\x03'},
+                    {write: '\x01test command1\x03'},
                     {end: null}
                 ]);
                 test.pp.snapshot().should.eql([
@@ -517,12 +517,12 @@ describe('PeripheralRouter',function() {
                     '[hash      ] now ready: m2m-peripheral:testKey:settings',
                     '[reader    ] ready',
                     '[perph-rte ] invalid queue entry(testKey): {}',
-                    '[perph-rte ] queue entry(testKey): {"command":"test command"}',
-                    '[reader    ] command: "test command"',
+                    '[perph-rte ] queue entry(testKey): {"command":"test command1"}',
+                    '[reader    ] command: "test command1"',
                     '[reader    ] response: "\\u0001test\\u0003"',
                     '[perph-rte ] response(testKey): "\\u0001test\\u0003"',
-                    '[perph-rte ] queue entry(testKey): {"command":"test command"}',
-                    '[reader    ] command: "test command"',
+                    '[perph-rte ] queue entry(testKey): {"command":"test command2"}',
+                    '[reader    ] command: "test command2"',
                     '[reader    ] write error: test error',
                     '[perph-rte ] error(testKey) submit: test error',
                     '[perph-rte ] stop watching: testKey',
