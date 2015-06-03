@@ -56,7 +56,7 @@ describe('PeripheralRouter',function() {
                 '[perph-rte ] start watching: testKey',
                 '[hash      ] start watching: m2m-peripheral:testKey:settings',
                 '[hash      ] check ready: m2m-peripheral:testKey:settings',
-                '[hash      ] missing(connection): connection:telnet:address',
+                '[hash      ] missing(connection): connection:type',
                 '[perph-rte ] stop watching: testKey',
                 '[hash      ] stop watching: m2m-peripheral:testKey:settings'
             ]);
