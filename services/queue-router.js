@@ -244,6 +244,7 @@ QueueRouter.prototype.generateMessage = function(attributes) {
         self.assembleMessage(routeKey,eventCode,timestamp,sequenceNumber,attributes);
     else
         self.client.incr(schema.transmit.lastSequenceNumber.key).thenHint('incrSequenceNumber',function(newSequenceNumber){
+            newSequenceNumber = (+newSequenceNumber - 1) % 1000 + 1; // TODO needs to be DRY...
             self.assembleMessage(routeKey,eventCode,timestamp,newSequenceNumber,attributes);
         });
 };
