@@ -29,7 +29,7 @@ describe('UdpListener',function() {
 
     it('minimal setup is performed with a port and onmessage function should be called',function(){
         var called = false;
-        var listener = new UdpListener('test',5678,function(buffer){
+        var listener = new UdpListener('test',5678,function(buffer,info){
             called = true;
         });
         [listener.client.socketType,listener.client.port].should.eql(['udp4',5678]);

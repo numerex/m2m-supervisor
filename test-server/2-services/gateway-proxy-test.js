@@ -104,23 +104,27 @@ describe('GatewayProxy',function() {
     });
 
     it('should record route an MT EVENT to the command:queue',function(){
+        test.timekeeper.freeze(1000000000000);
         var proxy = new GatewayProxy().start(_.defaults({imei: '123456789012345'},defaults),redis);
         var buffer = new m2m.Message({messageType: m2m.Common.MOBILE_TERMINATED_EVENT,timestamp: 0}).pushString(0,proxy.config.imei).toWire();
         proxy.outsideListener.client.events.message(buffer,{address: 'host',port: 1234});
-        mockdgram.deliveries.should.eql([]);
+        mockdgram.deliveries.should.eql([[new m2m.Message({messageType: m2m.Common.MOBILE_ORIGINATED_ACK,timestamp: 1000000000000}).pushString(0,proxy.config.imei).toWire(),0,34,3011,'public-host']]);
         proxy.stop();
         test.pp.snapshot().should.eql([
             '[proxy     ] start watching',
             '[outside   ] incoming - size: 34 from: host:1234',
             '[proxy     ] enqueue command',
+            '[outside   ] outgoing - size: 34 from: public-host:3011',
             '[proxy     ] stop watching',
             '[private   ] connection closed',
             '[public    ] connection closed',
             '[outside   ] connection closed'
         ]);
         test.mockredis.snapshot().should.eql([
+            {set: ['m2m-transmit:last-timestamp',1000000000000]},
             {lpush: ['m2m-command:queue','{"majorVersion":1,"minorVersion":0,"messageType":204,"eventCode":0,"sequenceNumber":0,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}']}
         ]);
+        test.timekeeper.reset();
     });
 
     it('should record route an MT ACK to the command:queue if no matching ignoreAckHint',function(){

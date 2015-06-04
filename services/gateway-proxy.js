@@ -25,12 +25,12 @@ GatewayProxy.prototype._onStart = function(config,redis){
     self.privateListener = new UdpListener('private',+self.config.privateRelay,function(message){ self.sendPrivate(message); });
     self.publicListener = new UdpListener('public',+self.config.publicRelay,function(message){ self.sendPublic(message); });
 
-    self.outsideListener = new UdpListener('outside',null,function(buffer) {
+    self.outsideListener = new UdpListener('outside',null,function(buffer,info) {
         try {
             var message = new m2m.Message({buffer: buffer});
             switch (message.messageType) {
                 case m2m.Common.MOBILE_TERMINATED_EVENT:
-                    self.routeCommand(message);
+                    self.routeCommand(message,info);
                     break;
                 case m2m.Common.MOBILE_TERMINATED_ACK:
                     self.routeAck(message.sequenceNumber);
@@ -85,9 +85,10 @@ GatewayProxy.prototype.sendPrimary = function(buffer,ignoreAckHint){
         this.sendPublic(buffer,ignoreAckHint);
 };
 
-GatewayProxy.prototype.routeCommand = function(message){
-    // TODO send ack now?
+GatewayProxy.prototype.routeCommand = function(message,info){
     logger.info('enqueue command');
+    var ack = new m2m.Message({messageType: m2m.Common.MOBILE_ORIGINATED_ACK,eventCode: message.eventCode,sequenceNumber: message.sequenceNumber}).pushString(0,this.config.imei);
+    this.sendPrimary(ack.toWire(),false);
     this.redis.lpush(schema.command.queue.key,JSON.stringify(message)).errorHint('pushCommand');
 };
 
