@@ -287,15 +287,13 @@ describe('GatewayProxy',function() {
             '[public    ] incoming - size: 4 from: localhost:1234',
             '[proxy     ] outgoing http: dGVzdA==',
             '[proxy     ] sequence number failure: CRC found: t - CRC expected: 0',
-            '[proxy     ] relay ack: 0',
             '[proxy     ] stop watching',
             '[private   ] connection closed',
             '[public    ] connection closed',
             '[outside   ] connection closed'
         ]);
         test.mockredis.snapshot().should.eql([
-            {set: ['m2m-transmit:last-timestamp',1000000000000]},
-            {lpush: ['m2m-ack:queue',0]}
+            {set: ['m2m-transmit:last-timestamp',1000000000000]}
         ]);
         test.timekeeper.reset();
     });
@@ -356,6 +354,14 @@ describe('GatewayProxy',function() {
             {set: ['m2m-transmit:last-timestamp',1000000000000]}
         ]);
         test.timekeeper.reset();
+    });
+
+    it('should not return the sequence number of an ack',function(){
+        var proxy = new GatewayProxy();
+        var message = new m2m.Message({messageType: m2m.Common.MOBILE_ORIGINATED_EVENT,sequenceNumber: 1});
+        proxy.extractSequenceNumber(message.toWire()).should.eql(1);
+        message.messageType = m2m.Common.MOBILE_ORIGINATED_ACK;
+        proxy.extractSequenceNumber(message.toWire()).should.eql(0);
     });
 
 });

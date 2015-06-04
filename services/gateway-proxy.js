@@ -28,18 +28,12 @@ GatewayProxy.prototype._onStart = function(config,redis){
     self.outsideListener = new UdpListener('outside',null,function(buffer,info) {
         try {
             var message = new m2m.Message({buffer: buffer});
-            switch (message.messageType) {
-                case m2m.Common.MOBILE_TERMINATED_EVENT:
-                case m2m.Common.MOBILE_ORIGINATED_EVENT:
-                    self.routeCommand(message,info);
-                    break;
-                case m2m.Common.MOBILE_TERMINATED_ACK:
-                case m2m.Common.MOBILE_ORIGINATED_ACK:
-                    self.routeAck(message.sequenceNumber);
-                    break;
-                default:
-                    logger.error('unexpected message type: ' + message.messageType);
-            }
+            if (message.isEvent())
+                self.routeCommand(message,info);
+            else if (message.isAck())
+                self.routeAck(message.sequenceNumber);
+            else
+                logger.error('unexpected message type: ' + message.messageType);
         } catch(e) {
             logger.error('enqueue error: ' + e.message);
         }
@@ -96,6 +90,8 @@ GatewayProxy.prototype.routeCommand = function(message,info){
 };
 
 GatewayProxy.prototype.routeAck = function(sequenceNumber){
+    if (!sequenceNumber) return;
+
     if (this.ignoreAckHint === sequenceNumber)
         logger.info('ignore ack: ' + sequenceNumber);
     else {
@@ -159,7 +155,7 @@ GatewayProxy.prototype.sendUsingHTTPS = function(buffer,options,param){
 GatewayProxy.prototype.extractSequenceNumber = function(buffer){
     try{
         var message = new m2m.Message({buffer: buffer});
-        return message.sequenceNumber;
+        return message.isAck() ? 0 : message.sequenceNumber;
     } catch(e){
         logger.warn('sequence number failure: ' + e.message);
         return 0;
