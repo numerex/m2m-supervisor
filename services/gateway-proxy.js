@@ -30,9 +30,11 @@ GatewayProxy.prototype._onStart = function(config,redis){
             var message = new m2m.Message({buffer: buffer});
             switch (message.messageType) {
                 case m2m.Common.MOBILE_TERMINATED_EVENT:
+                case m2m.Common.MOBILE_ORIGINATED_EVENT:
                     self.routeCommand(message,info);
                     break;
                 case m2m.Common.MOBILE_TERMINATED_ACK:
+                case m2m.Common.MOBILE_ORIGINATED_ACK:
                     self.routeAck(message.sequenceNumber);
                     break;
                 default:
@@ -87,7 +89,8 @@ GatewayProxy.prototype.sendPrimary = function(buffer,ignoreAckHint){
 
 GatewayProxy.prototype.routeCommand = function(message,info){
     logger.info('enqueue command');
-    var ack = new m2m.Message({messageType: m2m.Common.MOBILE_ORIGINATED_ACK,eventCode: message.eventCode,sequenceNumber: message.sequenceNumber}).pushString(0,this.config.imei);
+    var ackType = message.messageType == m2m.Common.MOBILE_ORIGINATED_EVENT ? m2m.Common.MOBILE_ORIGINATED_ACK : m2m.Common.MOBILE_TERMINATED_ACK;
+    var ack = new m2m.Message({messageType: ackType,eventCode: message.eventCode,sequenceNumber: message.sequenceNumber}).pushString(0,this.config.imei);
     this.sendPrimary(ack.toWire(),false);
     this.redis.lpush(schema.command.queue.key,JSON.stringify(message)).errorHint('pushCommand');
 };
