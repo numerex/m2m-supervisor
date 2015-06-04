@@ -40,7 +40,7 @@ describe('GatewayProxy',function() {
     it('should properly initialize on start',function(){
         var proxy = new GatewayProxy().start(defaults,redis);
         proxy.config.should.be.eql(defaults);
-        [proxy.outsideListener.client.port,proxy.privateListener.client.port,proxy.publicListener.client.port].should.eql([undefined,4000,4001]);
+        [proxy.outsideListener.client.port,proxy.privateListener.client.port,proxy.publicListener.client.port].should.eql([3011,4000,4001]);
         proxy.stop();
         mockdgram.deliveries.should.eql([]);
         test.pp.snapshot().should.eql([

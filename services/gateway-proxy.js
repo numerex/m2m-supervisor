@@ -25,7 +25,7 @@ GatewayProxy.prototype._onStart = function(config,redis){
     self.privateListener = new UdpListener('private',+self.config.privateRelay,function(message){ self.sendPrivate(message); });
     self.publicListener = new UdpListener('public',+self.config.publicRelay,function(message){ self.sendPublic(message); });
 
-    self.outsideListener = new UdpListener('outside',null,function(buffer,info) {
+    self.outsideListener = new UdpListener('outside',3011,function(buffer,info) { // TODO set port to whatever is in the privateURL...
         try {
             var message = new m2m.Message({buffer: buffer});
             if (message.isEvent())
