@@ -114,7 +114,7 @@ describe('GatewayProxy',function() {
             '[proxy     ] start watching',
             '[outside   ] incoming - size: 34 from: host:1234',
             '[proxy     ] enqueue command',
-            '[outside   ] outgoing - size: 34 from: public-host:3011',
+            '[outside   ] outgoing - size: 34 to: public-host:3011',
             '[proxy     ] stop watching',
             '[private   ] connection closed',
             '[public    ] connection closed',
@@ -138,7 +138,7 @@ describe('GatewayProxy',function() {
             '[proxy     ] start watching',
             '[outside   ] incoming - size: 34 from: host:1234',
             '[proxy     ] enqueue command',
-            '[outside   ] outgoing - size: 34 from: public-host:3011',
+            '[outside   ] outgoing - size: 34 to: public-host:3011',
             '[proxy     ] stop watching',
             '[private   ] connection closed',
             '[public    ] connection closed',
@@ -204,7 +204,7 @@ describe('GatewayProxy',function() {
         test.pp.snapshot().should.eql([
             '[proxy     ] start watching',
             '[private   ] incoming - size: 4 from: localhost:1234',
-            '[outside   ] outgoing - size: 4 from: private-host:3011',
+            '[outside   ] outgoing - size: 4 to: private-host:3011',
             '[proxy     ] stop watching',
             '[private   ] connection closed',
             '[public    ] connection closed',
@@ -230,7 +230,7 @@ describe('GatewayProxy',function() {
         test.pp.snapshot().should.eql([
             '[proxy     ] start watching',
             '[public    ] incoming - size: 4 from: localhost:1234',
-            '[outside   ] outgoing - size: 4 from: public-host:3011',
+            '[outside   ] outgoing - size: 4 to: public-host:3011',
             '[proxy     ] stop watching',
             '[private   ] connection closed',
             '[public    ] connection closed',
@@ -258,8 +258,8 @@ describe('GatewayProxy',function() {
         proxy.stop();
         test.pp.snapshot().should.eql([
             '[proxy     ] start watching',
-            '[outside   ] outgoing - size: 4 from: public-host:3011',
-            '[outside   ] outgoing - size: 4 from: private-host:3011',
+            '[outside   ] outgoing - size: 4 to: public-host:3011',
+            '[outside   ] outgoing - size: 4 to: private-host:3011',
             '[proxy     ] stop watching',
             '[private   ] connection closed',
             '[public    ] connection closed',
