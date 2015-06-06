@@ -153,8 +153,10 @@ describe('GatewayProxy',function() {
 
     it('should record route an MT ACK to the command:queue if no matching ignoreAckHint',function(){
         var proxy = new GatewayProxy().start(_.defaults({imei: '123456789012345'},defaults),redis);
+        proxy.ignoreAckHint = 9;
         var buffer = new m2m.Message({messageType: m2m.Common.MOBILE_TERMINATED_ACK,timestamp: 0,sequenceNumber: 10}).pushString(0,proxy.config.imei).toWire();
         proxy.outsideListener.client.events.message(buffer,{address: 'host',port: 1234});
+        [proxy.ignoreAckHint].should.eql([null]);
         mockdgram.deliveries.should.eql([]);
         proxy.stop();
         test.pp.snapshot().should.eql([
@@ -176,6 +178,7 @@ describe('GatewayProxy',function() {
         proxy.ignoreAckHint = 10;
         var buffer = new m2m.Message({messageType: m2m.Common.MOBILE_TERMINATED_ACK,timestamp: 0,sequenceNumber: 10}).pushString(0,proxy.config.imei).toWire();
         proxy.outsideListener.client.events.message(buffer,{address: 'host',port: 1234});
+        [proxy.ignoreAckHint].should.eql([null]);
         mockdgram.deliveries.should.eql([]);
         proxy.stop();
         test.pp.snapshot().should.eql([

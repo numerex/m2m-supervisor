@@ -98,6 +98,7 @@ GatewayProxy.prototype.routeAck = function(sequenceNumber){
         logger.info('relay ack: ' + sequenceNumber);
         this.redis.lpush(schema.ack.queue.key,sequenceNumber).errorHint('pushAck');
     }
+    this.ignoreAckHint = null;
 };
 
 GatewayProxy.prototype.makeSender = function(urlString){
