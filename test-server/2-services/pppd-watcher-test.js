@@ -7,18 +7,21 @@ describe('PppdWatcher',function(){
 
     var helpers = require(process.cwd() + '/lib/hash-helpers');
     var hashkeys = require(process.cwd() + '/lib/config-hashkeys');
-    var ppp = helpers.hash2config({},hashkeys.PPP);
+    var wireless = helpers.hash2config({},hashkeys.wireless);
 
     beforeEach(function() {
         test.mockery.enable();
+        test.mockery.registerMock('serialport', test.mockserialport);
         test.mockery.registerMock('shelljs',test.mockshelljs);
         test.mockery.registerMock('os',test.mockos);
+        test.mockserialport.reset();
         test.mockshelljs.reset();
         test.mockos.reset();
         test.mockery.warnOnUnregistered(false);
     });
 
     afterEach(function() {
+        test.mockery.deregisterMock('serialport');
         test.mockery.deregisterMock('shelljs');
         test.mockery.deregisterMock('os');
         test.mockery.disable();
@@ -27,7 +30,7 @@ describe('PppdWatcher',function(){
     });
 
     it('should be immediately stopped',function(done){
-        var watcher = new PppdWatcher().start(ppp);
+        var watcher = new PppdWatcher().start(wireless);
         watcher.ready().should.not.be.ok;
         watcher.stop();
         test.pp.snapshot().should.eql([
@@ -42,9 +45,9 @@ describe('PppdWatcher',function(){
         var count = 0;
         var watcher = new PppdWatcher()
             .on('note',function(){ count++; })
-            .start(ppp);
+            .start(wireless);
         count.should.equal(1);
-        test.expect(function(){ watcher.start(ppp); }).to.throw('already started');
+        test.expect(function(){ watcher.start(wireless); }).to.throw('already started');
         watcher.stop();
         test.pp.snapshot().should.eql([
             '[pppd      ] start watching',
@@ -69,7 +72,7 @@ describe('PppdWatcher',function(){
         var events = [];
         var watcher = new PppdWatcher()
             .on('note',function(event){ events.push(event); })
-            .start(ppp);
+            .start(wireless);
 
         events.should.eql(['pppd']);
         watcher.ready().should.not.be.ok;
@@ -90,14 +93,16 @@ describe('PppdWatcher',function(){
 
         var watcher = new PppdWatcher()
             .on('note',function(event){ event.should.equal('route'); })
-            .start(ppp);
+            .start(wireless);
         watcher.ready().should.be.ok;
         watcher.stop();
         test.pp.snapshot().should.eql([
             '[pppd      ] start watching',
-            '[pppd      ] add ppp route to GWaaS',
+            '[pppd      ] add ppp route to gateway',
             '[pppd      ] now ready',
-            '[pppd      ] stop watching']);
+            '[modem     ] start watching',
+            '[pppd      ] stop watching',
+            '[modem     ] stop watching']);
         test.mockshelljs.snapshot(); // clear snapshot
         done();
     });
@@ -108,13 +113,15 @@ describe('PppdWatcher',function(){
 
         var watcher = new PppdWatcher()
             .on('note',function(event){ event.should.equal('ready'); })
-            .start(ppp);
+            .start(wireless);
         watcher.ready().should.be.ok;
         watcher.stop();
         test.pp.snapshot().should.eql([
             '[pppd      ] start watching',
             '[pppd      ] now ready',
-            '[pppd      ] stop watching']);
+            '[modem     ] start watching',
+            '[pppd      ] stop watching',
+            '[modem     ] stop watching']);
         test.mockshelljs.snapshot(); // clear snapshot
         done();
     });
@@ -151,7 +158,7 @@ describe('PppdWatcher',function(){
                 test.mockshelljs.snapshot(); // clear snapshot
                 done();
             }
-        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},ppp));
+        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},wireless));
     });
 
     it('should detect the (unlikely) event of ps failure',function(done){
@@ -171,7 +178,7 @@ describe('PppdWatcher',function(){
                 test.mockshelljs.snapshot(); // clear snapshot
                 done();
             }
-        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},ppp));
+        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},wireless));
     });
 
     it('should detect pppd running but no interface yet',function(done){
@@ -190,7 +197,7 @@ describe('PppdWatcher',function(){
                 test.mockshelljs.snapshot(); // clear snapshot
                 done();
             }
-        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},ppp));
+        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},wireless));
     });
 
     it('should allow caching of shell responses',function() {

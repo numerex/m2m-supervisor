@@ -2,16 +2,25 @@ var _ = require('lodash');
 var util = require('util');
 
 var Watcher = require('../lib/watcher');
+var ModemWatcher = require ('./modem-watcher');
 
 var logger = require('../lib/logger')('pppd');
 
 var MILLIS_PER_SEC = 1000;
 
 function PppdWatcher(config) {
-    Watcher.apply(this,[logger,config,true]);
-    this.outputs = {};
-    this.shell = require('shelljs');    // NOTE - delay 'require' for mocking
-    this.os = require('os');            // NOTE - delay 'require' for mocking
+    var self = this;
+    Watcher.apply(self,[logger,config,true]);
+    self.outputs = {};
+    self.shell = require('shelljs');    // NOTE - delay 'require' for mocking
+    self.os = require('os');            // NOTE - delay 'require' for mocking
+    self.modem = new ModemWatcher(config);
+    self.on('ready',function(ready){
+        if (ready)
+            self.modem.start(self.wireless);
+        else
+            self.modem.stop();
+    })
 }
 
 util.inherits(PppdWatcher,Watcher);
@@ -19,11 +28,11 @@ util.inherits(PppdWatcher,Watcher);
 PppdWatcher.MILLIS_PER_SEC = MILLIS_PER_SEC;
 
 
-PppdWatcher.prototype._onStart = function(ppp) {
+PppdWatcher.prototype._onStart = function(wireless) {
     var self = this;
-    self.ppp = ppp;
+    self.wireless = wireless;
     self.checkRoutes();
-    self.interval = setInterval(function(){ self.checkRoutes(); },self.ppp.checkInterval * MILLIS_PER_SEC);
+    self.interval = setInterval(function(){ self.checkRoutes(); },self.wireless.checkInterval * MILLIS_PER_SEC);
 };
 
 PppdWatcher.prototype._onStop = function() {
@@ -39,12 +48,12 @@ PppdWatcher.prototype.checkRoutes = function(){
                 logger.error('route error: ' + err);
                 self.emit('note','error');
                 self.noteReady(false);
-            } else if (output.indexOf(self.ppp.subnet) >= 0) {
+            } else if (output.indexOf(self.wireless.subnet) >= 0) {
                 self.emit('note','ready');
                 self.noteReady(true);
             } else {
-                logger.info('add ppp route to GWaaS');
-                self.shell.exec('route add -net ' + self.ppp.subnet + ' netmask ' + self.ppp.mask + ' dev ' + pppInterface);
+                logger.info('add ppp route to gateway');
+                self.shell.exec('route add -net ' + self.wireless.subnet + ' netmask ' + self.wireless.mask + ' dev ' + pppInterface);
                 self.emit('note','route');
                 self.noteReady(true);
             }

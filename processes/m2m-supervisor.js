@@ -45,12 +45,10 @@ function M2mSupervisor(config){
         self.heartbeat      = null;
         self.gateway        = new GatewayProxy(config);
         self.pppdWatcher    = new PppdWatcher(config);
-        self.modemWatcher   = new ModemWatcher(config);
 
         self.configWatcher
-            .addKeysetWatcher('gateway',false,  self.gateway)
-            .addKeysetWatcher('PPP',    true,   self.pppdWatcher)
-            .addKeysetWatcher('modem',  true,   self.modemWatcher);
+            .addKeysetWatcher('gateway',    false,  self.gateway)
+            .addKeysetWatcher('wireless',   true,   self.pppdWatcher);
 
         self.pppdWatcher.on('ready',function(ready){
             if (ready && !self.heartbeat) {

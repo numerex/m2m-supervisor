@@ -301,7 +301,6 @@ router.get('/status',function(req,res,next){
         // istanbul ignore next - TODO consider how to test...
         if (M2mSupervisor.instance && !M2mSupervisor.instance.supervisorProxy){
             status.config   = M2mSupervisor.instance.configWatcher.ready();
-            status.modem    = !!M2mSupervisor.instance.modemWatcher && M2mSupervisor.instance.modemWatcher.ready();
             status.ppp      = !!M2mSupervisor.instance.pppdWatcher  && M2mSupervisor.instance.pppdWatcher.ready();
             status.gateway  = !!M2mSupervisor.instance.gateway        && M2mSupervisor.instance.gateway.started();
             status.router   = !!M2mSupervisor.instance.queueRouter  && M2mSupervisor.instance.queueRouter.started();

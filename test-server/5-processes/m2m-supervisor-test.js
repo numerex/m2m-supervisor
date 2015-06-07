@@ -215,13 +215,6 @@ describe('M2mSupervisor',function() {
             //    '[pppd      ] stop watching',
             //    '[modem     ] stop watching'
             //]);
-            test.mockserialport.snapshot().should.eql([
-                {create: ['/dev/ttyUSB2',{baudrate: 460800},false]},
-                {open: null},
-                {write: 'AT E1\r'},
-                {write: 'AT+CSQ\r'},
-                {close: null}
-            ]);
             test.mockredis.snapshot().should.eql([
                 {keys: '*'},
                 {hgetall: 'm2m-command:routes'},
