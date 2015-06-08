@@ -19,11 +19,11 @@ util.inherits(PppdWatcher,Watcher);
 PppdWatcher.MILLIS_PER_SEC = MILLIS_PER_SEC;
 
 
-PppdWatcher.prototype._onStart = function(wireless) {
+PppdWatcher.prototype._onStart = function(cellular) {
     var self = this;
-    self.wireless = wireless;
+    self.cellular = cellular;
     self.checkRoutes();
-    self.interval = setInterval(function(){ self.checkRoutes(); },self.wireless.checkInterval * MILLIS_PER_SEC);
+    self.interval = setInterval(function(){ self.checkRoutes(); },self.cellular.checkInterval * MILLIS_PER_SEC);
 };
 
 PppdWatcher.prototype._onStop = function() {
@@ -39,12 +39,12 @@ PppdWatcher.prototype.checkRoutes = function(){
                 logger.error('route error: ' + err);
                 self.emit('note','error');
                 self.noteReady(false);
-            } else if (output.indexOf(self.wireless.subnet) >= 0) {
+            } else if (output.indexOf(self.cellular.subnet) >= 0) {
                 self.emit('note','ready');
                 self.noteReady(true);
             } else {
                 logger.info('add ppp route to gateway');
-                self.shell.exec('route add -net ' + self.wireless.subnet + ' netmask ' + self.wireless.mask + ' dev ' + pppInterface);
+                self.shell.exec('route add -net ' + self.cellular.subnet + ' netmask ' + self.cellular.mask + ' dev ' + pppInterface);
                 self.emit('note','route');
                 self.noteReady(true);
             }

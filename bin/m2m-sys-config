@@ -33,7 +33,7 @@ var checker = new SystemChecker(process.argv.length > 2 && _.startsWith(process.
                     hashkeys.system.model.key,          checker.info.model,
                     hashkeys.system.version.key,        checker.info.version,
                     hashkeys.system.imsi.key,           checker.info.imsi,
-                    hashkeys.wireless.serialPort.key,   checker.choices.controlPort);
+                    hashkeys.cellular.serialPort.key,   checker.choices.controlPort);
                 client.quit();
             }
         }

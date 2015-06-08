@@ -49,15 +49,15 @@ function M2mSupervisor(config){
 
         self.configWatcher
             .addKeysetWatcher('gateway',    false,  self.gateway)
-            .addKeysetWatcher('wireless',   true,   self.pppd)
-            .addKeysetWatcher('wireless',   true,   self.modem);
+            .addKeysetWatcher('cellular',   true,   self.pppd)
+            .addKeysetWatcher('cellular',   true,   self.modem);
 
         self.pppd.on('ready',function(ready){
             if (ready && !self.heartbeat) {
                 self.heartbeat = new HeartbeatGenerator(self.gateway,config);
                 self.configWatcher.addKeysetWatcher('gateway',true,self.heartbeat);
             }
-            self.modem.ensureStartStop(ready ? self.pppd.wireless : null);
+            self.modem.ensureStartStop(ready ? self.pppd.cellular : null);
             self.heartbeat && self.heartbeat.ensureStartStop(ready ? self.gateway.config : null);
         });
     }

@@ -7,7 +7,7 @@ describe('PppdWatcher',function(){
 
     var helpers = require(process.cwd() + '/lib/hash-helpers');
     var hashkeys = require(process.cwd() + '/lib/config-hashkeys');
-    var wireless = helpers.hash2config({},hashkeys.wireless);
+    var cellular = helpers.hash2config({},hashkeys.cellular);
 
     beforeEach(function() {
         test.mockery.enable();
@@ -27,7 +27,7 @@ describe('PppdWatcher',function(){
     });
 
     it('should be immediately stopped',function(done){
-        var watcher = new PppdWatcher().start(wireless);
+        var watcher = new PppdWatcher().start(cellular);
         watcher.ready().should.not.be.ok;
         watcher.stop();
         test.pp.snapshot().should.eql([
@@ -42,9 +42,9 @@ describe('PppdWatcher',function(){
         var count = 0;
         var watcher = new PppdWatcher()
             .on('note',function(){ count++; })
-            .start(wireless);
+            .start(cellular);
         count.should.equal(1);
-        test.expect(function(){ watcher.start(wireless); }).to.throw('already started');
+        test.expect(function(){ watcher.start(cellular); }).to.throw('already started');
         watcher.stop();
         test.pp.snapshot().should.eql([
             '[pppd      ] start watching',
@@ -78,7 +78,7 @@ describe('PppdWatcher',function(){
             test.mockshelljs.snapshot(); // clear snapshot
             done();
         });
-        watcher.start(wireless);
+        watcher.start(cellular);
     });
 
     it('should add ppp route if it is not found',function(done){
@@ -101,7 +101,7 @@ describe('PppdWatcher',function(){
             test.mockshelljs.snapshot(); // clear snapshot
             done();
         });
-        watcher.start(wireless);
+        watcher.start(cellular);
     });
 
     it('should detect an existing ppp route and do nothing',function(done){
@@ -121,7 +121,7 @@ describe('PppdWatcher',function(){
             test.mockshelljs.snapshot(); // clear snapshot
             done();
         });
-        watcher.start(wireless);
+        watcher.start(cellular);
     });
 
     it('should detect failed response from route',function(done){
@@ -156,7 +156,7 @@ describe('PppdWatcher',function(){
                 test.mockshelljs.snapshot(); // clear snapshot
                 done();
             }
-        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},wireless));
+        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},cellular));
     });
 
     it('should detect the (unlikely) event of ps failure',function(done){
@@ -176,7 +176,7 @@ describe('PppdWatcher',function(){
                 test.mockshelljs.snapshot(); // clear snapshot
                 done();
             }
-        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},wireless));
+        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},cellular));
     });
 
     it('should detect pppd running but no interface yet',function(done){
@@ -195,7 +195,7 @@ describe('PppdWatcher',function(){
                 test.mockshelljs.snapshot(); // clear snapshot
                 done();
             }
-        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},wireless));
+        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},cellular));
     });
 
     it('should allow caching of shell responses',function(done) {
