@@ -28,12 +28,12 @@ var checker = new SystemChecker(process.argv.length > 2 && _.startsWith(process.
             if (ready) {
                 var client = redis.createClient();
                 client.hmset(schema.config.key,
-                    hashkeys.gateway.imei.key,      checker.info.imei,
-                    hashkeys.modem.vendor.key,      checker.info.vendor,
-                    hashkeys.modem.model.key,       checker.info.model,
-                    hashkeys.modem.version.key,     checker.info.version,
-                    hashkeys.modem.imsi.key,        checker.info.imsi,
-                    hashkeys.modem.serialPort.key,  checker.choices.controlPort);
+                    hashkeys.gateway.imei.key,          checker.info.imei,
+                    hashkeys.wireless.vendor.key,       checker.info.vendor,
+                    hashkeys.wireless.model.key,        checker.info.model,
+                    hashkeys.wireless.version.key,      checker.info.version,
+                    hashkeys.wireless.imsi.key,         checker.info.imsi,
+                    hashkeys.wireless.serialPort.key,   checker.choices.controlPort);
                 client.quit();
             }
         }
