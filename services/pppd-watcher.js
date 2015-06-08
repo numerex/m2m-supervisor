@@ -2,25 +2,16 @@ var _ = require('lodash');
 var util = require('util');
 
 var Watcher = require('../lib/watcher');
-var ModemWatcher = require ('./modem-watcher');
 
 var logger = require('../lib/logger')('pppd');
 
 var MILLIS_PER_SEC = 1000;
 
 function PppdWatcher(config) {
-    var self = this;
-    Watcher.apply(self,[logger,config,true]);
-    self.outputs = {};
-    self.shell = require('shelljs');    // NOTE - delay 'require' for mocking
-    self.os = require('os');            // NOTE - delay 'require' for mocking
-    self.modem = new ModemWatcher(config);
-    self.on('ready',function(ready){
-        if (ready)
-            self.modem.start(self.wireless);
-        else
-            self.modem.stop();
-    })
+    Watcher.apply(this,[logger,config,true]);
+    this.outputs = {};
+    this.shell = require('shelljs');    // NOTE - delay 'require' for mocking
+    this.os = require('os');            // NOTE - delay 'require' for mocking
 }
 
 util.inherits(PppdWatcher,Watcher);

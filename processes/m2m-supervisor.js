@@ -42,28 +42,31 @@ function M2mSupervisor(config){
     self.redisWatcher   = new RedisWatcher(config);
 
     if (runBridge || runAll) {
-        self.heartbeat      = null;
-        self.gateway        = new GatewayProxy(config);
-        self.pppdWatcher    = new PppdWatcher(config);
+        self.heartbeat  = null;
+        self.gateway    = new GatewayProxy(config);
+        self.modem      = new ModemWatcher(config);
+        self.pppd       = new PppdWatcher(config);
 
         self.configWatcher
             .addKeysetWatcher('gateway',    false,  self.gateway)
-            .addKeysetWatcher('wireless',   true,   self.pppdWatcher);
+            .addKeysetWatcher('wireless',   true,   self.pppd)
+            .addKeysetWatcher('wireless',   true,   self.modem);
 
-        self.pppdWatcher.on('ready',function(ready){
+        self.pppd.on('ready',function(ready){
             if (ready && !self.heartbeat) {
                 self.heartbeat = new HeartbeatGenerator(self.gateway,config);
                 self.configWatcher.addKeysetWatcher('gateway',true,self.heartbeat);
             }
+            self.modem.ensureStartStop(ready ? self.pppd.wireless : null);
+            self.heartbeat && self.heartbeat.ensureStartStop(ready ? self.gateway.config : null);
         });
     }
 
     if (runTransceiver || runAll) {
-        self.queueRouter    = new QueueRouter(config);
-
+        self.queueRouter = new QueueRouter(config);
         self.configWatcher.addKeysetWatcher('gateway',true,self.queueRouter);
-        self.routeWatcher = new RouteWatcher(self.queueRouter);
 
+        self.routeWatcher = new RouteWatcher(self.queueRouter);
         self.redisWatcher.addClientWatcher(self.routeWatcher);
     }
 

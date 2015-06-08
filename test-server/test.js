@@ -237,7 +237,7 @@ module.exports.mockshelljs.exec = function() {
             return {code: 0,output: response};
 
         case 'function':
-            lastArgument(response[0],response[1]);
+            _.defer(function(){ lastArgument(response[0],response[1]); });
     }
     return process;
 };

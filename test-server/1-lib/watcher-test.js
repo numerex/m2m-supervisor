@@ -41,6 +41,21 @@ describe('Watcher',function() {
         done();
     });
 
+    it('should only start and stop once using ensureStartStop',function(done){
+        var watcher = new Watcher(logger,{qualifier: 'test'});
+        watcher.ensureStartStop(true);
+        watcher.ensureStartStop(true);
+        watcher.ensureStartStop(false);
+        watcher.ensureStartStop(false);
+        test.pp.snapshot().should.eql([
+            '[watcher   ] start watching: test',
+            '[watcher   ] check ready: test',
+            '[watcher   ] now ready: test',
+            '[watcher   ] stop watching: test'
+        ]);
+        done();
+    });
+
     it('should throw an error if stopped before started',function(done){
         var watcher = new Watcher(logger);
         test.expect(function(){ watcher.stop(); }).to.throw('not started');
