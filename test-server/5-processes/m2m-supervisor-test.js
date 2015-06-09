@@ -54,6 +54,7 @@ describe('M2mSupervisor',function() {
 
     it('should start/stop with no services available - all',function(done){
         test.mockredis.clientException = 'test error';
+        test.mockos.interfaces = {eth0: {}};
 
         var supervisor = new M2mSupervisor().start();
         supervisor.supervisorProxy.should.not.be.ok;
@@ -64,11 +65,14 @@ describe('M2mSupervisor',function() {
                 '[redis     ] instance created',
                 '[socket    ] register behavior: shell',
                 '[socket    ] register behavior: command',
+                '[dhclient  ] start watching',
+                '[dhclient  ] now ready',
                 '[redis     ] start watching',
                 '[redis     ] check ready',
                 '[redis     ] redis client error: test error',
                 '[http      ] Listening on port 5000',
-                '[redis     ] stop watching'
+                '[redis     ] stop watching',
+                '[dhclient  ] stop watching'
             ]);
             test.mockredis.snapshot().should.eql([
                 {keys: '*'},
@@ -81,6 +85,7 @@ describe('M2mSupervisor',function() {
 
     it('should start/stop with no services available -- bridge',function(done){
         test.mockredis.clientException = 'test error';
+        test.mockos.interfaces = {eth0: {}};
 
         var supervisor = new M2mSupervisor({runBridge: true}).start();
         supervisor.supervisorProxy.should.not.be.ok;
@@ -89,10 +94,13 @@ describe('M2mSupervisor',function() {
             test.pp.snapshot().should.eql([
                 '[redis     ] instance removed',
                 '[redis     ] instance created',
+                '[dhclient  ] start watching',
+                '[dhclient  ] now ready',
                 '[redis     ] start watching',
                 '[redis     ] check ready',
                 '[redis     ] redis client error: test error',
-                '[redis     ] stop watching'
+                '[redis     ] stop watching',
+                '[dhclient  ] stop watching'
             ]);
             test.mockredis.snapshot().should.eql([
                 {keys: '*'},

@@ -1,5 +1,6 @@
 var _ = require('lodash');
 
+var DhclientWatcher = require('../services/dhclient-watcher');
 var GatewayProxy = require('../services/gateway-proxy');
 var RedisWatcher = require('../services/redis-watcher');
 var HashWatcher = require('../services/hash-watcher');
@@ -46,6 +47,7 @@ function M2mSupervisor(config){
         self.gateway    = new GatewayProxy(config);
         self.modem      = new ModemWatcher(config);
         self.pppd       = new PppdWatcher(config);
+        self.dhclient   = new DhclientWatcher(config);
 
         self.configWatcher
             .addKeysetWatcher('gateway',    false,  self.gateway)
@@ -82,12 +84,14 @@ function M2mSupervisor(config){
 
 M2mSupervisor.prototype.start = function(){
     M2mSupervisor.instance = this;
+    this.dhclient && this.dhclient.start();
     this.redisWatcher.start();
     return this;
 };
 
 M2mSupervisor.prototype.stop = function(){
     this.redisWatcher.stop();
+    this.dhclient && this.dhclient.stop();
 };
 
 module.exports = M2mSupervisor;
