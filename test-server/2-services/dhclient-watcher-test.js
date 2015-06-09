@@ -85,7 +85,7 @@ describe('DhclientWatcher',function(){
         test.mockshelljs.lookup['dhclient -v eth0']   = [0,''];
 
         var count = 0;
-        var watcher = new DhclientWatcher({checkInterval: 1}).on('note',function(event){
+        var watcher = new DhclientWatcher({checkInterval: 10}).on('note',function(event){
             if (count++ > 0) {
                 watcher.ready().should.not.be.ok;
                 watcher.stop();
@@ -102,10 +102,9 @@ describe('DhclientWatcher',function(){
 
     it('should detect the (unlikely) event of ps failure',function(done){
         test.mockshelljs.lookup['ps aux'] = [1,null];
-        test.mockshelljs.lookup['dhclient -v eth0']   = [0,''];
 
         var count = 0;
-        var watcher = new DhclientWatcher({checkInterval: 1}).on('note',function(event){
+        var watcher = new DhclientWatcher({checkInterval: 1}).on('note',function(note){
             if (count++ > 0) {
                 watcher.ready().should.not.be.ok;
                 watcher.stop();

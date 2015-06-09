@@ -7,7 +7,9 @@ var logger = require('../lib/logger')('dhclient');
 
 function DhclientWatcher(config) {
     ShellWatcher.apply(this,[logger,config,true]);
-    this.checkInterval = (config || {}).checkInterval || 15 * 1000;
+    this.checkInterval = (config || {}).checkInterval || 10 * 60 * 1000;
+    this.emitCheckRoutes = _.bind(this.emit,this,'checkRoutes');
+    this.on('checkRoutes',_.bind(this.checkRoutes,this));
 }
 
 util.inherits(DhclientWatcher,ShellWatcher);
@@ -15,7 +17,7 @@ util.inherits(DhclientWatcher,ShellWatcher);
 DhclientWatcher.prototype._onStart = function() {
     var self = this;
     self.checkRoutes();
-    self.interval = setInterval(_.bind(self.checkRoutes,self),self.checkInterval);
+    self.interval = setInterval(this.emitCheckRoutes,self.checkInterval);
 };
 
 DhclientWatcher.prototype._onStop = function() {
@@ -24,6 +26,8 @@ DhclientWatcher.prototype._onStop = function() {
 
 DhclientWatcher.prototype.checkRoutes = function(){
     var self = this;
+    if (!self.started()) return;
+
     self.findRoute('eth',function(iface){
         if (iface) {
             self.emit('note','ready');
@@ -32,9 +36,7 @@ DhclientWatcher.prototype.checkRoutes = function(){
             self.psauxOutput(true,function(err,output){
                 if (output && !/dhclient/.test(output)) {
                     logger.info('starting dhclient');
-                    self.shell.exec('dhclient -v eth0',function(){
-                        console.log('done!');
-                    });
+                    self.shell.exec('dhclient -v eth0',self.emitCheckRoutes);
                     self.emit('note','dhclient');
                 } else if (err) {
                     logger.error('ps aux error: ' + err);
