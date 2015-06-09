@@ -52,6 +52,7 @@ PppdWatcher.prototype.checkRoutes = function(){
                     logger.info('starting pppd');
                     self.shell.exec('pppd');
                     self.emit('note','pppd');
+                    self.noteReady(false);
                 } else if (err) {
                     logger.error('ps aux error: ' + err);
                     self.emit('note','error');
