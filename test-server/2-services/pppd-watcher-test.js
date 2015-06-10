@@ -7,7 +7,7 @@ describe('PppdWatcher',function(){
 
     var helpers = require(process.cwd() + '/lib/hash-helpers');
     var hashkeys = require(process.cwd() + '/lib/config-hashkeys');
-    var cellular = helpers.hash2config({},hashkeys.cellular);
+    var cellular = helpers.hash2config({'ppp:subnet':'1.2.3.0'},hashkeys.cellular);
 
     beforeEach(function() {
         test.mockery.enable();
@@ -84,7 +84,7 @@ describe('PppdWatcher',function(){
     it('should add ppp route if it is not found',function(done){
         test.mockos.interfaces = {ppp0: {}};
         test.mockshelljs.lookup['route -n'] = [0,fs.readFileSync('test-server/data/route-no-ppp.txt').toString()];
-        test.mockshelljs.lookup['route add -net 172.29.12.0 netmask 255.255.255.0 dev ppp0'] = [0,''];
+        test.mockshelljs.lookup['route add -net 1.2.3.0 netmask 255.255.255.0 dev ppp0'] = [0,''];
 
         var watcher = new PppdWatcher();
         watcher.on('note',function(event){ event.should.equal('route'); });

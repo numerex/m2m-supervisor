@@ -26,10 +26,10 @@ function M2mSupervisor(config){
     config = config || {};
 
     var httpPort        = config.httpPort || process.env.PORT || '5000';
-    var runBridge       = config.runBridge;
     var runWeb          = config.runWeb;
+    var runBridge       = config.runBridge;
     var runTransceiver  = config.runTransceiver;
-    var runAll          = !runBridge && !runWeb && !runTransceiver;
+    var runAll          = !runWeb && !runBridge && !runTransceiver;
 
     var self = this;
 
@@ -37,6 +37,13 @@ function M2mSupervisor(config){
     if (config.runProxy) {
         runBridge = runTransceiver = runAll = false;
         self.supervisorProxy  = runWeb = true;
+    }
+
+    if (runWeb || runAll) {
+        self.httpServer       = new HttpServer().start(httpPort);
+        self.socketServer     = new SocketServer().start(self.httpServer);
+        self.shellBehavior    = new ShellBehavior().registerSelf(self.socketServer);
+        self.commandBehavior  = new CommandBehavior().registerSelf(self.socketServer);
     }
 
     self.configWatcher  = new HashWatcher(schema.config.key,configHashkeys,config);
@@ -50,7 +57,7 @@ function M2mSupervisor(config){
         self.dhclient   = new DhclientWatcher(config);
 
         self.configWatcher
-            .addKeysetWatcher('gateway',    false,  self.gateway)
+            .addKeysetWatcher('gateway',    true,  self.gateway)
             .addKeysetWatcher('cellular',   true,   self.pppd)
             .addKeysetWatcher('cellular',   true,   self.modem);
 
@@ -73,13 +80,6 @@ function M2mSupervisor(config){
     }
 
     self.redisWatcher.addClientWatcher(self.configWatcher);
-
-    if (runWeb || runAll) {
-        self.httpServer       = new HttpServer().start(httpPort);
-        self.socketServer     = new SocketServer().start(self.httpServer);
-        self.shellBehavior    = new ShellBehavior().registerSelf(self.socketServer);
-        self.commandBehavior  = new CommandBehavior().registerSelf(self.socketServer);
-    }
 }
 
 M2mSupervisor.prototype.start = function(){
