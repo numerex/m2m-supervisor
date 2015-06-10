@@ -61,6 +61,26 @@ describe('DhclientWatcher',function(){
         done();
     });
 
+    it('should detect a failure of dhclient',function(done){
+        test.mockshelljs.lookup['ps aux'] = [0,'something'];
+        test.mockshelljs.lookup['dhclient -v eth0']   = [1,''];
+
+        var watcher = new DhclientWatcher();
+        watcher.on('note',function(event){
+            event.should.eql('error');
+            watcher.ready().should.not.be.ok;
+            watcher.stop();
+            test.pp.snapshot().should.eql([
+                '[dhclient  ] start watching',
+                '[dhclient  ] starting dhclient',
+                '[dhclient  ] dhclient error: 1',
+                '[dhclient  ] stop watching']);
+            test.mockshelljs.snapshot(); // clear snapshot
+            done();
+        });
+        watcher.start();
+    });
+
     it('should start dhclient if it is not found',function(done){
         test.mockshelljs.lookup['ps aux'] = [0,'something'];
         test.mockshelljs.lookup['dhclient -v eth0']   = [0,''];

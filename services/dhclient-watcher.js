@@ -26,23 +26,25 @@ DhclientWatcher.prototype._onStop = function() {
 
 DhclientWatcher.prototype.checkRoutes = function(error){
     var self = this;
-    if (!self.started()) return;
-
     self.findRoute('eth',function(iface){
         if (iface) {
             self.emit('note','ready');
             self.noteReady(true);
         } else
             self.psauxOutput(true,function(err,output){
+                if (!self.started()) return;
+
                 if (output && !/dhclient/.test(output)) {
                     logger.info('starting dhclient');
                     self.shell.exec('dhclient -v eth0',function(error) {
-                        if (error)
+                        if (error) {
                             logger.error('dhclient error: ' + error);
-                        else
+                            self.emit('note','error');
+                        } else {
                             self.emitCheckRoutes();
+                            self.emit('note','dhclient');
+                        }
                     });
-                    self.emit('note','dhclient');
                 } else if (err) {
                     logger.error('ps aux error: ' + err);
                     self.emit('note','error');
