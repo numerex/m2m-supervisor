@@ -24,7 +24,7 @@ DhclientWatcher.prototype._onStop = function() {
     clearInterval(this.interval);
 };
 
-DhclientWatcher.prototype.checkRoutes = function(){
+DhclientWatcher.prototype.checkRoutes = function(error){
     var self = this;
     if (!self.started()) return;
 
@@ -36,7 +36,12 @@ DhclientWatcher.prototype.checkRoutes = function(){
             self.psauxOutput(true,function(err,output){
                 if (output && !/dhclient/.test(output)) {
                     logger.info('starting dhclient');
-                    self.shell.exec('dhclient -v eth0',self.emitCheckRoutes);
+                    self.shell.exec('dhclient -v eth0',function(error) {
+                        if (error)
+                            logger.error('dhclient error: ' + error);
+                        else
+                            self.emitCheckRoutes();
+                    });
                     self.emit('note','dhclient');
                 } else if (err) {
                     logger.error('ps aux error: ' + err);

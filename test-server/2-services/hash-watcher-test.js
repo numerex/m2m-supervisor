@@ -101,7 +101,10 @@ describe('HashWatcher',function() {
 
         var count = 0;
         var events = [];
-        var watcher = new HashWatcher('test-hash',{keyset: {test: {key: 'test-key',type: 'number',required: true}}},{retryInterval: 10});
+        var watcher = new HashWatcher('test-hash',{
+                keyset1: {test: {key: 'test1-key',type: 'number',required: true}},
+                keyset2: {test: {key: 'test2-key',type: 'number',required: true}}
+            },{retryInterval: 10});
         watcher.on('retry',function(){
             if (count++ > 0){
                 watcher.stop();
@@ -113,7 +116,8 @@ describe('HashWatcher',function() {
                 test.pp.snapshot().should.eql([
                     '[hash      ] start watching: test-hash',
                     '[hash      ] check ready: test-hash',
-                    '[hash      ] missing(keyset): test-key',
+                    '[hash      ] missing(keyset1): test1-key',
+                    '[hash      ] missing(keyset2): test2-key',
                     '[hash      ] check ready: test-hash',
                     '[hash      ] stop watching: test-hash'
                 ]);
@@ -121,7 +125,12 @@ describe('HashWatcher',function() {
             }
         });
         var started = false;
-        watcher.addKeysetWatcher('keyset',true,{
+        watcher.addKeysetWatcher('keyset1',true,{
+            started: function(){ return started; },
+            start: function(hash){ started = true; events.push('start'); },
+            stop: function(){ started = false; events.push('start'); }
+        });
+        watcher.addKeysetWatcher('keyset2',true,{
             started: function(){ return started; },
             start: function(hash){ started = true; events.push('start'); },
             stop: function(){ started = false; events.push('start'); }

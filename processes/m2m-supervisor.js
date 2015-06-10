@@ -15,6 +15,8 @@ var SocketServer = require('../sockets/socket-server');
 var ShellBehavior = require('../sockets/shell-behavior');
 var CommandBehavior = require('../sockets/command-behavior');
 
+var SystemInitializer = require('../lib/system-initializer');
+
 var schema = require('../lib/redis-schema');
 var configHashkeys = require('../lib/config-hashkeys');
 
@@ -60,6 +62,10 @@ function M2mSupervisor(config){
             .addKeysetWatcher('gateway',    true,  self.gateway)
             .addKeysetWatcher('cellular',   true,   self.pppd)
             .addKeysetWatcher('cellular',   true,   self.modem);
+
+        self.configWatcher.once('change',function(){
+            if (!self.configWatcher.ready()) new SystemInitializer().initNow();
+        });
 
         self.pppd.on('ready',function(ready){
             if (ready && !self.heartbeat) {

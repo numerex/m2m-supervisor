@@ -38,14 +38,16 @@ HashWatcher.prototype._onCheckReady = function(callback){
     self.client.hgetall(self.rootKey).thenHint('onCheckReady',function(hash){
         self.hash = hash || {};
         var json = JSON.stringify(self.hash);
-        if (self.lastJSON !== json) {
+        if (self.lastJSON === json)
+            callback(self.readyStatus);
+        else {
             if (self.lastJSON) logger.info('hash changed: ' + self.rootKey);
             self.lastJSON = json;
             self.readyStatus = true;
-            _.each(self.keysetWatchers, _.bind(self.checkKeysetWatcher,self));
+            _.map(self.keysetWatchers,_.bind(self.checkKeysetWatcher,self));
+            callback(self.readyStatus);
             self.emit('change',self.hash,self.client);
         }
-        callback(self.readyStatus);
     });
 };
 
