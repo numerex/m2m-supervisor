@@ -28,7 +28,7 @@ DhclientWatcher.prototype.checkRoutes = function(error){
     var self = this;
     self.findRoute('eth',function(iface){
         if (iface) {
-            self.emit('note','ready');
+            self.emit('note','ready'); // TODO get IP and mac
             self.noteReady(true);
         } else
             self.psauxOutput(true,function(err,output){

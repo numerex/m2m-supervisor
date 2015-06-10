@@ -37,7 +37,7 @@ PppdWatcher.prototype.checkRoutes = function(){
                     self.emit('note','error');
                     self.noteReady(false);
                 } else if (output.indexOf(self.cellular.subnet) >= 0) {
-                    self.emit('note','ready');
+                    self.emit('note','ready'); // TODO get IP
                     self.noteReady(true);
                 } else {
                     logger.info('add ppp route to gateway');
