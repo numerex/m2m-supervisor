@@ -15,10 +15,11 @@ var SocketServer = require('../sockets/socket-server');
 var ShellBehavior = require('../sockets/shell-behavior');
 var CommandBehavior = require('../sockets/command-behavior');
 
+var NetworkNoter = require('../lib/network-noter');
 var SystemInitializer = require('../lib/system-initializer');
 
 var schema = require('../lib/redis-schema');
-var configHashkeys = require('../lib/config-hashkeys');
+var hashkeys = require('../lib/config-hashkeys');
 
 function M2mSupervisor(config){
 
@@ -48,7 +49,7 @@ function M2mSupervisor(config){
         self.commandBehavior  = new CommandBehavior().registerSelf(self.socketServer);
     }
 
-    self.configWatcher  = new HashWatcher(schema.config.key,configHashkeys,config);
+    self.configWatcher  = new HashWatcher(schema.config.key,hashkeys,config);
     self.redisWatcher   = new RedisWatcher(config);
 
     if (runBridge || runAll) {
@@ -57,6 +58,11 @@ function M2mSupervisor(config){
         self.modem      = new ModemWatcher(config);
         self.pppd       = new PppdWatcher(config);
         self.dhclient   = new DhclientWatcher(config);
+
+        self.redisWatcher.once('ready',function(client){
+            nowOrLaterNoteNetwork(self.dhclient,client,'eth0',hashkeys.system.publicIP.key,hashkeys.system.publicMAC.key);
+            nowOrLaterNoteNetwork(self.pppd,    client,'ppp0',hashkeys.system.privateIP.key);
+        });
 
         self.configWatcher
             .addKeysetWatcher('gateway',    true,  self.gateway)
@@ -99,5 +105,13 @@ M2mSupervisor.prototype.stop = function(){
     this.redisWatcher.stop();
     this.dhclient && this.dhclient.stop();
 };
+
+function nowOrLaterNoteNetwork(watcher,client,iface,addressKey,macKey){
+    var noter = new NetworkNoter(client,iface,addressKey,macKey);
+    if (watcher.ready())
+        noter.noteNow();
+    else
+        watcher.once('ready', _.bind(noter.noteNow,noter));
+}
 
 module.exports = M2mSupervisor;

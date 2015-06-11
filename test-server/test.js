@@ -338,7 +338,8 @@ MockRedis.createClient = function () {
             MockRedis.results = MockRedis.lookup.hgetall[key] || null;
             return client;
         },
-        hmset: function(args){
+        hmset: function(key,values){
+            var args = values ? [key,values] : key;
             MockRedis.calls.push({hmset: args});
             MockRedis.results = null;
             return client;

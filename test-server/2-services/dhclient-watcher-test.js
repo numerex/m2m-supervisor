@@ -1,5 +1,4 @@
 var _ = require('lodash');
-var fs = require('fs');
 var test = require('../test');
 var DhclientWatcher = require(process.cwd() + '/services/dhclient-watcher');
 

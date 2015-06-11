@@ -199,6 +199,8 @@ describe('M2mSupervisor',function() {
             'modem:port-file':'/dev/ttyUSB2',
             'ppp:subnet': '1.2.3.0'
         };
+        test.mockos.interfaces.eth0 = [{address: 'aa:bb:cc:dd:ee:aa:bb:cc:dd:ee',mac: 'aa:bb:cc:dd:ee',family: 'IPv6'},{address: '5.6.7.8',mac: 'aa:bb:cc:dd:ee',family: 'IPv4'}];
+        test.mockos.interfaces.ppp0 = [{address: 'aa:bb:cc:dd:ee:aa:bb:cc:dd:ee',family: 'IPv6'},{address: '1.2.3.4',family: 'IPv4'}];
 
         var supervisor = new M2mSupervisor({retryInterval: 100}).start();
         test.mockhttp.events.listening();
@@ -238,6 +240,7 @@ describe('M2mSupervisor',function() {
             ]);
             test.mockredis.snapshot().should.eql([
                 {keys: '*'},
+                {hmset: ['m2m-config',{'ip:public': '5.6.7.8','mac:public': 'aa:bb:cc:dd:ee'}]},
                 {hgetall: 'm2m-command:routes'},
                 {hgetall: 'm2m-config'},
                 {mget: ['m2m-ack:message','m2m-ack:route-key','m2m-ack:retries','m2m-ack:ticks','m2m-ack:sequence-number']},
@@ -251,7 +254,8 @@ describe('M2mSupervisor',function() {
     });
 
     it('should start/stop with all available services and a peripheral',function(done){
-        test.mockos.interfaces = {ppp0: {}};
+        test.mockos.interfaces.eth0 = [{address: 'aa:bb:cc:dd:ee:aa:bb:cc:dd:ee',mac: 'aa:bb:cc:dd:ee',family: 'IPv6'},{address: '5.6.7.8',mac: 'aa:bb:cc:dd:ee',family: 'IPv4'}];
+        test.mockos.interfaces.ppp0 = [{address: 'aa:bb:cc:dd:ee:aa:bb:cc:dd:ee',family: 'IPv6'},{address: '1.2.3.4',family: 'IPv4'}];
         test.mockshelljs.lookup['route -n'] = [0,fs.readFileSync('test-server/data/route-no-ppp.txt').toString()];
         test.mockshelljs.lookup['route add -net 1.2.3.0 netmask 255.255.255.0 dev ppp0'] = [0,''];
         test.mockredis.lookup.keys['*'] = ['m2m-peripheral:testKey:settings'];
