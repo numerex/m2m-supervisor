@@ -189,7 +189,7 @@ describe('QueueRouter',function() {
                     '[router    ] start watching',
                     '[router    ] valid message received: {"routeKey":"testQueue","eventCode":10,"timestamp":0,"sequenceNumber":1,"11":12,"13":"string","14":null,"15":"\\u0001"}',
                     '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":10,"sequenceNumber":1,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":1,"id":11,"value":12},{"type":2,"id":13,"value":"string"},{"type":11,"id":15,"value":{"type":"Buffer","data":[1]}}]}',
-                    "[router    ] outgoing - size: 54 from: localhost:4001",
+                    "[router    ] outgoing - size: 54 to: localhost:4001",
                     '[router    ] stop watching'
                 ]);
             }
@@ -222,7 +222,7 @@ describe('QueueRouter',function() {
                 '[router    ] start watching',
                 '[router    ] valid message received: {"routeKey":"testQueue","hack":1}',
                 '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":1000000000000,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                "[router    ] outgoing - size: 34 from: localhost:4001",
+                "[router    ] outgoing - size: 34 to: localhost:4001",
                 '[router    ] stop watching'
             ]);
             test.timekeeper.reset();
@@ -256,19 +256,19 @@ describe('QueueRouter',function() {
                         '[router    ] start watching',
                         '[router    ] retry: 2',
                         '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                        "[router    ] outgoing - size: 34 from: localhost:4001",
+                        "[router    ] outgoing - size: 34 to: localhost:4001",
                         '[router    ] retry: 2',
                         '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                        "[router    ] outgoing - size: 34 from: localhost:4000",
+                        "[router    ] outgoing - size: 34 to: localhost:4000",
                         '[router    ] retry: 2',
                         '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                        "[router    ] outgoing - size: 34 from: localhost:4001",
+                        "[router    ] outgoing - size: 34 to: localhost:4001",
                         '[router    ] retry: 2',
                         '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                        "[router    ] outgoing - size: 34 from: localhost:4000",
+                        "[router    ] outgoing - size: 34 to: localhost:4000",
                         '[router    ] retry: 2',
                         '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                        "[router    ] outgoing - size: 34 from: localhost:4001",
+                        "[router    ] outgoing - size: 34 to: localhost:4001",
                         '[router    ] too many retries: 2',
                         '[test-route] error: 2',
                         '[router    ] stop watching'
@@ -308,14 +308,14 @@ describe('QueueRouter',function() {
                         '[router    ] start watching',
                         '[router    ] retry: 2',
                         '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                        "[router    ] outgoing - size: 34 from: localhost:4000",
+                        "[router    ] outgoing - size: 34 to: localhost:4000",
                         '[router    ] retry: 2',
                         '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                        "[router    ] outgoing - size: 34 from: localhost:4001",
+                        "[router    ] outgoing - size: 34 to: localhost:4001",
                         '[router    ] backoff: 1',
                         '[router    ] retry: 2',
                         '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":0,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}',
-                        "[router    ] outgoing - size: 34 from: localhost:4000",
+                        "[router    ] outgoing - size: 34 to: localhost:4000",
                         '[router    ] too many retries: 2',
                         '[test-route] error: 2',
                         '[router    ] stop watching'

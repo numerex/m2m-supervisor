@@ -1,0 +1,7 @@
+{
+  "config":{
+    "gateway:private-url":"udp:5.6.7.8:3011",
+    "gateway:public-url":"https://test-server/pistachio",
+    "ppp:subnet":"1.2.3.0"
+  }
+}

@@ -25,19 +25,15 @@ GatewayProxy.prototype._onStart = function(config,redis){
     self.privateListener = new UdpListener('private',+self.config.privateRelay,function(message){ self.sendPrivate(message); });
     self.publicListener = new UdpListener('public',+self.config.publicRelay,function(message){ self.sendPublic(message); });
 
-    self.outsideListener = new UdpListener('outside',null,function(buffer) {
+    self.outsideListener = new UdpListener('outside',3011,function(buffer,info) { // TODO set port to whatever is in the privateURL...
         try {
             var message = new m2m.Message({buffer: buffer});
-            switch (message.messageType) {
-                case m2m.Common.MOBILE_TERMINATED_EVENT:
-                    self.routeCommand(message);
-                    break;
-                case m2m.Common.MOBILE_TERMINATED_ACK:
-                    self.routeAck(message.sequenceNumber);
-                    break;
-                default:
-                    logger.error('unexpected message type: ' + message.messageType);
-            }
+            if (message.isEvent())
+                self.routeCommand(message,info);
+            else if (message.isAck())
+                self.routeAck(message.sequenceNumber);
+            else
+                logger.error('unexpected message type: ' + message.messageType);
         } catch(e) {
             logger.error('enqueue error: ' + e.message);
         }
@@ -85,19 +81,24 @@ GatewayProxy.prototype.sendPrimary = function(buffer,ignoreAckHint){
         this.sendPublic(buffer,ignoreAckHint);
 };
 
-GatewayProxy.prototype.routeCommand = function(message){
-    // TODO send ack now?
+GatewayProxy.prototype.routeCommand = function(message,info){
     logger.info('enqueue command');
+    var ackType = message.messageType == m2m.Common.MOBILE_ORIGINATED_EVENT ? m2m.Common.MOBILE_ORIGINATED_ACK : m2m.Common.MOBILE_TERMINATED_ACK;
+    var ack = new m2m.Message({messageType: ackType,eventCode: message.eventCode,sequenceNumber: message.sequenceNumber}).pushString(0,this.config.imei);
+    this.sendPrimary(ack.toWire(),false);
     this.redis.lpush(schema.command.queue.key,JSON.stringify(message)).errorHint('pushCommand');
 };
 
 GatewayProxy.prototype.routeAck = function(sequenceNumber){
+    if (!sequenceNumber) return;
+
     if (this.ignoreAckHint === sequenceNumber)
         logger.info('ignore ack: ' + sequenceNumber);
     else {
         logger.info('relay ack: ' + sequenceNumber);
         this.redis.lpush(schema.ack.queue.key,sequenceNumber).errorHint('pushAck');
     }
+    this.ignoreAckHint = null;
 };
 
 GatewayProxy.prototype.makeSender = function(urlString){
@@ -155,7 +156,7 @@ GatewayProxy.prototype.sendUsingHTTPS = function(buffer,options,param){
 GatewayProxy.prototype.extractSequenceNumber = function(buffer){
     try{
         var message = new m2m.Message({buffer: buffer});
-        return message.sequenceNumber;
+        return message.isAck() ? 0 : message.sequenceNumber;
     } catch(e){
         logger.warn('sequence number failure: ' + e.message);
         return 0;

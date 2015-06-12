@@ -7,6 +7,8 @@ var hashkeys = require('../lib/peripheral-hashkeys');
 
 var logger = require('../lib/logger')('command');
 
+const TIMEOUT_INTERVAL = 10;
+
 function CommandBehavior(){
     var self = this;
     self.eventHandlers = [
@@ -75,7 +77,7 @@ CommandBehavior.prototype.commandEvent = function(socket,input){
 
         socket.emit('started',{id: socket.clientID,command: input.command});
         socket.redisClient.lpush(socket.commandQueueKey,JSON.stringify({command: input.command,responseID: socket.clientID,destination: socket.webQueueKey})).errorHint('peripheralQueue:' + socket.clientID);
-        socket.redisClient.brpop(socket.webQueueKey,10).thenHint('webQueue:' + socket.clientID,function(result){
+        socket.redisClient.brpop(socket.webQueueKey,TIMEOUT_INTERVAL).thenHint('webQueue:' + socket.clientID,function(result){
             if (!result)
                 socket.emit('output',{id: socket.clientID,command: input.command,stderr: 'timeout'});
             else {

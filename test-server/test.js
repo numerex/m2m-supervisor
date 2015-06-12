@@ -83,6 +83,7 @@ var MockSerialPort = {
     reset: function(){
         MockSerialPort.connectException = null;
         MockSerialPort.openException = null;
+        MockSerialPort.closeException = null;
         MockSerialPort.writeException = null;
         MockSerialPort.calls = [];
         MockSerialPort.events = {};
@@ -106,9 +107,10 @@ SerialPort.prototype.open = function(callback){
     return this;
 };
 
-SerialPort.prototype.close = function(){
-    MockSerialPort.calls.push({close: null});
+SerialPort.prototype.close = function(callback){
+    MockSerialPort.calls.push({close: MockSerialPort.closeException});
     MockSerialPort.events.close && MockSerialPort.events.close();
+    callback && callback(MockSerialPort.closeException)
 };
 
 SerialPort.prototype.on = function(event,callback){
@@ -117,9 +119,8 @@ SerialPort.prototype.on = function(event,callback){
 };
 
 SerialPort.prototype.write = function(buffer,callback){
-    if (MockSerialPort.writeException) throw(new Error(MockSerialPort.writeException));
-    MockSerialPort.calls.push({write: buffer});
-    callback && callback();
+    if (!MockSerialPort.writeException) MockSerialPort.calls.push({write: buffer});
+    callback && callback(MockSerialPort.writeException);
 };
 
 MockSerialPort.SerialPort = SerialPort;
@@ -237,7 +238,7 @@ module.exports.mockshelljs.exec = function() {
             return {code: 0,output: response};
 
         case 'function':
-            lastArgument(response[0],response[1]);
+            _.defer(function(){ lastArgument(response[0],response[1]); });
     }
     return process;
 };
@@ -338,7 +339,8 @@ MockRedis.createClient = function () {
             MockRedis.results = MockRedis.lookup.hgetall[key] || null;
             return client;
         },
-        hmset: function(args){
+        hmset: function(key,values){
+            var args = values ? [key,values] : key;
             MockRedis.calls.push({hmset: args});
             MockRedis.results = null;
             return client;

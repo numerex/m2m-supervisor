@@ -41,7 +41,7 @@ describe('HeartbeatGenerator',function() {
     it('should send a startup but then skip regular heartbeats if recent messages have been sent',function(done){
         test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = BASE_TIME;
         test.mockredis.lookup.llen['m2m-transmit:queue'] = 0;
-        test.mockredis.lookup.get['m2m-transmit:last-sequence-number'] = 7;
+        test.mockredis.lookup.get['m2m-transmit:last-sequence-number'] = '7';
 
         var events = [];
         var heartbeat = new HeartbeatGenerator(mockProxy);
@@ -57,7 +57,7 @@ describe('HeartbeatGenerator',function() {
                 test.mockredis.snapshot().should.eql([
                     {incr: 'm2m-transmit:last-sequence-number'},
                     {get: 'm2m-transmit:last-private-timestamp'}]);
-                mockProxy.snapshot().should.eql([['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>','8']]);
+                mockProxy.snapshot().should.eql([['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>',8]]);
                 done();
             }
         });
@@ -68,7 +68,7 @@ describe('HeartbeatGenerator',function() {
         var nextTime = BASE_TIME;
         test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = nextTime;
         test.mockredis.lookup.llen['m2m-transmit:queue'] = 1;
-        test.mockredis.lookup.get['m2m-transmit:last-sequence-number'] = 7;
+        test.mockredis.lookup.get['m2m-transmit:last-sequence-number'] = '7';
 
         var events = [];
         var heartbeat = new HeartbeatGenerator(mockProxy);
@@ -88,7 +88,7 @@ describe('HeartbeatGenerator',function() {
                     {get: 'm2m-transmit:last-private-timestamp'},
                     {llen: 'm2m-transmit:queue'}
                 ]);
-                mockProxy.snapshot().should.eql([['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>','8']]);
+                mockProxy.snapshot().should.eql([['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>',8]]);
                 done();
             }
         });
@@ -98,7 +98,7 @@ describe('HeartbeatGenerator',function() {
     it('should send a startup and then regular heartbeats if no other messages have been sent and the queue is empty',function(done){
         var nextTime = BASE_TIME;
         test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = nextTime;
-        test.mockredis.lookup.get['m2m-transmit:last-sequence-number'] = 7;
+        test.mockredis.lookup.get['m2m-transmit:last-sequence-number'] = '7';
         test.mockredis.lookup.llen['m2m-transmit:queue'] = 0;
 
         var events = [];
@@ -122,8 +122,8 @@ describe('HeartbeatGenerator',function() {
                     {incr: 'm2m-transmit:last-sequence-number'}
                 ]);
                 mockProxy.snapshot().should.eql([
-                    ['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>','8'],
-                    ['<Buffer aa 10 00 00 09 00 00 00 e8 d4 a5 10 14 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 18>','9']
+                    ['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>',8],
+                    ['<Buffer aa 10 00 00 09 00 00 00 e8 d4 a5 10 14 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 18>',9]
                 ]);
                 done();
             }
@@ -132,7 +132,7 @@ describe('HeartbeatGenerator',function() {
     });
 
     it('should throw an error if start called twice',function(done){
-        test.mockredis.lookup.get['m2m-transmit:last-sequence-number'] = 7;
+        test.mockredis.lookup.get['m2m-transmit:last-sequence-number'] = '7';
 
         var heartbeat = new HeartbeatGenerator(mockProxy).start(mockProxy.config,redis);
         test.expect(function(){ heartbeat.start(mockProxy.config,redis); }).to.throw('already started');
@@ -144,7 +144,7 @@ describe('HeartbeatGenerator',function() {
         test.mockredis.snapshot().should.eql([
             {incr: 'm2m-transmit:last-sequence-number'}
         ]);
-        mockProxy.snapshot().should.eql([['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>','8']]);
+        mockProxy.snapshot().should.eql([['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>',8]]);
         done();
     });
 

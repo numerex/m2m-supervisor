@@ -29,7 +29,7 @@ describe('UdpListener',function() {
 
     it('minimal setup is performed with a port and onmessage function should be called',function(){
         var called = false;
-        var listener = new UdpListener('test',5678,function(buffer){
+        var listener = new UdpListener('test',5678,function(buffer,info){
             called = true;
         });
         [listener.client.socketType,listener.client.port].should.eql(['udp4',5678]);
@@ -64,7 +64,7 @@ describe('UdpListener',function() {
         var listener = new UdpListener('test');
         listener.send('message','remote',2000);
         mockdgram.deliveries.should.eql([[ 'message',0,7,2000,'remote' ]]);
-        test.pp.snapshot().should.eql(['[test      ] outgoing - size: 7 from: remote:2000']);
+        test.pp.snapshot().should.eql(['[test      ] outgoing - size: 7 to: remote:2000']);
     });
 
 

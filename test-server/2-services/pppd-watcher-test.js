@@ -7,7 +7,7 @@ describe('PppdWatcher',function(){
 
     var helpers = require(process.cwd() + '/lib/hash-helpers');
     var hashkeys = require(process.cwd() + '/lib/config-hashkeys');
-    var ppp = helpers.hash2config({},hashkeys.PPP);
+    var cellular = helpers.hash2config({'ppp:subnet':'1.2.3.0'},hashkeys.cellular);
 
     beforeEach(function() {
         test.mockery.enable();
@@ -27,7 +27,7 @@ describe('PppdWatcher',function(){
     });
 
     it('should be immediately stopped',function(done){
-        var watcher = new PppdWatcher().start(ppp);
+        var watcher = new PppdWatcher().start(cellular);
         watcher.ready().should.not.be.ok;
         watcher.stop();
         test.pp.snapshot().should.eql([
@@ -42,9 +42,9 @@ describe('PppdWatcher',function(){
         var count = 0;
         var watcher = new PppdWatcher()
             .on('note',function(){ count++; })
-            .start(ppp);
+            .start(cellular);
         count.should.equal(1);
-        test.expect(function(){ watcher.start(ppp); }).to.throw('already started');
+        test.expect(function(){ watcher.start(cellular); }).to.throw('already started');
         watcher.stop();
         test.pp.snapshot().should.eql([
             '[pppd      ] start watching',
@@ -66,57 +66,62 @@ describe('PppdWatcher',function(){
         test.mockshelljs.lookup['ps aux'] = [0,'something'];
         test.mockshelljs.lookup['pppd']   = [0,''];
 
-        var events = [];
-        var watcher = new PppdWatcher()
-            .on('note',function(event){ events.push(event); })
-            .start(ppp);
-
-        events.should.eql(['pppd']);
-        watcher.ready().should.not.be.ok;
-        watcher.stop();
-        events.should.eql(['pppd']);
-        test.pp.snapshot().should.eql([
-            '[pppd      ] start watching',
-            '[pppd      ] starting pppd',
-            '[pppd      ] stop watching']);
-        test.mockshelljs.snapshot(); // clear snapshot
-        done();
+        var watcher = new PppdWatcher();
+        watcher.on('note',function(event){
+            event.should.eql('pppd');
+            watcher.ready().should.not.be.ok;
+            watcher.stop();
+            test.pp.snapshot().should.eql([
+                '[pppd      ] start watching',
+                '[pppd      ] starting pppd',
+                '[pppd      ] stop watching']);
+            test.mockshelljs.snapshot(); // clear snapshot
+            done();
+        });
+        watcher.start(cellular);
     });
 
     it('should add ppp route if it is not found',function(done){
         test.mockos.interfaces = {ppp0: {}};
         test.mockshelljs.lookup['route -n'] = [0,fs.readFileSync('test-server/data/route-no-ppp.txt').toString()];
-        test.mockshelljs.lookup['route add -net 172.29.12.0 netmask 255.255.255.0 dev ppp0'] = [0,''];
+        test.mockshelljs.lookup['route add -net 1.2.3.0 netmask 255.255.255.0 dev ppp0'] = [0,''];
 
-        var watcher = new PppdWatcher()
-            .on('note',function(event){ event.should.equal('route'); })
-            .start(ppp);
-        watcher.ready().should.be.ok;
-        watcher.stop();
-        test.pp.snapshot().should.eql([
-            '[pppd      ] start watching',
-            '[pppd      ] add ppp route to GWaaS',
-            '[pppd      ] now ready',
-            '[pppd      ] stop watching']);
-        test.mockshelljs.snapshot(); // clear snapshot
-        done();
+        var watcher = new PppdWatcher();
+        watcher.on('note',function(event){ event.should.equal('route'); });
+        watcher.on('ready',function(ready){
+            if (!ready) return;
+
+            watcher.ready().should.be.ok;
+            watcher.stop();
+            test.pp.snapshot().should.eql([
+                '[pppd      ] start watching',
+                '[pppd      ] add ppp route to gateway',
+                '[pppd      ] now ready',
+                '[pppd      ] stop watching']);
+            test.mockshelljs.snapshot(); // clear snapshot
+            done();
+        });
+        watcher.start(cellular);
     });
 
     it('should detect an existing ppp route and do nothing',function(done){
         test.mockos.interfaces = {ppp0: {}};
         test.mockshelljs.lookup['route -n'] = [0,fs.readFileSync('test-server/data/route-includes-ppp.txt').toString()];
 
-        var watcher = new PppdWatcher()
-            .on('note',function(event){ event.should.equal('ready'); })
-            .start(ppp);
-        watcher.ready().should.be.ok;
-        watcher.stop();
-        test.pp.snapshot().should.eql([
-            '[pppd      ] start watching',
-            '[pppd      ] now ready',
-            '[pppd      ] stop watching']);
-        test.mockshelljs.snapshot(); // clear snapshot
-        done();
+        var watcher = new PppdWatcher();
+        watcher.on('note',function(event){ event.should.equal('ready'); });
+        watcher.on('ready',function(ready){
+            if (!ready) return;
+
+            watcher.stop();
+            test.pp.snapshot().should.eql([
+                '[pppd      ] start watching',
+                '[pppd      ] now ready',
+                '[pppd      ] stop watching']);
+            test.mockshelljs.snapshot(); // clear snapshot
+            done();
+        });
+        watcher.start(cellular);
     });
 
     it('should detect failed response from route',function(done){
@@ -151,7 +156,7 @@ describe('PppdWatcher',function(){
                 test.mockshelljs.snapshot(); // clear snapshot
                 done();
             }
-        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},ppp));
+        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},cellular));
     });
 
     it('should detect the (unlikely) event of ps failure',function(done){
@@ -171,7 +176,7 @@ describe('PppdWatcher',function(){
                 test.mockshelljs.snapshot(); // clear snapshot
                 done();
             }
-        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},ppp));
+        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},cellular));
     });
 
     it('should detect pppd running but no interface yet',function(done){
@@ -190,10 +195,10 @@ describe('PppdWatcher',function(){
                 test.mockshelljs.snapshot(); // clear snapshot
                 done();
             }
-        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},ppp));
+        }).start(_.defaults({checkInterval: 1 / PppdWatcher.MILLIS_PER_SEC},cellular));
     });
 
-    it('should allow caching of shell responses',function() {
+    it('should allow caching of shell responses',function(done) {
         var count = 0;
         var watcher = new PppdWatcher();
 
@@ -201,23 +206,24 @@ describe('PppdWatcher',function(){
         watcher.getShellOutput('test','test',true,function(err,output) {
             [err,output].should.eql([null,'first']);
             count++;
-        });
 
-        test.mockshelljs.lookup['test'] = [0,'second'];
-        watcher.getShellOutput('test','test',true,function(err,output) {
-            [err,output].should.eql([null,'second']);
-            count++;
-        });
+            test.mockshelljs.lookup['test'] = [0,'second'];
+            watcher.getShellOutput('test','test',true,function(err,output) {
+                [err,output].should.eql([null,'second']);
+                count++;
 
-        test.mockshelljs.lookup['test'] = [0,'third'];
-        watcher.getShellOutput('test','test',false,function(err,output) {
-            [err,output].should.eql([null,'second']);
-            count++;
-        });
+                test.mockshelljs.lookup['test'] = [0,'third'];
+                watcher.getShellOutput('test','test',false,function(err,output) {
+                    [err,output].should.eql([null,'second']);
+                    count++;
 
-        count.should.equal(3);
-        test.pp.snapshot().should.eql([]);
-        test.mockshelljs.snapshot(); // clear snapshot
+                    count.should.equal(3);
+                    test.pp.snapshot().should.eql([]);
+                    test.mockshelljs.snapshot(); // clear snapshot
+                    done();
+                });
+            });
+        });
     });
 
     it('should detect failed shell responses',function(done){

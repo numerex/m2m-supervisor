@@ -38,7 +38,7 @@ emitter
             if (peripheralKeys.length <= 0) return emitter.emit('stop','Sorry, no peripherals are defined.');
 
             peripheralKey = process.argv.length > 2 ? process.argv[2] : peripheralKeys.length == 1 ? peripheralKeys[0] : null;
-            if (_.indexOf(peripheralKeys,peripheralKey)) return emitter.emit('stop','You must select one of the following: ' + peripheralKeys.join(', '));
+            if (_.indexOf(peripheralKeys,peripheralKey) < 0) return emitter.emit('stop','You must select one of the following: ' + peripheralKeys.join(', '));
 
             var settingsKey = schema.peripheral.settings.useParam(peripheralKey);
             configWatcher = new HashWatcher(settingsKey,hashkeys)

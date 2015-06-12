@@ -56,7 +56,7 @@ describe('PeripheralRouter',function() {
                 '[perph-rte ] start watching: testKey',
                 '[hash      ] start watching: m2m-peripheral:testKey:settings',
                 '[hash      ] check ready: m2m-peripheral:testKey:settings',
-                '[hash      ] missing(connection): connection:telnet:address',
+                '[hash      ] missing(connection): connection:type',
                 '[perph-rte ] stop watching: testKey',
                 '[hash      ] stop watching: m2m-peripheral:testKey:settings'
             ]);
@@ -96,6 +96,7 @@ describe('PeripheralRouter',function() {
                     '[peripheral] start watching: testKey',
                     '[peripheral] check ready: testKey',
                     '[peripheral] now ready: testKey',
+                    '[hash      ] now ready: m2m-peripheral:testKey:settings',
                     '[perph-rte ] error(testKey) status: no schedule defined',
                     '[perph-rte ] stop watching: testKey',
                     '[hash      ] stop watching: m2m-peripheral:testKey:settings',
@@ -141,6 +142,7 @@ describe('PeripheralRouter',function() {
                     '[peripheral] start watching: testKey',
                     '[peripheral] check ready: testKey',
                     '[peripheral] now ready: testKey',
+                    '[hash      ] now ready: m2m-peripheral:testKey:settings',
                     '[perph-rte ] error(testKey) status: empty schedule',
                     '[perph-rte ] stop watching: testKey',
                     '[hash      ] stop watching: m2m-peripheral:testKey:settings',
@@ -192,8 +194,8 @@ describe('PeripheralRouter',function() {
                     '[peripheral] start watching: testKey',
                     '[peripheral] check ready: testKey',
                     '[peripheral] now ready: testKey',
-                    '[reader    ] start watching',
                     '[hash      ] now ready: m2m-peripheral:testKey:settings',
+                    '[reader    ] start watching',
                     '[reader    ] ready',
                     '[scheduler ] start watching: m2m-peripheral:testKey:queue',
                     '[scheduler ] schedule[100]: TEST1,TEST2',
@@ -293,6 +295,7 @@ describe('PeripheralRouter',function() {
                         '[peripheral] start watching: testKey',
                         '[peripheral] check ready: testKey',
                         '[peripheral] now ready: testKey',
+                        '[hash      ] now ready: m2m-peripheral:testKey:settings',
                         '[perph-rte ] error(testKey) status: unavailable command routing: unknown',
                         '[perph-rte ] stop watching: testKey',
                         '[hash      ] stop watching: m2m-peripheral:testKey:settings',
@@ -392,8 +395,8 @@ describe('PeripheralRouter',function() {
                         '[peripheral] start watching: testKey',
                         '[peripheral] check ready: testKey',
                         '[peripheral] now ready: testKey',
-                        '[reader    ] start watching',
                         '[hash      ] now ready: m2m-peripheral:testKey:settings',
+                        '[reader    ] start watching',
                         '[reader    ] ready',
                         '[hash      ] check ready: m2m-peripheral:testKey:settings',
                         '[hash      ] hash changed: m2m-peripheral:testKey:settings',
@@ -454,8 +457,8 @@ describe('PeripheralRouter',function() {
                         '[peripheral] start watching: testKey',
                         '[peripheral] check ready: testKey',
                         '[peripheral] now ready: testKey',
-                        '[reader    ] start watching',
                         '[hash      ] now ready: m2m-peripheral:testKey:settings',
+                        '[reader    ] start watching',
                         '[reader    ] ready',
                         '[hash      ] check ready: m2m-peripheral:testKey:settings',
                         '[hash      ] hash changed: m2m-peripheral:testKey:settings',
@@ -488,22 +491,22 @@ describe('PeripheralRouter',function() {
 
                 router.processQueueEntry({}); // NOTE invalid entry for test coverage...
 
-                router.processQueueEntry({command: 'test command'});
+                router.processQueueEntry({command: 'test command1'});
                 router.reader.peripheral.client.events.data(new Buffer('\x01test\x03'));
 
                 test.mocknet.writeException = 'test error';
-                router.processQueueEntry({command: 'test command'});
+                router.processQueueEntry({command: 'test command2'});
 
                 router.stop();
                 events.should.eql(['peripheral','commands','ready',null]);
                 test.mockredis.snapshot().should.eql([
                     {hgetall: 'm2m-peripheral:testKey:settings'},
-                    {lpush: ['m2m-transmit:queue','{"10":"test command","11":"\\u0001test\\u0003","12":null,"routeKey":"m2m-peripheral:testKey:queue","eventCode":10}']},
-                    {lpush: ['m2m-transmit:queue','{"10":null,"11":null,"12":"test error","routeKey":"m2m-peripheral:testKey:queue","eventCode":10}']}
+                    {lpush: ['m2m-transmit:queue','{"10":"test command1","11":"\\u0001test\\u0003","12":null,"routeKey":"m2m-peripheral:testKey:queue","eventCode":10}']},
+                    {lpush: ['m2m-transmit:queue','{"10":"test command2","11":null,"12":"test error","routeKey":"m2m-peripheral:testKey:queue","eventCode":10}']}
                 ]);
                 test.mocknet.snapshot().should.eql([
                     {connect: {host: 'host',port: 1234}},
-                    {write: '\x01test command\x03'},
+                    {write: '\x01test command1\x03'},
                     {end: null}
                 ]);
                 test.pp.snapshot().should.eql([
@@ -513,16 +516,16 @@ describe('PeripheralRouter',function() {
                     '[peripheral] start watching: testKey',
                     '[peripheral] check ready: testKey',
                     '[peripheral] now ready: testKey',
-                    '[reader    ] start watching',
                     '[hash      ] now ready: m2m-peripheral:testKey:settings',
+                    '[reader    ] start watching',
                     '[reader    ] ready',
                     '[perph-rte ] invalid queue entry(testKey): {}',
-                    '[perph-rte ] queue entry(testKey): {"command":"test command"}',
-                    '[reader    ] command: "test command"',
+                    '[perph-rte ] queue entry(testKey): {"command":"test command1"}',
+                    '[reader    ] command: "test command1"',
                     '[reader    ] response: "\\u0001test\\u0003"',
                     '[perph-rte ] response(testKey): "\\u0001test\\u0003"',
-                    '[perph-rte ] queue entry(testKey): {"command":"test command"}',
-                    '[reader    ] command: "test command"',
+                    '[perph-rte ] queue entry(testKey): {"command":"test command2"}',
+                    '[reader    ] command: "test command2"',
                     '[reader    ] write error: test error',
                     '[perph-rte ] error(testKey) submit: test error',
                     '[perph-rte ] stop watching: testKey',
@@ -574,8 +577,8 @@ describe('PeripheralRouter',function() {
                     '[peripheral] start watching: testKey',
                     '[peripheral] check ready: testKey',
                     '[peripheral] now ready: testKey',
-                    '[reader    ] start watching',
                     '[hash      ] now ready: m2m-peripheral:testKey:settings',
+                    '[reader    ] start watching',
                     '[reader    ] ready',
                     '[perph-rte ] invalid queue entry(testKey): {}',
                     '[perph-rte ] queue entry(testKey): {"command":"test command","requestID":2,"destination":"m2m-web:queue"}',
