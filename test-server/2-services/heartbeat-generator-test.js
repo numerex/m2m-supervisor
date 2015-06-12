@@ -1,3 +1,4 @@
+var _ = require('lodash');
 var test = require('../test');
 var HeartbeatGenerator = require(process.cwd() + '/services/heartbeat-generator');
 
@@ -107,15 +108,19 @@ describe('HeartbeatGenerator',function() {
             events.push(type);
             test.timekeeper.reset();
             test.timekeeper.freeze(nextTime += 20);
-            if (events.length > 1) {
+            if (events.length > 2) {
                 heartbeat.stop();
-                events.should.eql(['heartbeat','heartbeat']);
+                events.should.eql(['heartbeat','heartbeat','heartbeat']);
                 test.pp.snapshot().should.eql([
                     '[heartbeat ] start watching',
                     '[heartbeat ] send heartbeat: 1',
                     '[heartbeat ] send heartbeat: 0',
+                    '[heartbeat ] send heartbeat: 0',
                     '[heartbeat ] stop watching']);
                 test.mockredis.snapshot().should.eql([
+                    {incr: 'm2m-transmit:last-sequence-number'},
+                    {get: 'm2m-transmit:last-private-timestamp'},
+                    {llen: 'm2m-transmit:queue'},
                     {incr: 'm2m-transmit:last-sequence-number'},
                     {get: 'm2m-transmit:last-private-timestamp'},
                     {llen: 'm2m-transmit:queue'},
@@ -123,10 +128,52 @@ describe('HeartbeatGenerator',function() {
                 ]);
                 mockProxy.snapshot().should.eql([
                     ['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>',8],
-                    ['<Buffer aa 10 00 00 09 00 00 00 e8 d4 a5 10 14 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 18>',9]
+                    ['<Buffer aa 10 00 00 09 00 00 00 e8 d4 a5 10 14 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 18>',9],
+                    ['<Buffer aa 10 00 00 0a 00 00 00 e8 d4 a5 10 28 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 53>',10]
                 ]);
                 done();
             }
+        });
+        heartbeat.start(mockProxy.config,redis);
+    });
+
+    it('should send a startup and then a reconnect if stopped/started',function(done){
+        var nextTime = BASE_TIME;
+        test.mockredis.lookup.get['m2m-transmit:last-private-timestamp'] = nextTime;
+        test.mockredis.lookup.get['m2m-transmit:last-sequence-number'] = '7';
+        test.mockredis.lookup.llen['m2m-transmit:queue'] = 0;
+
+        var events = [];
+        var heartbeat = new HeartbeatGenerator(mockProxy);
+        heartbeat.on('note',function(type){
+            _.defer(function(){
+                events.push(type);
+                test.timekeeper.reset();
+                test.timekeeper.freeze(nextTime += 20);
+                if (events.length === 1) {
+                    heartbeat.stop();
+                    heartbeat.start(mockProxy.config,redis);
+                } else {
+                    heartbeat.stop();
+                    events.should.eql(['heartbeat','heartbeat']);
+                    test.pp.snapshot().should.eql([
+                        '[heartbeat ] start watching',
+                        '[heartbeat ] send heartbeat: 1',
+                        '[heartbeat ] stop watching',
+                        '[heartbeat ] start watching',
+                        '[heartbeat ] send heartbeat: 2',
+                        '[heartbeat ] stop watching']);
+                    test.mockredis.snapshot().should.eql([
+                        {incr: 'm2m-transmit:last-sequence-number'},
+                        {incr: 'm2m-transmit:last-sequence-number'}
+                    ]);
+                    mockProxy.snapshot().should.eql([
+                        ['<Buffer aa 10 01 00 08 00 00 00 e8 d4 a5 10 00 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 11>',8],
+                        ['<Buffer aa 10 02 00 09 00 00 00 e8 d4 a5 10 14 01 00 02 00 0f 31 32 33 34 35 36 37 38 39 30 31 32 33 34 35 85>',9]
+                    ]);
+                    done();
+                }
+            })
         });
         heartbeat.start(mockProxy.config,redis);
     });

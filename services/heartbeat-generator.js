@@ -13,6 +13,7 @@ var MILLIS_PER_MIN = 60 * 1000;
 function HeartbeatGenerator(gateway,config) {
     Watcher.apply(this,[logger,config,true]);
     this.gateway = gateway;
+    this.firstTime = true;
 }
 
 util.inherits(HeartbeatGenerator,Watcher);
@@ -21,9 +22,11 @@ HeartbeatGenerator.MILLIS_PER_MIN = MILLIS_PER_MIN;
 
 HeartbeatGenerator.prototype._onStart = function(config,client) {
     var self = this;
+    var heartbeatCode = self.firstTime ? settings.EventCodes.startup : settings.EventCodes.reconnect;
+    self.firstTime = false;
     self.client = client;
+    self.sendHeartbeat(heartbeatCode);
     self.heartbeatInterval = config.heartbeatInterval;
-    self.sendHeartbeat(settings.EventCodes.startup);
     self.interval = setInterval(function(){ self.considerHeartbeat(); },self.heartbeatInterval * MILLIS_PER_MIN);
 };
 
