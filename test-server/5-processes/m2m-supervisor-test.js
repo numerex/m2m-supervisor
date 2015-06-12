@@ -83,6 +83,51 @@ describe('M2mSupervisor',function() {
         });
     });
 
+    it('should start/stop with only redis and initialize the system - all',function(done){
+        process.env.M2M_SUPERVISOR_CONFIG = process.cwd() + '/test-server/data/setup-no-config.json';
+
+        var supervisor = new M2mSupervisor().start();
+        supervisor.supervisorProxy.should.not.be.ok;
+        test.mockhttp.events.listening();
+        _.defer(function(){
+            supervisor.stop();
+            test.pp.snapshot().should.eql([
+                '[socket    ] register behavior: shell',
+                '[socket    ] register behavior: command',
+                '[redis     ] instance removed',
+                '[redis     ] instance created',
+                '[dhclient  ] start watching',
+                '[dhclient  ] ps aux error: Error: no response found: ps aux',
+                '[redis     ] start watching',
+                '[redis     ] check ready',
+                '[redis     ] now ready',
+                '[hash      ] start watching: m2m-command:routes',
+                '[hash      ] check ready: m2m-command:routes',
+                '[hash      ] now ready: m2m-command:routes',
+                '[hash      ] start watching: m2m-config',
+                '[hash      ] check ready: m2m-config',
+                '[hash      ] missing(gateway): gateway:imei,gateway:private-url,gateway:public-url',
+                '[hash      ] missing(cellular): ppp:subnet,modem:port-file',
+                '[hash      ] missing(cellular): ppp:subnet,modem:port-file',
+                '[hash      ] missing(gateway): gateway:imei,gateway:private-url,gateway:public-url',
+                '[sys-init  ] incomplete setup file',
+                '[http      ] Listening on port 5000',
+                '[redis     ] stop watching',
+                '[hash      ] stop watching: m2m-command:routes',
+                '[hash      ] stop watching: m2m-config',
+                '[dhclient  ] stop watching'
+            ]);
+            test.mockredis.snapshot().should.eql([
+                {keys: '*'},
+                {hgetall: 'm2m-command:routes'},
+                {hgetall: 'm2m-config'},
+                {quit: null}
+            ]);
+            mockRoute.snapshot().should.eql([]);
+            done();
+        });
+    });
+
     it('should start/stop with no services available -- bridge',function(done){
         test.mockredis.clientException = 'test error';
         test.mockos.interfaces = {eth0: {}};
