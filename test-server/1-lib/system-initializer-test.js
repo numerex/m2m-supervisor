@@ -32,6 +32,7 @@ describe('SystemInitializer',function() {
         test.mockery.warnOnUnregistered(false);
         test.mockredis.reset();
         mockchecker.reset();
+        process.env.M2M_SUPERVISOR_CONFIG = process.cwd() + '/test-server/data/setup-empty.json';
     });
 
     afterEach(function () {
@@ -54,7 +55,6 @@ describe('SystemInitializer',function() {
     });
 
     it('should detect no settings',function(done){
-        process.env.M2M_SUPERVISOR_CONFIG = process.cwd() + '/test-server/data/setup-empty.json';
         mockchecker.exists.redis = true;
 
         var initializer = new SystemInitializer();
