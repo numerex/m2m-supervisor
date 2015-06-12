@@ -83,6 +83,7 @@ var MockSerialPort = {
     reset: function(){
         MockSerialPort.connectException = null;
         MockSerialPort.openException = null;
+        MockSerialPort.closeException = null;
         MockSerialPort.writeException = null;
         MockSerialPort.calls = [];
         MockSerialPort.events = {};
@@ -106,9 +107,10 @@ SerialPort.prototype.open = function(callback){
     return this;
 };
 
-SerialPort.prototype.close = function(){
-    MockSerialPort.calls.push({close: null});
+SerialPort.prototype.close = function(callback){
+    MockSerialPort.calls.push({close: MockSerialPort.closeException});
     MockSerialPort.events.close && MockSerialPort.events.close();
+    callback && callback(MockSerialPort.closeException)
 };
 
 SerialPort.prototype.on = function(event,callback){

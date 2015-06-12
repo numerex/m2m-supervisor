@@ -98,7 +98,7 @@ describe('SerialPeripheral',function() {
     it('should capture an error event',function(done){
         var peripheral = new SerialPeripheral({serialPort: '/dev/tty0',serialBaudRate: '1234',retryInterval: 1});
         peripheral.on('error',function(error){
-            error.should.eql('Error: test error');
+            error.should.eql(new Error('test error'));
             peripheral.close();
             test.mockserialport.snapshot().should.eql([
                 {create: ['/dev/tty0',{baudrate: 1234},false]},
@@ -144,6 +144,22 @@ describe('SerialPeripheral',function() {
             {close: null}
         ]);
         done();
+    });
+
+    it('should capture an error on closing',function(done){
+        test.mockserialport.closeException = new Error('test error');
+
+        var peripheral = new SerialPeripheral({serialPort: '/dev/tty0',serialBaudRate: '1234',retryInterval: 1});
+        peripheral.on('error',function(error){
+            test.mockserialport.snapshot().should.eql([
+                {create: ['/dev/tty0',{baudrate: 1234},false]},
+                {open: null},
+                {close: new Error('test error')}
+            ]);
+            done();
+        });
+        peripheral.open();
+        peripheral.close();
     });
 
     it('should write a buffer',function(done){

@@ -79,7 +79,7 @@ function M2mSupervisor(config){
                 self.configWatcher.addKeysetWatcher('gateway',true,self.heartbeat);
             }
             self.modem.ensureStartStop(ready ? self.pppd.cellular : null);
-            self.heartbeat && self.heartbeat.ensureStartStop(ready ? self.gateway.config : null);
+            self.heartbeat && self.heartbeat.ensureStartStop(ready ? self.gateway.config : null,self.redisWatcher.client);
         });
     }
 
