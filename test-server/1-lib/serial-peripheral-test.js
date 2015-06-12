@@ -75,19 +75,19 @@ describe('SerialPeripheral',function() {
     });
 
     it('should retry if the peripheral is not ready #2',function(done){
-        test.mockserialport.openException = 'test error';
+        test.mockserialport.openException = new Error('test error');
 
         var count = 0;
         var peripheral = new SerialPeripheral({serialPort: '/dev/tty0',serialBaudRate: '1234',retryInterval: 1});
         peripheral.on('retry',function(error){
-            error.should.eql('test error');
+            error.should.eql(new Error('test error'));
             if (count++ > 0) {
                 peripheral.close();
                 test.mockserialport.snapshot().should.eql([
                     {create: ['/dev/tty0',{baudrate: 1234},false]},
-                    {open: 'test error'},
+                    {open: new Error('test error')},
                     {create: ['/dev/tty0',{baudrate: 1234},false]},
-                    {open: 'test error'}
+                    {open: new Error('test error')}
                 ]);
                 done();
             }
