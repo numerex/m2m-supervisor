@@ -119,9 +119,8 @@ SerialPort.prototype.on = function(event,callback){
 };
 
 SerialPort.prototype.write = function(buffer,callback){
-    if (MockSerialPort.writeException) throw(new Error(MockSerialPort.writeException));
-    MockSerialPort.calls.push({write: buffer});
-    callback && callback();
+    if (!MockSerialPort.writeException) MockSerialPort.calls.push({write: buffer});
+    callback && callback(MockSerialPort.writeException);
 };
 
 MockSerialPort.SerialPort = SerialPort;

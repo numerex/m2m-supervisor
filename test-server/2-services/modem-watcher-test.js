@@ -115,7 +115,7 @@ describe('ModemWatcher',function(){
     });
 
     it('should detect a peripheral write error',function(done){
-        test.mockserialport.writeException = 'test error';
+        test.mockserialport.writeException = new Error('test error');
 
         var watcher = new ModemWatcher().start({serialPort: '/dev/ttyUSB2',rssiInterval: 100 / ModemWatcher.MILLIS_PER_SEC});
         watcher.requestRSSI();
@@ -127,6 +127,7 @@ describe('ModemWatcher',function(){
         ]);
         test.pp.snapshot().should.eql([
             '[modem     ] start watching',
+            '[modem     ] read error: test error',
             '[modem     ] request error: test error',
             '[modem     ] request error: test error',
             '[modem     ] stop watching'

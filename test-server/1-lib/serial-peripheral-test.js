@@ -128,7 +128,7 @@ describe('SerialPeripheral',function() {
     });
 
     it('should capture an error on writing',function(done){
-        test.mockserialport.writeException = 'test error';
+        test.mockserialport.writeException = new Error('test error');
 
         var values = [];
         var peripheral = new SerialPeripheral({serialPort: '/dev/tty0',serialBaudRate: '1234',retryInterval: 1});
