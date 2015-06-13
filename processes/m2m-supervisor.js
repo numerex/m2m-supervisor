@@ -23,6 +23,8 @@ var SystemInitializer = require('../lib/system-initializer');
 var schema = require('../lib/redis-schema');
 var hashkeys = require('../lib/config-hashkeys');
 
+var logger = require('../lib/logger')('supervisor');
+
 function M2mSupervisor(config){
 
     // istanbul ignore if - only for distinguishing log boundaries at run-time
@@ -71,10 +73,6 @@ function M2mSupervisor(config){
             .addKeysetWatcher('cellular',   true,   self.pppd)
             .addKeysetWatcher('cellular',   true,   self.modem);
 
-        self.configWatcher.once('change',function(){
-            if (!self.configWatcher.ready()) new SystemInitializer().initNow();
-        });
-
         self.pppd.on('ready',function(ready){
             if (ready && !self.heartbeat) {
                 self.heartbeat = new HeartbeatGenerator(self.gateway,config);
@@ -94,18 +92,39 @@ function M2mSupervisor(config){
     }
 
     self.redisWatcher.addClientWatcher(self.configWatcher);
+
+    process.on('SIGINT', _.bind(self.restart,self));
 }
 
+M2mSupervisor.prototype.started = function(){
+    return !!M2mSupervisor.instance;
+};
+
 M2mSupervisor.prototype.start = function(){
-    M2mSupervisor.instance = this;
-    this.dhclient && this.dhclient.start();
-    this.redisWatcher.start();
-    return this;
+    var self = this;
+    logger.info('starting');
+
+    M2mSupervisor.instance = self;
+    self.configWatcher.once('change',function(){
+        if (!self.configWatcher.ready()) new SystemInitializer().initNow();
+    });
+
+    self.dhclient && self.dhclient.start();
+    self.redisWatcher.start();
+    return self;
 };
 
 M2mSupervisor.prototype.stop = function(){
+    logger.info('stopping');
     this.redisWatcher.stop();
     this.dhclient && this.dhclient.stop();
+    M2mSupervisor.instance = null;
+};
+
+M2mSupervisor.prototype.restart = function(){
+    this.started() && this.stop();
+    this.start();
+    return this;
 };
 
 function nowOrLaterNoteNetwork(watcher,client,iface,addressKey,macKey){

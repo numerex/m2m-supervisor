@@ -52,7 +52,7 @@ describe('M2mSupervisor',function() {
         test.pp.snapshot().should.eql([]);
     });
 
-    it('should start/stop with no services available - all',function(done){
+    it('should restart with no services available - all',function(done){
         test.mockredis.clientException = 'test error';
         test.mockos.interfaces = {eth0: {}};
 
@@ -60,26 +60,44 @@ describe('M2mSupervisor',function() {
         supervisor.supervisorProxy.should.not.be.ok;
         test.mockhttp.events.listening();
         _.defer(function(){
-            supervisor.stop();
-            test.pp.snapshot().should.eql([
-                '[socket    ] register behavior: shell',
-                '[socket    ] register behavior: command',
-                '[redis     ] instance created',
-                '[dhclient  ] start watching',
-                '[dhclient  ] now ready',
-                '[redis     ] start watching',
-                '[redis     ] check ready',
-                '[redis     ] redis client error: test error',
-                '[http      ] Listening on port 5000',
-                '[redis     ] stop watching',
-                '[dhclient  ] stop watching'
-            ]);
-            test.mockredis.snapshot().should.eql([
-                {keys: '*'},
-                {end: null}
-            ]);
-            mockRoute.snapshot().should.eql([]);
-            done();
+            supervisor.restart();
+            test.mockhttp.events.listening();
+            _.defer(function(){
+                supervisor.stop();
+                test.pp.snapshot().should.eql([
+                    '[socket    ] register behavior: shell',
+                    '[socket    ] register behavior: command',
+                    '[redis     ] instance created',
+                    '[supervisor] starting',
+                    '[dhclient  ] start watching',
+                    '[dhclient  ] now ready',
+                    '[redis     ] start watching',
+                    '[redis     ] check ready',
+                    '[redis     ] redis client error: test error',
+                    '[http      ] Listening on port 5000',
+                    '[supervisor] stopping',
+                    '[redis     ] stop watching',
+                    '[dhclient  ] stop watching',
+                    '[supervisor] starting',
+                    '[dhclient  ] start watching',
+                    '[dhclient  ] now ready',
+                    '[redis     ] start watching',
+                    '[redis     ] check ready',
+                    '[redis     ] redis client error: test error',
+                    '[http      ] Listening on port 5000',
+                    '[supervisor] stopping',
+                    '[redis     ] stop watching',
+                    '[dhclient  ] stop watching'
+                ]);
+                test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
+                    {end: null},
+                    {keys: '*'},
+                    {end: null}
+                ]);
+                mockRoute.snapshot().should.eql([]);
+                done();
+            });
         });
     });
 
@@ -96,6 +114,7 @@ describe('M2mSupervisor',function() {
                 '[socket    ] register behavior: command',
                 '[redis     ] instance removed',
                 '[redis     ] instance created',
+                '[supervisor] starting',
                 '[dhclient  ] start watching',
                 '[dhclient  ] ps aux error: Error: no response found: ps aux',
                 '[redis     ] start watching',
@@ -112,6 +131,7 @@ describe('M2mSupervisor',function() {
                 '[hash      ] missing(gateway): gateway:imei,gateway:private-url,gateway:public-url',
                 '[sys-init  ] incomplete setup file',
                 '[http      ] Listening on port 5000',
+                '[supervisor] stopping',
                 '[redis     ] stop watching',
                 '[hash      ] stop watching: m2m-command:routes',
                 '[hash      ] stop watching: m2m-config',
@@ -139,11 +159,13 @@ describe('M2mSupervisor',function() {
             test.pp.snapshot().should.eql([
                 '[redis     ] instance removed',
                 '[redis     ] instance created',
+                '[supervisor] starting',
                 '[dhclient  ] start watching',
                 '[dhclient  ] now ready',
                 '[redis     ] start watching',
                 '[redis     ] check ready',
                 '[redis     ] redis client error: test error',
+                '[supervisor] stopping',
                 '[redis     ] stop watching',
                 '[dhclient  ] stop watching'
             ]);
@@ -166,9 +188,11 @@ describe('M2mSupervisor',function() {
             test.pp.snapshot().should.eql([
                 '[redis     ] instance removed',
                 '[redis     ] instance created',
+                '[supervisor] starting',
                 '[redis     ] start watching',
                 '[redis     ] check ready',
                 '[redis     ] redis client error: test error',
+                '[supervisor] stopping',
                 '[redis     ] stop watching'
             ]);
             test.mockredis.snapshot().should.eql([
@@ -193,10 +217,12 @@ describe('M2mSupervisor',function() {
                 '[socket    ] register behavior: command',
                 '[redis     ] instance removed',
                 '[redis     ] instance created',
+                '[supervisor] starting',
                 '[redis     ] start watching',
                 '[redis     ] check ready',
                 '[redis     ] redis client error: test error',
                 '[http      ] Listening on port 5000',
+                '[supervisor] stopping',
                 '[redis     ] stop watching'
             ]);
             test.mockredis.snapshot().should.eql([
@@ -221,10 +247,12 @@ describe('M2mSupervisor',function() {
                 '[socket    ] register behavior: command',
                 '[redis     ] instance removed',
                 '[redis     ] instance created',
+                '[supervisor] starting',
                 '[redis     ] start watching',
                 '[redis     ] check ready',
                 '[redis     ] redis client error: test error',
                 '[http      ] Listening on port 5000',
+                '[supervisor] stopping',
                 '[redis     ] stop watching'
             ]);
             test.mockredis.snapshot().should.eql([
@@ -247,7 +275,7 @@ describe('M2mSupervisor',function() {
         test.mockos.interfaces.eth0 = [{address: 'aa:bb:cc:dd:ee:aa:bb:cc:dd:ee',mac: 'aa:bb:cc:dd:ee',family: 'IPv6'},{address: '5.6.7.8',mac: 'aa:bb:cc:dd:ee',family: 'IPv4'}];
         test.mockos.interfaces.ppp0 = [{address: 'aa:bb:cc:dd:ee:aa:bb:cc:dd:ee',family: 'IPv6'},{address: '1.2.3.4',family: 'IPv4'}];
 
-        var supervisor = new M2mSupervisor({retryInterval: 100}).start();
+        var supervisor = new M2mSupervisor({retryInterval: 100}).restart();
         test.mockhttp.events.listening();
         _.defer(function(){
             supervisor.stop();
