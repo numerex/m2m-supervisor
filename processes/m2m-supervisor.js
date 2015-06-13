@@ -1,3 +1,5 @@
+var heapdump = require('heapdump');
+
 var _ = require('lodash');
 
 var DhclientWatcher = require('../services/dhclient-watcher');
