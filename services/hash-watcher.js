@@ -9,6 +9,7 @@ var logger = require('../lib/logger')('hash');
 function HashWatcher(rootKey,hashkeys,config) {
     Watcher.apply(this,[logger, _.defaults({qualifier: rootKey},config)]);
     this.rootKey = rootKey;
+    this.hash = {};
     this.hashkeys = hashkeys || {};
     this.keysetWatchers = [];
 }

@@ -5,9 +5,14 @@ var util = require('util');
 var Watcher = require('../lib/watcher');
 var UdpListener = require('../lib/udp-listener');
 
-var logger = require('../lib/logger')('router');
+var ConfigWatcher = require('./config-watcher');
+
+var helpers = require('../lib/hash-helpers');
+var hashkeys = require('../lib/config-hashkeys');
 var schema = require('../lib/redis-schema');
 var settings = require('../lib/m2m-settings');
+
+var logger = require('../lib/logger')('router');
 
 var ACK_PENDING_QUEUE_KEYS = Object.freeze([
     schema.ack.queue.key,
@@ -182,29 +187,43 @@ QueueRouter.prototype.processAck = function(rawEntry,ackState){
 };
 
 QueueRouter.prototype.processCommand = function(rawEntry,ackState) {
-    var self = this;
     var message = new m2m.Message({json: rawEntry});
     switch (message.eventCode){
         case settings.EventCodes.peripheralCommand:
-            var command = message.find(settings.ObjectTypes.peripheralCommand,null);
-            var routeIndex = message.find(settings.ObjectTypes.peripheralIndex,1);
-            var queueKey = self.queues[routeIndex];
-            var route = self.routes[queueKey];
-            if (!route) {
-                logger.warn('route not found: ' + rawEntry);
-                self.noteQueueResult('routeNoteFound');
-            } else if (!command) {
-                logger.warn('command not found: ' + rawEntry);
-                self.noteQueueResult('commandNotFound');
-            } else {
-                self.client.lpush(queueKey,JSON.stringify({command: command,requestID: message.sequenceNumber}));
-                self.noteQueueResult('command');
-            }
+            this.routePeripheralCommand(rawEntry,message);
+            break;
+        case 2: // get_configuration
+            this.transmitConfiguration(rawEntry,message);
             break;
         default:
             logger.warn('ignoring command: ' + rawEntry);
-            self.noteQueueResult('ignoreCommand');
+            this.noteQueueResult('ignoreCommand');
     }
+};
+
+QueueRouter.prototype.routePeripheralCommand = function(rawEntry,message){
+    var command = message.find(settings.ObjectTypes.peripheralCommand,null);
+    var routeIndex = message.find(settings.ObjectTypes.peripheralIndex,1);
+    var queueKey = this.queues[routeIndex];
+    var route = this.routes[queueKey];
+    if (!route) {
+        logger.warn('route not found: ' + rawEntry);
+        this.noteQueueResult('routeNoteFound');
+    } else if (!command) {
+        logger.warn('command not found: ' + rawEntry);
+        this.noteQueueResult('commandNotFound');
+    } else {
+        this.client.lpush(queueKey,JSON.stringify({command: command,requestID: message.sequenceNumber}));
+        this.noteQueueResult('command');
+    }
+};
+
+QueueRouter.prototype.transmitConfiguration = function(rawEntry,message){
+    logger.info('request configuration: ' + message.sequenceNumber)
+    var attributes = {routeKey: schema.transmit.queue.key, eventCode: settings.EventCodes.config};
+    attributes[settings.ObjectTypes.requestID]  = message.sequenceNumber;
+    attributes[settings.ObjectTypes.configData] = JSON.stringify(ConfigWatcher.instance && helpers.hash2config(ConfigWatcher.instance.hash,hashkeys.system));
+    this.generateMessage(attributes);
 };
 
 QueueRouter.prototype.processTransmit = function(rawEntry,ackState) {

@@ -67,6 +67,7 @@ describe('M2mSupervisor',function() {
                 test.pp.snapshot().should.eql([
                     '[socket    ] register behavior: shell',
                     '[socket    ] register behavior: command',
+                    '[config    ] instance created',
                     '[redis     ] instance created',
                     '[supervisor] starting',
                     '[dhclient  ] start watching',
@@ -112,6 +113,8 @@ describe('M2mSupervisor',function() {
             test.pp.snapshot().should.eql([
                 '[socket    ] register behavior: shell',
                 '[socket    ] register behavior: command',
+                '[config    ] instance removed',
+                '[config    ] instance created',
                 '[redis     ] instance removed',
                 '[redis     ] instance created',
                 '[supervisor] starting',
@@ -157,6 +160,8 @@ describe('M2mSupervisor',function() {
         _.defer(function(){
             supervisor.stop();
             test.pp.snapshot().should.eql([
+                '[config    ] instance removed',
+                '[config    ] instance created',
                 '[redis     ] instance removed',
                 '[redis     ] instance created',
                 '[supervisor] starting',
@@ -186,6 +191,8 @@ describe('M2mSupervisor',function() {
         _.defer(function(){
             supervisor.stop();
             test.pp.snapshot().should.eql([
+                '[config    ] instance removed',
+                '[config    ] instance created',
                 '[redis     ] instance removed',
                 '[redis     ] instance created',
                 '[supervisor] starting',
@@ -215,6 +222,8 @@ describe('M2mSupervisor',function() {
             test.pp.snapshot().should.eql([
                 '[socket    ] register behavior: shell',
                 '[socket    ] register behavior: command',
+                '[config    ] instance removed',
+                '[config    ] instance created',
                 '[redis     ] instance removed',
                 '[redis     ] instance created',
                 '[supervisor] starting',
@@ -245,6 +254,8 @@ describe('M2mSupervisor',function() {
             test.pp.snapshot().should.eql([
                 '[socket    ] register behavior: shell',
                 '[socket    ] register behavior: command',
+                '[config    ] instance removed',
+                '[config    ] instance created',
                 '[redis     ] instance removed',
                 '[redis     ] instance created',
                 '[supervisor] starting',

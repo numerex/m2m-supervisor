@@ -5,7 +5,7 @@ var _ = require('lodash');
 var DhclientWatcher = require('../services/dhclient-watcher');
 var GatewayProxy = require('../services/gateway-proxy');
 var RedisWatcher = require('../services/redis-watcher');
-var HashWatcher = require('../services/hash-watcher');
+var ConfigWatcher = require('../services/config-watcher');
 var RouteWatcher = require('../services/route-watcher');
 var QueueRouter = require('../services/queue-router');
 var PppdWatcher = require('../services/pppd-watcher');
@@ -53,7 +53,7 @@ function M2mSupervisor(config){
         self.commandBehavior  = new CommandBehavior().registerSelf(self.socketServer);
     }
 
-    self.configWatcher  = new HashWatcher(schema.config.key,hashkeys,config);
+    self.configWatcher  = new ConfigWatcher(config);
     self.redisWatcher   = new RedisWatcher(config);
 
     if (runBridge || runAll) {
