@@ -192,7 +192,7 @@ QueueRouter.prototype.processCommand = function(rawEntry,ackState) {
         case settings.EventCodes.peripheralCommand:
             this.routePeripheralCommand(rawEntry,message);
             break;
-        case 2: // get_configuration
+        case settings.EventCodes.getConfig:
             this.transmitConfiguration(rawEntry,message);
             break;
         default:
@@ -219,8 +219,8 @@ QueueRouter.prototype.routePeripheralCommand = function(rawEntry,message){
 };
 
 QueueRouter.prototype.transmitConfiguration = function(rawEntry,message){
-    logger.info('request configuration: ' + message.sequenceNumber)
-    var attributes = {routeKey: schema.transmit.queue.key, eventCode: settings.EventCodes.config};
+    logger.info('request configuration: ' + message.sequenceNumber);
+    var attributes = {routeKey: schema.transmit.queue.key, eventCode: settings.EventCodes.getConfig};
     attributes[settings.ObjectTypes.requestID]  = message.sequenceNumber;
     attributes[settings.ObjectTypes.configData] = JSON.stringify(ConfigWatcher.instance && helpers.hash2config(ConfigWatcher.instance.hash,hashkeys.system));
     this.generateMessage(attributes);

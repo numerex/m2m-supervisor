@@ -419,8 +419,7 @@ describe('QueueRouter',function() {
 
     it('should respond to a request for configuration',function(done){
         test.timekeeper.freeze(1000000000000);
-        // TODO change eventCode to proper value when GW send the right one...
-        test.mockredis.lookup.brpop = [['m2m-command:queue','{"messageType":204,"majorVersion":1,"minorVersion":0,"eventCode":2,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}']];
+        test.mockredis.lookup.brpop = [['m2m-command:queue','{"messageType":204,"majorVersion":1,"minorVersion":0,"eventCode":6,"sequenceNumber":2,"timestamp":0,"tuples":[{"type":2,"id":0,"value":"123456789012345"}]}']];
         ConfigWatcher.instance.hash = {test: 123};
 
         var router = new QueueRouter();
@@ -432,7 +431,7 @@ describe('QueueRouter',function() {
                     {mget: QueueRouter.ACK_STATE_KEYS},{brpop: router.transmitArgs},
                     {incr: 'm2m-transmit:last-sequence-number'},
                     {mset: [
-                        'm2m-ack:message','{"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":4,"sequenceNumber":1,"timestamp":1000000000000,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":1,"id":2,"value":2},{"type":11,"id":20,"value":{"type":"Buffer","data":[123,34,118,101,110,100,111,114,34,58,110,117,108,108,44,34,109,111,100,101,108,34,58,110,117,108,108,44,34,118,101,114,115,105,111,110,34,58,110,117,108,108,44,34,105,109,115,105,34,58,110,117,108,108,44,34,112,114,105,118,97,116,101,73,80,34,58,110,117,108,108,44,34,112,117,98,108,105,99,73,80,34,58,110,117,108,108,44,34,112,117,98,108,105,99,77,65,67,34,58,110,117,108,108,125]}}]}',
+                        'm2m-ack:message','{"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":6,"sequenceNumber":1,"timestamp":1000000000000,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":1,"id":2,"value":2},{"type":11,"id":20,"value":{"type":"Buffer","data":[123,34,118,101,110,100,111,114,34,58,110,117,108,108,44,34,109,111,100,101,108,34,58,110,117,108,108,44,34,118,101,114,115,105,111,110,34,58,110,117,108,108,44,34,105,109,115,105,34,58,110,117,108,108,44,34,112,114,105,118,97,116,101,73,80,34,58,110,117,108,108,44,34,112,117,98,108,105,99,73,80,34,58,110,117,108,108,44,34,112,117,98,108,105,99,77,65,67,34,58,110,117,108,108,125]}}]}',
                         'm2m-ack:route-key','m2m-transmit:queue',
                         'm2m-ack:retries',0,
                         'm2m-ack:ticks',0,
@@ -443,7 +442,7 @@ describe('QueueRouter',function() {
                 test.pp.snapshot().should.eql([
                     '[router    ] start watching',
                     '[router    ] request configuration: 2',
-                    '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":4,"sequenceNumber":1,"timestamp":1000000000000,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":1,"id":2,"value":2},{"type":11,"id":20,"value":{"type":"Buffer","data":[123,34,118,101,110,100,111,114,34,58,110,117,108,108,44,34,109,111,100,101,108,34,58,110,117,108,108,44,34,118,101,114,115,105,111,110,34,58,110,117,108,108,44,34,105,109,115,105,34,58,110,117,108,108,44,34,112,114,105,118,97,116,101,73,80,34,58,110,117,108,108,44,34,112,117,98,108,105,99,73,80,34,58,110,117,108,108,44,34,112,117,98,108,105,99,77,65,67,34,58,110,117,108,108,125]}}]}',
+                    '[router    ] transmit: {"messageType":170,"majorVersion":1,"minorVersion":0,"eventCode":6,"sequenceNumber":1,"timestamp":1000000000000,"tuples":[{"type":2,"id":0,"value":"123456789012345"},{"type":1,"id":2,"value":2},{"type":11,"id":20,"value":{"type":"Buffer","data":[123,34,118,101,110,100,111,114,34,58,110,117,108,108,44,34,109,111,100,101,108,34,58,110,117,108,108,44,34,118,101,114,115,105,111,110,34,58,110,117,108,108,44,34,105,109,115,105,34,58,110,117,108,108,44,34,112,114,105,118,97,116,101,73,80,34,58,110,117,108,108,44,34,112,117,98,108,105,99,73,80,34,58,110,117,108,108,44,34,112,117,98,108,105,99,77,65,67,34,58,110,117,108,108,125]}}]}',
                     '[router    ] outgoing - size: 148 to: localhost:4001',
                     '[router    ] stop watching'
                 ]);
