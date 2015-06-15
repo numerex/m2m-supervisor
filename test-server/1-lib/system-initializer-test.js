@@ -1,6 +1,8 @@
 var _ = require('lodash');
 var test = require('../test');
 
+var setup = require(process.cwd() + '/lib/global-setup');
+
 var SystemInitializer = require(process.cwd() + '/lib/system-initializer');
 
 describe('SystemInitializer',function() {
@@ -33,6 +35,7 @@ describe('SystemInitializer',function() {
         test.mockredis.reset();
         mockchecker.reset();
         process.env.M2M_SUPERVISOR_CONFIG = process.cwd() + '/test-server/data/setup-empty.json';
+        setup.reset();
     });
 
     afterEach(function () {
@@ -77,12 +80,13 @@ describe('SystemInitializer',function() {
 
     it('should detect bad JSON',function(done){
         process.env.M2M_SUPERVISOR_CONFIG = process.cwd() + '/test-server/data/invalid.json';
+        setup.reset();
         mockchecker.exists.redis = true;
 
         var initializer = new SystemInitializer();
         initializer.initNow(function(error){
             test.pp.snapshot().should.eql([
-                '[sys-init  ] JSON error: Unexpected token .'
+                '[sys-init  ] setup error: Unexpected token .'
             ]);
             done();
         });
@@ -90,6 +94,7 @@ describe('SystemInitializer',function() {
 
     it('should detect no config',function(done){
         process.env.M2M_SUPERVISOR_CONFIG = process.cwd() + '/test-server/data/setup-no-config.json';
+        setup.reset();
         mockchecker.exists.redis = true;
 
         var initializer = new SystemInitializer();
@@ -102,6 +107,7 @@ describe('SystemInitializer',function() {
 
     it('should detect minimal settings',function(done){
         process.env.M2M_SUPERVISOR_CONFIG = process.cwd() + '/test-server/data/setup-complete.json';
+        setup.reset();
         mockchecker.exists.redis = true;
         mockchecker.info.imei = '123456789012345';
         mockchecker.choices.controlPort = '/dev/ttyTEST';
@@ -131,6 +137,7 @@ describe('SystemInitializer',function() {
 
     it('should detect maximal settings',function(done){
         process.env.M2M_SUPERVISOR_CONFIG = process.cwd() + '/test-server/data/setup-complete.json';
+        setup.reset();
         mockchecker.exists.redis        = true;
         mockchecker.info.imei           = '123456789012345';
         mockchecker.choices.controlPort = '/dev/ttyTEST';

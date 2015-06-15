@@ -3,6 +3,9 @@ var fs = require('fs');
 var m2m = require('m2m-ota-javascript');
 
 var test = require('../test');
+
+var setup = require(process.cwd() + '/lib/global-setup');
+
 var M2mSupervisor = require(process.cwd() + '/processes/m2m-supervisor');
 
 describe('M2mSupervisor',function() {
@@ -104,6 +107,7 @@ describe('M2mSupervisor',function() {
 
     it('should start/stop with only redis and initialize the system - all',function(done){
         process.env.M2M_SUPERVISOR_CONFIG = process.cwd() + '/test-server/data/setup-no-config.json';
+        setup.reset();
 
         var supervisor = new M2mSupervisor().start();
         supervisor.supervisorProxy.should.not.be.ok;
