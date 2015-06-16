@@ -99,11 +99,14 @@ describe('SystemInitializer',function() {
         var initializer = new SystemInitializer();
         initializer.initNow(function(error){
             test.pp.snapshot().should.eql([
+                '[sys-init  ] no IMEI found',
                 '[sys-init  ] setup error: Unexpected token .',
                 '[sys-init  ] initialization incomplete'
             ]);
             done();
         });
+
+        mockchecker.events.ready();
     });
 
     it('should detect no config',function(done){
@@ -112,12 +115,19 @@ describe('SystemInitializer',function() {
         mockchecker.exists.redis = true;
 
         var initializer = new SystemInitializer();
-        initializer.initNow().should.not.be.ok;
-        test.pp.snapshot().should.eql([
-            '[sys-init  ] incomplete setup file',
-            '[sys-init  ] initialization incomplete'
-        ]);
-        done();
+        initializer.initNow(function(error){
+            test.pp.snapshot().should.eql([
+                '[sys-init  ] no IMEI found',
+                '[sys-init  ] no modem serial port found',
+                '[sys-init  ] no private gateway URL',
+                '[sys-init  ] no public gateway URL',
+                '[sys-init  ] no PPP subnet',
+                '[sys-init  ] initialization incomplete'
+            ]);
+            done();
+        });
+
+        mockchecker.events.ready();
     });
 
     it('should detect minimal settings',function(done){

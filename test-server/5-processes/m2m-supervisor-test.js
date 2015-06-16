@@ -15,12 +15,33 @@ describe('M2mSupervisor',function() {
     var helpers = require(process.cwd() + '/lib/hash-helpers');
     var hashkeys = require(process.cwd() + '/lib/config-hashkeys');
 
+    var mockchecker = {reset: function(){
+        mockchecker.events = {};
+        mockchecker.exists = {redis: true};
+        mockchecker.choices = {};
+        mockchecker.info = {};
+        mockchecker.allPorts = [];
+    }};
+    function SystemChecker(){
+        var self = this;
+        self.exists = mockchecker.exists;
+        self.info = mockchecker.info;
+        self.choices = mockchecker.choices;
+        self.allPorts = mockchecker.allPorts;
+        self.on = function(event,callback){
+            mockchecker.events[event] = callback;
+            return self;
+        };
+        self.checkNow = function(){ return self; };
+    }
+
     function FtpSetup(name){
         this.setupNow = function(callback){ callback(null); };
     }
 
     beforeEach(function () {
         test.mockery.enable();
+        test.mockery.registerMock('./system-checker',SystemChecker);
         test.mockery.registerMock('./ftp-setup',FtpSetup);
         test.mockery.registerMock('dgram', mockdgram = new test.mockdgram());
         test.mockery.registerMock('then-redis', test.mockredis);
@@ -38,9 +59,11 @@ describe('M2mSupervisor',function() {
         test.mockshelljs.reset();
         test.mocknet.reset();
         test.mockos.reset();
+        mockchecker.reset();
     });
 
     afterEach(function () {
+        test.mockery.deregisterMock('./system-checker');
         test.mockery.deregisterMock('./ftp-setup');
         test.mockery.deregisterMock('os');
         test.mockery.deregisterMock('net');
@@ -118,6 +141,7 @@ describe('M2mSupervisor',function() {
         var supervisor = new M2mSupervisor().start();
         supervisor.supervisorProxy.should.not.be.ok;
         test.mockhttp.events.listening();
+        mockchecker.events.ready();
         _.defer(function(){
             supervisor.stop();
             test.pp.snapshot().should.eql([
@@ -142,9 +166,13 @@ describe('M2mSupervisor',function() {
                 '[hash      ] missing(cellular): ppp:subnet,modem:port-file',
                 '[hash      ] missing(cellular): ppp:subnet,modem:port-file',
                 '[hash      ] missing(gateway): gateway:imei,gateway:private-url,gateway:public-url',
-                '[sys-init  ] incomplete setup file',
-                '[sys-init  ] initialization incomplete',
                 '[http      ] Listening on port 5000',
+                '[sys-init  ] no IMEI found',
+                '[sys-init  ] no modem serial port found',
+                '[sys-init  ] no private gateway URL',
+                '[sys-init  ] no public gateway URL',
+                '[sys-init  ] no PPP subnet',
+                '[sys-init  ] initialization incomplete',
                 '[supervisor] stopping',
                 '[redis     ] stop watching',
                 '[hash      ] stop watching: m2m-command:routes',
