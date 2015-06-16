@@ -15,8 +15,13 @@ describe('M2mSupervisor',function() {
     var helpers = require(process.cwd() + '/lib/hash-helpers');
     var hashkeys = require(process.cwd() + '/lib/config-hashkeys');
 
+    function FtpSetup(name){
+        this.setupNow = function(callback){ callback(null); };
+    }
+
     beforeEach(function () {
         test.mockery.enable();
+        test.mockery.registerMock('./ftp-setup',FtpSetup);
         test.mockery.registerMock('dgram', mockdgram = new test.mockdgram());
         test.mockery.registerMock('then-redis', test.mockredis);
         test.mockery.registerMock('http',test.mockhttp);
@@ -36,6 +41,7 @@ describe('M2mSupervisor',function() {
     });
 
     afterEach(function () {
+        test.mockery.deregisterMock('./ftp-setup');
         test.mockery.deregisterMock('os');
         test.mockery.deregisterMock('net');
         test.mockery.deregisterMock('shelljs');

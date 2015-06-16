@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+
+var FtpSetup = require('../lib/ftp-setup');
+
+var ConfigWatcher = require('../services/config-watcher');
+var RedisWatcher = require('../services/redis-watcher');
+
+var hashkeys = require('../lib/config-hashkeys');
+
+var configWatcher = new ConfigWatcher();
+var redisWatcher = new RedisWatcher().addClientWatcher(configWatcher);
+configWatcher.on('ready',function(ready){
+    if (!ready) return;
+
+    var deviceName = configWatcher.hash[hashkeys.gateway.imei.key];
+
+    new FtpSetup(deviceName).setupNow(function(error){
+        redisWatcher.stop();
+    });
+
+});
+redisWatcher.start();
+

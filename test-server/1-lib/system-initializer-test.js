@@ -27,19 +27,31 @@ describe('SystemInitializer',function() {
         self.checkNow = function(){ return self; };
     }
 
+    var ftpSetupFile = null;
+    function FtpSetup(name){
+        this.setupNow = function(callback){
+            if (ftpSetupFile) process.env.M2M_SUPERVISOR_CONFIG = ftpSetupFile;
+            callback(null);
+        };
+    }
+
     beforeEach(function () {
         test.mockery.enable();
         test.mockery.registerMock('./system-checker',SystemChecker);
+        test.mockery.registerMock('./ftp-setup',FtpSetup);
         test.mockery.registerMock('then-redis', test.mockredis);
         test.mockery.warnOnUnregistered(false);
         test.mockredis.reset();
         mockchecker.reset();
+
+        ftpSetupFile = null;
         process.env.M2M_SUPERVISOR_CONFIG = process.cwd() + '/test-server/data/setup-empty.json';
         setup.reset();
     });
 
     afterEach(function () {
         test.mockery.deregisterMock('./system-checker');
+        test.mockery.deregisterMock('./ftp-setup');
         test.mockery.deregisterMock('then-redis');
         test.mockery.disable();
         test.mockredis.snapshot().should.eql([]);
@@ -64,11 +76,11 @@ describe('SystemInitializer',function() {
         initializer.initNow(function(error){
             _.defer(function(){
                 test.pp.snapshot().should.eql([
+                    '[sys-init  ] no IMEI found',
+                    '[sys-init  ] no modem serial port found',
                     '[sys-init  ] no private gateway URL',
                     '[sys-init  ] no public gateway URL',
                     '[sys-init  ] no PPP subnet',
-                    '[sys-init  ] no IMEI found',
-                    '[sys-init  ] no modem serial port found',
                     '[sys-init  ] initialization incomplete'
                 ]);
                 done();
@@ -127,6 +139,28 @@ describe('SystemInitializer',function() {
                 ]);
                 test.pp.snapshot().should.eql([
                     '[sys-init  ] initialization complete'
+                ]);
+                done();
+            });
+        });
+
+        mockchecker.events.ready();
+    });
+
+    it('should detect FTP failure',function(done){
+        process.env.M2M_SUPERVISOR_CONFIG = process.cwd() + '/test-server/data/setup-complete.json';
+        setup.reset();
+
+        ftpSetupFile = process.cwd() + '/test-server/data/invalid.json';
+        mockchecker.exists.redis = true;
+        mockchecker.info.imei = '123456789012345';
+        mockchecker.choices.controlPort = '/dev/ttyTEST';
+
+        var initializer = new SystemInitializer();
+        initializer.initNow(function(error){
+            _.defer(function(){
+                test.pp.snapshot().should.eql([
+                    '[sys-init  ] setup error: Unexpected token .'
                 ]);
                 done();
             });
