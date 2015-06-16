@@ -1,0 +1,75 @@
+#!/usr/bin/env node
+
+var config = require('../config/ftperconfig');
+
+var path = require('path');
+var fs = require('fs');
+
+var REDIS = require('redis');
+var FTP = require('ftp');
+
+var redis = REDIS.createClient();
+var ftp = new FTP();
+
+var deviceName = null;
+
+var ftpConnectionProperties = {
+    host: config.ftp.host,
+    user: config.ftp.username,
+    password: config.ftp.password
+};
+
+ftp.on('ready', function () {
+    ftp.list(function (err, list) {
+        if (err) {
+                throw err;
+        }
+
+        list.forEach(function (element, index, array) {
+            if (element.type === 'd') {
+                return;
+            }
+            if(element.name.indexOf(deviceName) > -1 || element.name.toLowerCase().indexOf('default') > -1) {
+                    console.log('getting ' + element.name);
+            } else {
+                    return;
+            }
+
+            ftp.get(element.name, function (err, stream) {
+                if (err) {
+                        console.log('ftp error ' + err);
+                        throw err;
+                }
+
+                stream.once('close', function () {
+                        ftp.end();
+                });
+
+                if (!fs.existsSync(config.ftp.path)) {
+                        fs.mkdirSync(config.ftp.path);
+                }
+                
+                stream.pipe(fs.createWriteStream(config.ftp.path + '/' + element.name));
+            });
+        });
+
+        ftp.logout(function(err) {
+                console.log('logged out ' + err)
+                process.exit(0)
+        });
+    });
+});
+
+redis.on('connect', function() {
+        console.log('redis connected');
+        redis.hget(config.redis.devicenamekeyhash, config.redis.devicenamekey, function(err, object) {
+                if (err) {
+                        console.log('redis error ' + err);
+                        throw err;
+                }
+                deviceName = object.trim();
+                console.log('redis found device name ' + deviceName);
+                ftp.connect(ftpConnectionProperties);
+        });
+});
+
