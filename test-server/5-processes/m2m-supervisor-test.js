@@ -143,6 +143,7 @@ describe('M2mSupervisor',function() {
                 '[hash      ] missing(cellular): ppp:subnet,modem:port-file',
                 '[hash      ] missing(gateway): gateway:imei,gateway:private-url,gateway:public-url',
                 '[sys-init  ] incomplete setup file',
+                '[sys-init  ] initialization incomplete',
                 '[http      ] Listening on port 5000',
                 '[supervisor] stopping',
                 '[redis     ] stop watching',

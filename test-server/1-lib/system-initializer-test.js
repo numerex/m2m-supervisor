@@ -62,7 +62,8 @@ describe('SystemInitializer',function() {
         var initializer = new SystemInitializer();
         initializer.initNow(function(error){
             test.pp.snapshot().should.eql([
-                '[sys-init  ] unable to configure redis ... please install'
+                '[sys-init  ] unable to configure redis ... please install',
+                '[sys-init  ] initialization incomplete'
             ]);
             done();
         });
@@ -98,7 +99,8 @@ describe('SystemInitializer',function() {
         var initializer = new SystemInitializer();
         initializer.initNow(function(error){
             test.pp.snapshot().should.eql([
-                '[sys-init  ] setup error: Unexpected token .'
+                '[sys-init  ] setup error: Unexpected token .',
+                '[sys-init  ] initialization incomplete'
             ]);
             done();
         });
@@ -112,7 +114,8 @@ describe('SystemInitializer',function() {
         var initializer = new SystemInitializer();
         initializer.initNow().should.not.be.ok;
         test.pp.snapshot().should.eql([
-            '[sys-init  ] incomplete setup file'
+            '[sys-init  ] incomplete setup file',
+            '[sys-init  ] initialization incomplete'
         ]);
         done();
     });
@@ -160,7 +163,8 @@ describe('SystemInitializer',function() {
         initializer.initNow(function(error){
             _.defer(function(){
                 test.pp.snapshot().should.eql([
-                    '[sys-init  ] setup error: Unexpected token .'
+                    '[sys-init  ] setup error: Unexpected token .',
+                    '[sys-init  ] initialization incomplete'
                 ]);
                 done();
             });
@@ -199,6 +203,70 @@ describe('SystemInitializer',function() {
                 ]);
                 test.pp.snapshot().should.eql([
                     '[sys-init  ] initialization complete'
+                ]);
+                done();
+            });
+        });
+
+        mockchecker.events.ready();
+    });
+
+    it('should run good script',function(done){
+        process.env.M2M_SUPERVISOR_CONFIG = process.cwd() + '/test-server/data/setup-with-good-script.json';
+        setup.reset();
+        mockchecker.exists.redis = true;
+        mockchecker.info.imei = '123456789012345';
+        mockchecker.choices.controlPort = '/dev/ttyTEST';
+
+        var initializer = new SystemInitializer();
+        initializer.initNow(function(error){
+            _.defer(function(){
+                test.mockredis.snapshot().should.eql([
+                    {hmset: ['m2m-config',{
+                        'gateway:private-url': 'udp:5.6.7.8:3011',
+                        'gateway:public-url': 'https://test-server/pistachio',
+                        'ppp:subnet': '1.2.3.0',
+                        'gateway:imei': '123456789012345',
+                        'modem:port-file': '/dev/ttyTEST'
+                    }]},
+                    {quit: null}
+                ]);
+                test.pp.snapshot().should.eql([
+                    '[sys-init  ] run: test-server/data/good.sh test',
+                    '[sys-init  ] result: 0',
+                    '[sys-init  ] initialization complete'
+                ]);
+                done();
+            });
+        });
+
+        mockchecker.events.ready();
+    });
+
+    it('should detect bad script',function(done){
+        process.env.M2M_SUPERVISOR_CONFIG = process.cwd() + '/test-server/data/setup-with-bad-script.json';
+        setup.reset();
+        mockchecker.exists.redis = true;
+        mockchecker.info.imei = '123456789012345';
+        mockchecker.choices.controlPort = '/dev/ttyTEST';
+
+        var initializer = new SystemInitializer();
+        initializer.initNow(function(error){
+            _.defer(function(){
+                test.mockredis.snapshot().should.eql([
+                    {hmset: ['m2m-config',{
+                        'gateway:private-url': 'udp:5.6.7.8:3011',
+                        'gateway:public-url': 'https://test-server/pistachio',
+                        'ppp:subnet': '1.2.3.0',
+                        'gateway:imei': '123456789012345',
+                        'modem:port-file': '/dev/ttyTEST'
+                    }]},
+                    {quit: null}
+                ]);
+                test.pp.snapshot().should.eql([
+                    '[sys-init  ] run: bad.sh test',
+                    '[sys-init  ] result: 127',
+                    '[sys-init  ] initialization incomplete'
                 ]);
                 done();
             });
