@@ -280,11 +280,10 @@ QueueRouter.prototype.assembleMessage = function(routeKey,eventCode,timestamp,se
                     message.pushInt(code,value);
                     break;
                 case 'string':
-                    var json = JSON.stringify(value);
-                    if (json.length > value.length + 2) // NOTE add 2 for bounding quote characters...
-                        message.pushUByteArray(code,new Buffer(value));
-                    else
+                    if (self.validMessageString(value))
                         message.pushString(code,value);
+                    else
+                        message.pushUByteArray(code,new Buffer(value));
                     break;
                 // istanbul ignore next - options will expand over time; no need to test for specific failures...
                 default:
@@ -317,6 +316,15 @@ QueueRouter.prototype.safeParseJSON = function(contents) {
         logger.error('json error: ' + e);
         this.emit('note','error');
         return null;
+    }
+};
+
+QueueRouter.prototype.validMessageString = function(string){
+    try{
+        return !!JSON.parse(string)
+    }catch(e){
+        var json = JSON.stringify(string);
+        return json.length === string.length + 2; // NOTE add 2 for bounding quote characters...
     }
 };
 
