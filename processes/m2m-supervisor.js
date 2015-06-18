@@ -108,7 +108,7 @@ M2mSupervisor.prototype.start = function(){
     M2mSupervisor.instance = self;
     if (self.modem && self.gateway) {
         function initSetup(hash){
-            if (hash && (hash = self.configWatcher.keysetWatcherHash(self.gateway))) new SetupInitializer(hash.imei).initNow();
+            if (hash && !self.configWatcher.isKeysetWatcherReady(self.gateway) && (hash = self.configWatcher.keysetWatcherHash(self.gateway))) new SetupInitializer(hash.imei).initNow();
         }
 
         self.configWatcher.once('change',function(hash){
