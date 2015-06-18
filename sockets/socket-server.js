@@ -108,8 +108,12 @@ SocketServer.prototype.findProxySocket = function(proxy,socket){
         proxySocket = self.proxies[proxy.hostname] = self.ioClient('http://' + proxy.hostname + ':' + 5000,{path: '/supervisor/socket'}); // TODO make port configurable?
         proxySocket.relaySocket = socket;
         proxySocket.on('connect',function(){
-            logger.info('proxy connect');
-            proxySocket.relaySocket.emit('ready',{id: proxySocket.relaySocket.clientID});
+            if (!proxySocket.relaySocket)
+                logger.info('proxy connect - ignored');
+            else {
+                logger.info('proxy connect - relayed');
+                proxySocket.relaySocket.emit('ready',{id: proxySocket.relaySocket.clientID});
+            }
         });
         proxySocket.on('close',function(){
             logger.info('proxy close');

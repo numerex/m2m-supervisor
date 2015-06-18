@@ -167,6 +167,8 @@ describe('SocketServer',function() {
         mockSocket2.eventHandlers.disconnect();
         mockSocket2.eventHandlers.close();
 
+        mockSocket1.proxySocket.eventHandlers.connect({id: 10});
+
         var mockSocket3 = socketServer.ioServer.newMockSocket();
         socketServer.ioServer.useCallback(mockSocket3,function(){});
         mockSocket3.handshake.session.proxy = {hostname: 'test'};
@@ -220,7 +222,7 @@ describe('SocketServer',function() {
         test.pp.snapshot().should.eql([
             '[socket    ] register behavior: mock',
             '[socket    ] connection(1)',
-            '[socket    ] proxy connect',
+            '[socket    ] proxy connect - relayed',
             '[socket    ] proxy identified: {"id":10}',
             '[socket    ] connection(2)',
             '[socket    ] behavior(1): mock',
@@ -231,6 +233,7 @@ describe('SocketServer',function() {
             '[socket    ] close(1)',
             '[socket    ] disconnect(2)',
             '[socket    ] close(2)',
+            '[socket    ] proxy connect - ignored',
             '[socket    ] connection(3)',
             '[socket    ] behavior(3): mock',
             '[socket    ] proxy incoming event: test "data"',
