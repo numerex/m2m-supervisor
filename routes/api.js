@@ -304,8 +304,10 @@ router.get('/status',function(req,res,next){
         // istanbul ignore next - TODO consider how to test...
         if (M2mSupervisor.instance && !M2mSupervisor.instance.supervisorProxy){
             status.config   = M2mSupervisor.instance.configWatcher.ready();
-            status.ppp      = !!M2mSupervisor.instance.pppdWatcher  && M2mSupervisor.instance.pppdWatcher.ready();
-            status.gateway  = !!M2mSupervisor.instance.gateway        && M2mSupervisor.instance.gateway.started();
+            status.ethernet = !!M2mSupervisor.instance.dhclient     && M2mSupervisor.instance.dhclient.ready();
+            status.ppp      = !!M2mSupervisor.instance.pppd         && M2mSupervisor.instance.pppd.ready();
+            status.modem    = !!M2mSupervisor.instance.modem        && M2mSupervisor.instance.modem.ready();
+            status.gateway  = !!M2mSupervisor.instance.gateway      && M2mSupervisor.instance.gateway.started();
             status.router   = !!M2mSupervisor.instance.queueRouter  && M2mSupervisor.instance.queueRouter.started();
             _.each(M2mSupervisor.instance.queueRouter && M2mSupervisor.instance.queueRouter.routes || {},function(route,key){
                 status['peripheral:' + route.peripheralKey] = route.ready();
