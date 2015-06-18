@@ -132,6 +132,34 @@ describe('API Local',function() {
             });
     });
 
+    it('GET /proxy with URI',function(done){
+        test.mockredis.lookup.get['m2m-proxy-peer'] = null;
+
+        var request = require('supertest');
+        request(app).get('/supervisor/api/proxy?uri=/supervisor')
+            .expect(302)
+            .end(function(err,res){
+                test.should.not.exist(err);
+                res.headers.location.should.eql('/supervisor');
+                require(process.cwd() + '/routes/api').resetRedisWatcher();
+                test.mockredis.snapshot().should.eql([
+                    {keys: '*'},
+                    {quit: null}
+                ]);
+                test.matchArrays(test.pp.snapshot(),[
+                    /^\[express   \] \S+ --> GET \/supervisor\/api\/proxy\?uri=%2Fsupervisor HTTP\/1\.1 200 - - Other 0.0 Other 0.0.0 \d+\.\d+ ms/,
+                    '[redis     ] instance created',
+                    '[redis     ] start watching',
+                    '[redis     ] check ready',
+                    '[redis     ] now ready',
+                    '[api       ] set proxy: null',
+                    /^\[express   \] \S+ <-- GET \/supervisor\/api\/proxy\?uri=%2Fsupervisor HTTP\/1\.1 302 \d+ - Other 0\.0 Other 0\.0\.0 \d+\.\d+ ms/,
+                    '[redis     ] stop watching'
+                ]);
+                done();
+            });
+    });
+
     it('POST /proxy with no settings',function(done){
         test.mockredis.lookup.get['m2m-proxy-peer'] = null;
 
