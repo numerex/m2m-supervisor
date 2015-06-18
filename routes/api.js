@@ -113,12 +113,12 @@ function setProxy(req,res,config){
         var uri = config && config.uri;
         if (uri) delete config.uri;
 
-        new ProxyHelper(RedisWatcher.instance.client,config).checkConfig(function (error, config) {
-            req.session.proxy = config;
+        new ProxyHelper(RedisWatcher.instance.client,config).checkConfig(function (error, proxy) {
+            req.session.proxy = proxy;
             if (error)
                 logger.error('proxy error: ' + error.message);
             else
-                logger.info('set proxy: ' + JSON.stringify(config));
+                logger.info('set proxy: ' + JSON.stringify(proxy));
             res.redirect(uri ? uri : '/');
         });
     });
