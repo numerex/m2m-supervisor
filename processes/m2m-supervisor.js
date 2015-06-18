@@ -106,7 +106,7 @@ M2mSupervisor.prototype.start = function(){
     logger.info('starting');
 
     M2mSupervisor.instance = self;
-    if (self.modem) {
+    if (self.modem && self.gateway) {
         function initSetup(hash){
             if (hash && (hash = self.configWatcher.keysetWatcherHash(self.gateway))) new SetupInitializer(hash.imei).initNow();
         }
@@ -115,7 +115,7 @@ M2mSupervisor.prototype.start = function(){
             // istanbul ignore if -- only here in case event is first fired on "stop", but not sure how this could even happen...
             if (!hash) return;
 
-            if (self.configWatcher.keysetWatcherHash(self.modem)) return initSetup(hash);
+            if (self.configWatcher.isKeysetWatcherReady(self.modem)) return initSetup(hash);
 
             new SystemInitializer().initNow(function(error) { self.configWatcher.once('change',initSetup); });
         });

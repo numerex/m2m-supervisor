@@ -193,6 +193,9 @@ describe('M2mSupervisor',function() {
             'modem:port-file':'/dev/ttyUSB2',
             'ppp:subnet': '1.2.3.0'
         };
+        test.mockos.interfaces = {eth0: {}};
+        test.mockshelljs.lookup['ps aux'] = [0,'something'];
+        test.mockshelljs.lookup['pppd'] = [0,''];
         process.env.M2M_SUPERVISOR_CONFIG = process.cwd() + '/test-server/data/setup-no-config.json';
         setup.reset();
 
@@ -210,7 +213,7 @@ describe('M2mSupervisor',function() {
                 '[redis     ] instance created',
                 '[supervisor] starting',
                 '[dhclient  ] start watching',
-                '[dhclient  ] ps aux error: Error: no response found: ps aux',
+                '[dhclient  ] now ready',
                 '[redis     ] start watching',
                 '[redis     ] check ready',
                 '[redis     ] now ready',
@@ -221,10 +224,14 @@ describe('M2mSupervisor',function() {
                 '[hash      ] check ready: m2m-config',
                 '[hash      ] missing(gateway): gateway:private-url,gateway:public-url',
                 '[pppd      ] start watching',
-                '[pppd      ] ps aux error: Error: no response found: ps aux',
                 '[modem     ] start watching',
                 '[hash      ] missing(gateway): gateway:private-url,gateway:public-url',
+                '[setup-init] no private gateway URL',
+                '[setup-init] no public gateway URL',
+                '[setup-init] no PPP subnet',
+                '[setup-init] initialization incomplete',
                 '[http      ] Listening on port 5000',
+                '[pppd      ] starting pppd',
                 '[supervisor] stopping',
                 '[redis     ] stop watching',
                 '[hash      ] stop watching: m2m-command:routes',
@@ -246,6 +253,7 @@ describe('M2mSupervisor',function() {
                 {hgetall: 'm2m-config'},
                 {quit: null}
             ]);
+            test.mockshelljs.snapshot(); // NOTE - clear ...
             mockRoute.snapshot().should.eql([]);
             done();
         });

@@ -101,11 +101,32 @@ describe('HashWatcher',function() {
 
         var count = 0;
         var events = [];
+
+        var keysetWatcher1 = {
+            started: function(){ return started; },
+            start: function(hash){ started = true; events.push('start'); },
+            stop: function(){ started = false; events.push('start'); }
+        };
+        var keysetWatcher2 = {
+            started: function(){ return started; },
+            start: function(hash){ started = true; events.push('start'); },
+            stop: function(){ started = false; events.push('start'); }
+        };
+
         var watcher = new HashWatcher('test-hash',{
                 keyset1: {test: {key: 'test1-key',type: 'number',required: true}},
                 keyset2: {test: {key: 'test2-key',type: 'number',required: true}}
             },{retryInterval: 10});
         watcher.on('retry',function(){
+
+            watcher.isKeysetWatcherReady('unknown').should.not.be.ok;
+            watcher.isKeysetWatcherReady(keysetWatcher1).should.not.be.ok;
+            watcher.isKeysetWatcherReady(keysetWatcher2).should.not.be.ok;
+
+            watcher.keysetWatcherHash('unknown').should.eql({});
+            watcher.keysetWatcherHash(keysetWatcher1).should.eql({test: NaN});
+            watcher.keysetWatcherHash(keysetWatcher2).should.eql({test: NaN});
+
             if (count++ > 0){
                 watcher.stop();
                 events.should.eql([]);
@@ -125,16 +146,8 @@ describe('HashWatcher',function() {
             }
         });
         var started = false;
-        watcher.addKeysetWatcher('keyset1',true,{
-            started: function(){ return started; },
-            start: function(hash){ started = true; events.push('start'); },
-            stop: function(){ started = false; events.push('start'); }
-        });
-        watcher.addKeysetWatcher('keyset2',true,{
-            started: function(){ return started; },
-            start: function(hash){ started = true; events.push('start'); },
-            stop: function(){ started = false; events.push('start'); }
-        });
+        watcher.addKeysetWatcher('keyset1',true,keysetWatcher1);
+        watcher.addKeysetWatcher('keyset2',true,keysetWatcher2);
         watcher.start(client);
     });
 
@@ -142,13 +155,15 @@ describe('HashWatcher',function() {
         test.mockredis.lookup.hgetall['test-hash'] = {'test-key': '2'};
 
         var lastHash = null;
-        var watcher = new HashWatcher('test-hash',{keyset: {test: {key: 'test-key',type: 'number',required: true}}},{retryInterval: 10});
-        watcher.addKeysetWatcher('keyset',true,{
+
+        var keysetWatcher = {
             started: function(){ return !!lastHash; },
             start: function(hash){
                 lastHash = hash;
                 hash.should.eql({test: 2});
                 watcher.hash.should.eql({'test-key': '2'});
+                watcher.isKeysetWatcherReady(keysetWatcher).should.be.ok;
+                watcher.keysetWatcherHash(keysetWatcher).should.eql({'test': 2});
                 _.defer(function(){ watcher.stop(); });
             },
             stop: function(){
@@ -163,7 +178,10 @@ describe('HashWatcher',function() {
                 ]);
                 done();
             }
-        });
+        };
+
+        var watcher = new HashWatcher('test-hash',{keyset: {test: {key: 'test-key',type: 'number',required: true}}},{retryInterval: 10});
+        watcher.addKeysetWatcher('keyset',true,keysetWatcher);
         watcher.start(client);
     });
 

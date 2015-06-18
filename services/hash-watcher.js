@@ -63,9 +63,14 @@ HashWatcher.prototype.addChangeWatcher = function(watcher){
     return self;
 };
 
+HashWatcher.prototype.isKeysetWatcherReady = function(watcher){
+    var target = _.detect(this.keysetWatchers,function(entry){ return entry.watcher === watcher; });
+    return !!target && target.ready;
+};
+
 HashWatcher.prototype.keysetWatcherHash = function(watcher){
     var target = _.detect(this.keysetWatchers,function(entry){ return entry.watcher === watcher; });
-    return !!target && target.ready ? target.hash : null;
+    return target && target.hash || {};
 };
 
 HashWatcher.prototype.addKeysetWatcher = function(keyset,required,watcher){
@@ -104,8 +109,9 @@ HashWatcher.prototype.checkKeysetWatcher = function(target){
         target.lastJSON = json;
         if (target.watcher.started())
             target.watcher.stop();
+        target.hash = helpers.hash2config(self.hash,target.needs);
         if (target.ready)
-            target.watcher.start(target.hash = helpers.hash2config(self.hash,target.needs),self.client);
+            target.watcher.start(target.hash,self.client);
     }
     return target.ready;
 };
