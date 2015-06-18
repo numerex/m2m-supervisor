@@ -63,12 +63,17 @@ HashWatcher.prototype.addChangeWatcher = function(watcher){
     return self;
 };
 
+HashWatcher.prototype.keysetWatcherHash = function(watcher){
+    var target = _.detect(this.keysetWatchers,function(entry){ return entry.watcher === watcher; });
+    return !!target && target.ready ? target.hash : null;
+};
 
 HashWatcher.prototype.addKeysetWatcher = function(keyset,required,watcher){
     var self = this;
     var target = {
         keyset: keyset,
         ready: false,
+        hash: null,
         watcher: watcher,
         needs: self.hashkeys[keyset],
         requirements: required ? helpers.requirements(self.hashkeys[keyset]) : []
@@ -100,7 +105,7 @@ HashWatcher.prototype.checkKeysetWatcher = function(target){
         if (target.watcher.started())
             target.watcher.stop();
         if (target.ready)
-            target.watcher.start(helpers.hash2config(self.hash,target.needs),self.client);
+            target.watcher.start(target.hash = helpers.hash2config(self.hash,target.needs),self.client);
     }
     return target.ready;
 };

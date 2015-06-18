@@ -18,6 +18,7 @@ var ShellBehavior = require('../sockets/shell-behavior');
 var CommandBehavior = require('../sockets/command-behavior');
 
 var NetworkNoter = require('../lib/network-noter');
+var SetupInitializer = require('../lib/setup-initializer');
 var SystemInitializer = require('../lib/system-initializer');
 
 var schema = require('../lib/redis-schema');
@@ -69,7 +70,7 @@ function M2mSupervisor(config){
         });
 
         self.configWatcher
-            .addKeysetWatcher('gateway',    true,  self.gateway)
+            .addKeysetWatcher('gateway',    true,   self.gateway)
             .addKeysetWatcher('cellular',   true,   self.pppd)
             .addKeysetWatcher('cellular',   true,   self.modem);
 
@@ -105,9 +106,20 @@ M2mSupervisor.prototype.start = function(){
     logger.info('starting');
 
     M2mSupervisor.instance = self;
-    self.configWatcher.once('change',function(){
-        if (!self.configWatcher.ready()) new SystemInitializer().initNow();
-    });
+    if (self.modem) {
+        function initSetup(hash){
+            if (hash && (hash = self.configWatcher.keysetWatcherHash(self.gateway))) new SetupInitializer(hash.imei).initNow();
+        }
+
+        self.configWatcher.once('change',function(hash){
+            // istanbul ignore if -- only here in case event is first fired on "stop", but not sure how this could even happen...
+            if (!hash) return;
+
+            if (self.configWatcher.keysetWatcherHash(self.modem)) return initSetup(hash);
+
+            new SystemInitializer().initNow(function(error) { self.configWatcher.once('change',initSetup); });
+        });
+    }
 
     self.dhclient && self.dhclient.start();
     self.redisWatcher.start();

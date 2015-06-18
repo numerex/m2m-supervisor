@@ -135,7 +135,7 @@ describe('M2mSupervisor',function() {
     });
 
     it('should start/stop with only redis and initialize the system - all',function(done){
-        process.env.M2M_SUPERVISOR_CONFIG = process.cwd() + '/test-server/data/setup-no-config.json';
+        process.env.M2M_SUPERVISOR_CONFIG = process.cwd() + '/test-server/data/invalid.json'; // NOTE -- should not be needed...
         setup.reset();
 
         var supervisor = new M2mSupervisor().start();
@@ -169,15 +169,76 @@ describe('M2mSupervisor',function() {
                 '[http      ] Listening on port 5000',
                 '[sys-init  ] no IMEI found',
                 '[sys-init  ] no modem serial port found',
-                //'[sys-init  ] no private gateway URL',
-                //'[sys-init  ] no public gateway URL',
-                //'[sys-init  ] no PPP subnet',
                 '[sys-init  ] initialization incomplete',
                 '[supervisor] stopping',
                 '[redis     ] stop watching',
                 '[hash      ] stop watching: m2m-command:routes',
                 '[hash      ] stop watching: m2m-config',
                 '[dhclient  ] stop watching'
+            ]);
+            test.mockredis.snapshot().should.eql([
+                {keys: '*'},
+                {hgetall: 'm2m-command:routes'},
+                {hgetall: 'm2m-config'},
+                {quit: null}
+            ]);
+            mockRoute.snapshot().should.eql([]);
+            done();
+        });
+    });
+
+    it('should start/stop with only redis and system-initialized, but requiring setup initializion - all',function(done){
+        test.mockredis.lookup.hgetall['m2m-config'] = {
+            'gateway:imei':'352214046337094',
+            'modem:port-file':'/dev/ttyUSB2',
+            'ppp:subnet': '1.2.3.0'
+        };
+        process.env.M2M_SUPERVISOR_CONFIG = process.cwd() + '/test-server/data/setup-no-config.json';
+        setup.reset();
+
+        var supervisor = new M2mSupervisor().start();
+        supervisor.supervisorProxy.should.not.be.ok;
+        test.mockhttp.events.listening();
+        _.defer(function(){
+            supervisor.stop();
+            test.pp.snapshot().should.eql([
+                '[socket    ] register behavior: shell',
+                '[socket    ] register behavior: command',
+                '[config    ] instance removed',
+                '[config    ] instance created',
+                '[redis     ] instance removed',
+                '[redis     ] instance created',
+                '[supervisor] starting',
+                '[dhclient  ] start watching',
+                '[dhclient  ] ps aux error: Error: no response found: ps aux',
+                '[redis     ] start watching',
+                '[redis     ] check ready',
+                '[redis     ] now ready',
+                '[hash      ] start watching: m2m-command:routes',
+                '[hash      ] check ready: m2m-command:routes',
+                '[hash      ] now ready: m2m-command:routes',
+                '[hash      ] start watching: m2m-config',
+                '[hash      ] check ready: m2m-config',
+                '[hash      ] missing(gateway): gateway:private-url,gateway:public-url',
+                '[pppd      ] start watching',
+                '[pppd      ] ps aux error: Error: no response found: ps aux',
+                '[modem     ] start watching',
+                '[hash      ] missing(gateway): gateway:private-url,gateway:public-url',
+                '[http      ] Listening on port 5000',
+                '[supervisor] stopping',
+                '[redis     ] stop watching',
+                '[hash      ] stop watching: m2m-command:routes',
+                '[hash      ] stop watching: m2m-config',
+                '[pppd      ] stop watching',
+                '[modem     ] stop watching',
+                '[dhclient  ] stop watching'
+            ]);
+            test.mockserialport.snapshot().should.eql([
+                {create: ['/dev/ttyUSB2',{baudrate: 460800},false]},
+                {open: null},
+                {write: 'AT E1\r'},
+                {write: 'AT+CSQ\r'},
+                {close: null}
             ]);
             test.mockredis.snapshot().should.eql([
                 {keys: '*'},

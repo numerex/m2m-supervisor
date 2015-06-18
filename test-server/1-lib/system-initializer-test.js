@@ -58,18 +58,15 @@ describe('SystemInitializer',function() {
         mockchecker.exists.redis = true;
 
         var initializer = new SystemInitializer();
-        initializer.initNow(function(error){
-            _.defer(function(){
-                test.pp.snapshot().should.eql([
-                    '[sys-init  ] no IMEI found',
-                    '[sys-init  ] no modem serial port found',
-                    '[sys-init  ] initialization incomplete'
-                ]);
-                done();
-            });
-        });
+        initializer.initNow();
 
         mockchecker.events.ready();
+        test.pp.snapshot().should.eql([
+            '[sys-init  ] no IMEI found',
+            '[sys-init  ] no modem serial port found',
+            '[sys-init  ] initialization incomplete'
+        ]);
+        done();
     });
 
     it('should detect no config',function(done){
