@@ -78,6 +78,7 @@ describe('ProxyHelper',function() {
             test.mockredis.snapshot().should.eql([
                 {get: 'm2m-proxy-peer'}
             ]);
+            test.pp.snapshot().should.eql(['[proxy-help] check proxy error: Unknown host']);
             done();
         });
     });
@@ -126,6 +127,7 @@ describe('ProxyHelper',function() {
             test.mockredis.snapshot().should.eql([
                 {get: 'm2m-proxy-peer'}
             ]);
+            test.pp.snapshot().should.eql(['[proxy-help] check host error: Unknown host']);
             done();
         });
     });
@@ -187,6 +189,7 @@ describe('ProxyHelper',function() {
             method: 'GET',
             path: '/supervisor/api/test',
             port: 5000});
+        test.pp.snapshot().should.eql(['[proxy-help] request error: Unknown error']);
     });
 
     it('should perform a successful GET',function(){
