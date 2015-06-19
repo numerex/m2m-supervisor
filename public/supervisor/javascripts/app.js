@@ -60,6 +60,9 @@ var app = angular.module('SupervisorApp',['ui.router','angular.filter'])
         $rootScope.globalValues = {};
         $rootScope.globalStatus = {label: 'Status: Pending...',css: 'label-default'};
 
+        var incomingError = $location.search().error;
+        if (incomingError) $rootScope.globalMessages.error = incomingError;
+
         $rootScope.checkStatus = function(){
             $http.get('/supervisor/api/status')
                 .success(function(result){

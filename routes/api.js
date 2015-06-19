@@ -111,15 +111,20 @@ router.post('/proxy',function(req,res,next){
 function setProxy(req,res,config){
     requireRedis(res,function() {
         var uri = config && config.uri;
-        if (uri) delete config.uri;
+        if (uri)
+            delete config.uri;
+        else
+            uri = '/';
 
         new ProxyHelper(RedisWatcher.instance.client,config).checkConfig(function (error, proxy) {
             req.session.proxy = proxy;
-            if (error)
+            if (error) {
                 logger.error('proxy error: ' + error.message);
-            else
+                res.redirect(uri + '?error=' + error.message);
+            } else {
                 logger.info('set proxy: ' + JSON.stringify(proxy));
-            res.redirect(uri ? uri : '/');
+                res.redirect(uri);
+            }
         });
     });
 }

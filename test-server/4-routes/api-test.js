@@ -84,7 +84,7 @@ describe('API Local',function() {
             .expect(302)
             .end(function(err,res){
                 test.should.not.exist(err);
-                res.headers.location.should.eql('/');
+                res.headers.location.should.eql('/?error=Test error');
                 require(process.cwd() + '/routes/api').resetRedisWatcher();
                 test.mockredis.snapshot().should.eql([
                     {keys: '*'},
