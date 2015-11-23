@@ -48,6 +48,7 @@
     "m2m-ota-javascript": "^1.0.11",
     "moment": "^2.10.3",
     "redis": "^0.12.1",
+    "semaphore":"~1.0.3",
     "serialport": "^1.7.4",
     "serve-favicon": "~2.2.1",
     "shelljs": "^0.5.1",
