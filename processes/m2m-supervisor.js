@@ -63,8 +63,8 @@ function M2mSupervisor(config){
         });
 
         self.configWatcher
-        .addKeysetWatcher('gateway',    true,  self.gateway)
-        .addKeysetWatcher('cellular',   true,   self.wwan);
+        .addKeysetWatcher('gateway',  true, self.gateway)
+        .addKeysetWatcher('cellular', true, self.wwan);
 
         self.configWatcher.once('change',function(){
             if (!self.configWatcher.ready()) new SystemInitializer().initNow();
