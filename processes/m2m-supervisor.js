@@ -4,10 +4,9 @@ var DhclientWatcher = require('../services/dhclient-watcher');
 var GatewayProxy = require('../services/gateway-proxy');
 var RedisWatcher = require('../services/redis-watcher');
 var HashWatcher = require('../services/hash-watcher');
-var RouteWatcher = require('../services/route-watcher');
 var QueueRouter = require('../services/queue-router');
-var PppdWatcher = require('../services/pppd-watcher');
-var ModemWatcher = require('../services/modem-watcher');
+var RouteWatcher = require('../services/route-watcher');
+var WwanWatcher = require('../services/wwan-watcher');
 var HeartbeatGenerator = require('../services/heartbeat-generator');
 var HttpServer = require('../services/http-server');
 
@@ -55,40 +54,38 @@ function M2mSupervisor(config){
     if (runBridge || runAll) {
         self.heartbeat  = null;
         self.gateway    = new GatewayProxy(config);
-        self.modem      = new ModemWatcher(config);
-        self.pppd       = new PppdWatcher(config);
+        self.wwan       = new WwanWatcher(config);
         self.dhclient   = new DhclientWatcher(config);
 
         self.redisWatcher.once('ready',function(client){
             nowOrLaterNoteNetwork(self.dhclient,client,'eth0',hashkeys.system.publicIP.key,hashkeys.system.publicMAC.key);
-            nowOrLaterNoteNetwork(self.pppd,    client,'ppp0',hashkeys.system.privateIP.key);
+            nowOrLaterNoteNetwork(self.wwan,    client,'wwan1',hashkeys.system.privateIP.key);
         });
 
         self.configWatcher
-            .addKeysetWatcher('gateway',    true,  self.gateway)
-            .addKeysetWatcher('cellular',   true,   self.pppd)
-            .addKeysetWatcher('cellular',   true,   self.modem);
+        .addKeysetWatcher('gateway',    true,  self.gateway)
+        .addKeysetWatcher('cellular',   true,   self.wwan);
 
         self.configWatcher.once('change',function(){
             if (!self.configWatcher.ready()) new SystemInitializer().initNow();
         });
 
-        self.pppd.on('ready',function(ready){
-            if (ready && !self.heartbeat) {
-                self.heartbeat = new HeartbeatGenerator(self.gateway,config);
-                self.configWatcher.addKeysetWatcher('gateway',true,self.heartbeat);
-            }
-            self.modem.ensureStartStop(ready ? self.pppd.cellular : null);
-            self.heartbeat && self.heartbeat.ensureStartStop(ready ? self.gateway.config : null,self.redisWatcher.client);
+        self.wwan.on('ready',function(ready){
+          if (ready && !self.heartbeat) {
+            self.heartbeat = new HeartbeatGenerator(self.gateway,config);
+            self.configWatcher.addKeysetWatcher('gateway',true,self.heartbeat);
+          }
+	  //            self.modem.ensureStartStop(ready ? self.pppd.cellular : null);
+          self.heartbeat && self.heartbeat.ensureStartStop(ready ? self.gateway.config : null,self.redisWatcher.client);
         });
+
     }
 
     if (runTransceiver || runAll) {
-        self.queueRouter = new QueueRouter(config);
-        self.configWatcher.addKeysetWatcher('gateway',true,self.queueRouter);
-
-        self.routeWatcher = new RouteWatcher(self.queueRouter);
-        self.redisWatcher.addClientWatcher(self.routeWatcher);
+      self.queueRouter = new QueueRouter(config);
+      self.configWatcher.addKeysetWatcher('gateway',true,self.queueRouter);
+      self.routeWatcher = new RouteWatcher(self.queueRouter);
+      self.redisWatcher.addClientWatcher(self.routeWatcher);
     }
 
     self.redisWatcher.addClientWatcher(self.configWatcher);
