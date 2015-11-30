@@ -20,6 +20,8 @@ util.inherits(HeartbeatGenerator,Watcher);
 HeartbeatGenerator.MILLIS_PER_MIN = MILLIS_PER_MIN;
 
 HeartbeatGenerator.prototype._onStart = function(config,client) {
+  console.log("heartbeat generator onStart was called");
+  console.log(client.constructor.name);
     var self = this;
     self.client = client;
     self.heartbeatInterval = config.heartbeatInterval;

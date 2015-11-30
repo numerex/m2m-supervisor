@@ -1,0 +1,65 @@
+[{"analog_input_01":{"label":"Analog Input 01",
+		    "type":"420mA",
+                    "frequencies":{
+                      "measure":10,
+                      "report":30
+                    },
+		    "coefficients":"[11.25, -13]",
+		    "thresholds":{
+  		      "lowlow":40,
+		      "low":50,
+		      "high":190,
+		      "highhigh":200,
+		      "delta":10,
+		      "deltap":0.1
+		    },
+		    "units":"°F"}},
+ {"analog_input_02":{"label":"Analog Input 02",
+		    "type":"420mA",
+                    "frequencies":{
+                      "measure":10,
+                      "report":60
+                    },
+                    "coefficients":"[11.25, -13]",
+		    "thresholds":{
+  		      "lowlow":40,
+		      "low":50,
+		      "high":190,
+		      "highhigh":200,
+		      "delta":10,
+		      "deltap":0.1
+		    },
+		    "units":"°F"}},
+ {"analog_input_03":{"label":"Analog Input 03",
+                     "type":"05V",
+                    "frequencies":{
+                      "measure":10,
+                      "report":60
+                    },
+                    "coefficients":"[100, -50]",
+		    "thresholds":{
+  		      "lowlow":15,
+		      "low":10,
+		      "high":25,
+		      "highhigh":30,
+		      "delta":2,
+		      "deltap":0.05
+		    },
+	            "units":"°C"}},
+ {"analog_input_04":{"label":"Analog Input 04",
+		    "type":"05V",
+                    "frequencies":{
+                      "measure":10,
+                      "report":60
+                    },
+		    "coefficients":"[100, -50]",
+		    "thresholds":{
+  		      "lowlow":15,
+		      "low":10,
+		      "high":25,
+		      "highhigh":30,
+		      "delta":2,
+		      "deltap":0.05
+		    },
+		    "units":"°C"}}]
+

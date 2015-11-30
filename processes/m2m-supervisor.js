@@ -9,6 +9,7 @@ var RouteWatcher = require('../services/route-watcher');
 var WwanWatcher = require('../services/wwan-watcher');
 var HeartbeatGenerator = require('../services/heartbeat-generator');
 var HttpServer = require('../services/http-server');
+//var SensorManager = require('../services/sensor-manager'); // Meh
 
 var SocketServer = require('../sockets/socket-server');
 var ShellBehavior = require('../sockets/shell-behavior');
@@ -31,6 +32,7 @@ function M2mSupervisor(config){
     var runWeb          = config.runWeb;
     var runBridge       = config.runBridge;
     var runTransceiver  = config.runTransceiver;
+    var runSensorMgr    = true;
     var runAll          = !runWeb && !runBridge && !runTransceiver;
 
     var self = this;
@@ -87,6 +89,14 @@ function M2mSupervisor(config){
       self.routeWatcher = new RouteWatcher(self.queueRouter);
       self.redisWatcher.addClientWatcher(self.routeWatcher);
     }
+
+/*
+    if (runSensorMgr || runAll) {
+      // stub out giving sensor manager some config
+      self.sensorManager = new SensorManager(self.gateway,
+					    config);
+    }
+*/
 
     self.redisWatcher.addClientWatcher(self.configWatcher);
 }
